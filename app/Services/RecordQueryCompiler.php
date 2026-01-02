@@ -30,7 +30,9 @@ class RecordQueryCompiler
 
     public function get()
     {
-        $query = DB::table('records')->where('collection_id', $this->collection?->id);
+        $query = DB::table('records')
+            ->select('data')
+            ->where('collection_id', $this->collection?->id);
 
         // Manual JSON extraction for using mysql
         foreach ($this->filters as $f) {
@@ -44,6 +46,6 @@ class RecordQueryCompiler
             $query->orderByRaw("JSON_UNQUOTE(JSON_EXTRACT(data, '$.\"{$s['field']}\"')) {$s['direction']}");
         }
 
-        return $query->get();
+        return $query->get()->map(fn($d) => json_decode($d->data));
     }
 }

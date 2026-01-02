@@ -11,11 +11,13 @@
     "require": {
         "php": "^8.2",
         "blade-ui-kit/blade-heroicons": "^2.6",
+        "hasnayeen/blade-eva-icons": "^2.1",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^3.7",
         "livewire/volt": "^1.10",
+        "mallardduck/blade-lucide-icons": "^1.26",
         "robsontenorio/mary": "^2.5"
     },
     "require-dev": {

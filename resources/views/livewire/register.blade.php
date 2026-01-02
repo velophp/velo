@@ -39,7 +39,7 @@ $register = function() {
         'type' => CollectionType::Auth,
     ]);
 
-    $collectionFields = [
+    $collectionFields = CollectionField::createAuthFrom([
         [
             'name' => 'name',
             'type' => FieldType::Text,
@@ -47,38 +47,12 @@ $register = function() {
             'required' => true,
         ],
         [
-            'name' => 'email',
-            'type' => FieldType::Email,
-            'unique' => true,
-            'required' => true,
-        ],
-        [
-            'name' => 'verified',
-            'type' => FieldType::Date,
-            'unique' => false,
-            'required' => false,
-        ],
-        [
-            'name' => 'password',
-            'type' => FieldType::Text,
-            'unique' => false,
-            'required' => false,
-        ],
-        [
             'name' => 'avatar',
             'type' => FieldType::File,
             'unique' => false,
             'required' => false,
         ],
-        [
-            'name' => 'created',
-            'type' => FieldType::Timestamp,
-        ],
-        [
-            'name' => 'updated',
-            'type' => FieldType::Timestamp,
-        ],
-    ];
+    ]);
 
     foreach($collectionFields as $f) {
         $userCollection->fields()->create($f);

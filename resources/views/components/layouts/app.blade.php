@@ -31,7 +31,7 @@
             <x-app-brand class="px-5 pt-4" />
 
             {{-- MENU --}}
-            <x-sidebar-menu />
+            <livewire:sidebar-menu />
         </x-slot:sidebar>
 
         {{-- The `$slot` goes here --}}

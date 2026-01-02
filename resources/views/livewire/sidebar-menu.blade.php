@@ -1,0 +1,56 @@
+<?php
+
+use function Livewire\Volt\{state, mount};
+use App\Enums\CollectionType;
+
+state(['projects' => []]);
+
+mount(fn() => $this->projects = \App\Models\Project::get());
+
+function getIcon($type){
+    return match ($type) {
+        CollectionType::Auth => 'o-users',
+        CollectionType::View => 'o-table-cells',
+        default => 'o-archive-box',
+    };
+}
+
+?>
+
+<x-menu activate-by-route>
+
+    @if($user = auth()->user())
+        <x-menu-separator />
+
+        <x-list-item :item="$user" value="name" sub-value="email" no-separator no-hover class="-mx-2 -my-2! rounded">
+            <x-slot:actions>
+                <x-button icon="o-power" class="btn-circle btn-ghost btn-xs" tooltip-left="Log Out" no-wire-navigate
+                    link="{{ route('logout') }}" />
+            </x-slot:actions>
+        </x-list-item>
+
+        <x-menu-separator />
+    @endif
+
+    <x-menu-item title="Find collections..." icon="o-magnifying-glass" class="text-gray-500" />
+
+    <x-menu-separator />
+
+    @foreach ($projects as $project)
+        <x-menu-sub :title="$project->name" icon="o-circle-stack" :open="$loop->first" activate-by-route>
+            @foreach ($project->collections as $c)
+                <x-menu-item :title="$c->name" :icon="getIcon($c->type)" route="collection" :route-params="['collection' => $c->name]" />
+            @endforeach
+        </x-menu-sub>
+    @endforeach
+
+    <div class="mt-8"></div>
+    <x-menu-sub title="System" icon="o-cog-6-tooth" >
+        <x-menu-item title="superusers" icon="o-archive-box" link="" />
+    </x-menu-sub>
+
+    <x-menu-separator />
+
+    <x-menu-item title="Create Collection" icon="o-plus" link="" />
+
+</x-menu>

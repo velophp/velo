@@ -11,4 +11,5 @@ enum FieldType: string
     case Date = 'date';
     case Timestamp = 'timestamp';
     case File = 'file';
+    case Password = 'password';
 }
