@@ -21,7 +21,7 @@ class CollectionField extends Model
         $fields = [
             [
                 'name' => 'id',
-                'type' => FieldType::Number,
+                'type' => FieldType::Text,
                 'unique' => true,
                 'required' => true,
             ],

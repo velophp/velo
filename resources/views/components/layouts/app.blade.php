@@ -23,7 +23,7 @@
     </x-nav>
 
     {{-- MAIN --}}
-    <x-main>
+    <x-main :fullWidth="true">
         {{-- SIDEBAR --}}
         <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-100 lg:bg-inherit">
 
