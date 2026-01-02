@@ -147,7 +147,7 @@ class RecordQueryCompiler
         return $query;
     }
 
-    public function casts(array|DataCollection $data): array|DataCollection
+    public function casts(array|DataCollection &$data): array|DataCollection
     {
         foreach ($data as $key => $value) {
             if ($key === 'created' || $key === 'updated') {
@@ -158,9 +158,12 @@ class RecordQueryCompiler
         return $data;
     }
 
-    public function firstRaw(): Record|null
+    public function firstRaw($casts = false): Record|null
     {
         $result = $this->buildQuery(Record::query())->first();
+        if ($casts && $result?->data) {
+            $result->data = $this->casts($result->data);
+        }
         return $result;
     }
 

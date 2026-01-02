@@ -129,7 +129,7 @@ new class extends Component
     public function show(string $id): void 
     {
         $compiler = new RecordQueryCompiler($this->collection);
-        $result = $compiler->filter('id', '=', $id)->firstWithModel();
+        $result = $compiler->filter('id', '=', $id)->firstRaw(casts: true);
 
         if (!$result) {
             $this->error(
