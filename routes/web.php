@@ -3,8 +3,22 @@
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
-Route::prefix('_')->group(function() {
+Route::prefix('_')->group(function () {
 
-    Volt::route('', 'login_page');
+    Route::middleware(['auth', 'verified'])->group(function () {
+        Volt::route('', 'dashboard')->name('home');
+
+        Route::get('logout', function () {
+            Auth::logout();
+            session()->regenerate(destroy: true);
+            return redirect(route('login'));
+        })->name('logout');
+    });
+
+    Route::middleware(['throttle:60,1'])->group(function () {
+        Volt::route('login', 'login')->name('login');
+        Volt::route('register', 'register')->name('register');
+    });
+
 
 });

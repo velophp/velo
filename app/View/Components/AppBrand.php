@@ -22,12 +22,12 @@ class AppBrand extends Component
     public function render(): View|Closure|string
     {
         return <<<'blade'
-            <a href="/" wire:navigate>
+            <a href="{{ route('home') }}" wire:navigate>
                 <!-- Hidden when collapsed -->
                 <div {{ $attributes->class(["hidden-when-collapsed"]) }}>
                     <div class="flex items-center gap-2 w-fit">
                         <x-icon name="o-cube" class="w-6 -mb-1.5 text-blue-500" />
-                        <span class="font-bold text-3xl me-3 bg-linear-to-r from-blue-500 to-blue-300 bg-clip-text text-transparent ">
+                        <span class="font-bold text-3xl me-3 bg-linear-to-r from-blue-500 to-blue-400 bg-clip-text text-transparent ">
                             {{ config('app.name') }}
                         </span>
                     </div>

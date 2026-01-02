@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\FieldType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -15,10 +16,11 @@ return new class extends Migration
             $table->id();
             $table->foreignId('collection_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->string('type');
-            $table->text('rules');
-            $table->boolean('required');
-            $table->boolean('indexed');
+            $table->string('type')->default(FieldType::Text);
+            $table->text('rules')->nullable();
+            $table->boolean('required')->default(false);
+            $table->boolean('unique')->default(false);
+            $table->boolean('indexed')->default(false);
             $table->timestamps();
         });
     }

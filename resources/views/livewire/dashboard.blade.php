@@ -6,6 +6,6 @@ use function Livewire\Volt\{state};
 
 ?>
 
-<main>
+<div>
     
-</main>
+</div>

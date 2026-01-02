@@ -1,7 +1,6 @@
 <?php
 
-use App\CollectionType;
-use App\Models\Collection;
+use App\Enums\CollectionType;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
