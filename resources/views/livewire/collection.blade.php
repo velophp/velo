@@ -4,20 +4,62 @@ use App\Enums\FieldType;
 use App\Models\Collection;
 use App\Models\Record;
 use App\Services\RecordQueryCompiler;
-use function Livewire\Volt\{state, mount, title, usesFileUploads, protect};
+use App\Services\RecordRulesCompiler;
+use function Livewire\Volt\{state, mount, title, usesFileUploads, usesPagination, protect, computed};
 
 usesFileUploads();
+usesPagination();
 
 state([
     'collection',
     'fields',
     'breadcrumbs' => [],
-    'search' => '',
-    'tableHeaders' => [],
-    'tableRows' => [],
     'showDetailDrawer' => false,
-    'form' => []
+    'form' => [],
 ]);
+
+state([
+    'perPage' => 15,
+    'filter' => '',
+    'sortBy' => ['column' => 'created', 'direction' => 'desc'],
+    'selected' => [],
+]);
+
+$tableHeaders = computed(function() {
+    return $this->fields->map(function($f) {
+        $headers = [
+            'key' => $f->name,
+            'label' => $f->name,
+            'format' => null,
+        ];
+
+        if ($f->type == FieldType::Timestamp) {
+            $headers['format'] = ['date', 'Y-m-d H:i:s'];
+        }elseif($f->type == FieldType::Date) {
+            $headers['format'] = ['date', 'Y-m-d'];
+        }elseif($f->type == FieldType::Bool) {
+            $headers['format'] = fn($row, $field) => $field ? 'Yes' : 'No';
+        }else{
+            $headers['format'] = fn($row, $field) => $field ? $field : '-';
+        }
+
+        return $headers;
+    })->toArray();
+});
+
+$tableRows = computed(function() {
+    $compiler = new RecordQueryCompiler($this->collection);
+    
+    if (!empty($this->sortBy['column'])) {
+        $compiler->sort($this->sortBy['column'], $this->sortBy['direction']);
+    }
+
+    if (!empty($this->filter)) {
+        $compiler->filterFromString($this->filter);
+    }
+
+    return $compiler->paginate($this->perPage);
+});
 
 mount(function (Collection $collection) {
     $this->collection = $collection;
@@ -27,58 +69,18 @@ mount(function (Collection $collection) {
         $this->form[$field->name] = $field->type === FieldType::Bool ? false : '';
     }
 
-    $compiler = new RecordQueryCompiler($collection);
-
     $this->breadcrumbs = [
         ['link' => route('home'), 'icon' => 's-home'],
         ['label' => 'Collection'],
         ['label' => $this->collection->name]
     ];
-
-    $this->tableHeaders = $this->fields->map(fn($f) => [
-        'key' => $f->name,
-        'label' => $f->name,
-    ])->toArray();
-
-    $this->tableRows = $compiler->get();
 });
 
 title(fn() => "Collection - {$this->collection->name}");
 
 $validateFields = protect(function() {
-    $rules = [];
-
-    foreach ($this->fields as $field) {
-        if (in_array($field->name, ['created', 'updated'])) {
-            continue;
-        }
-
-        $fieldRules = [];
-
-        if ($field->name === 'id') {
-            $fieldRules[] = 'nullable';
-        } elseif ($field->required) {
-            $fieldRules[] = 'required';
-        } else {
-            $fieldRules[] = 'nullable';
-        }
-
-        if ($field->type === FieldType::Email) {
-            $fieldRules[] = 'email';
-        }
-        
-        if ($field->type === FieldType::Number) {
-            $fieldRules[] = 'numeric';
-        }
-
-        if ($field->type === FieldType::Bool) {
-            $fieldRules[] = 'boolean';
-        }
-
-        $rules['form.' . $field->name] = $fieldRules;
-    }
-
-    return $this->validate($rules);
+    $rulesCompiler = new RecordRulesCompiler($this->collection);
+    return $this->validate($rulesCompiler->getRules());
 });
 
 $save = function() {
@@ -95,8 +97,7 @@ $save = function() {
         $this->form[$field->name] = $field->type === FieldType::Bool ? false : '';
     }
 
-    $compiler = new RecordQueryCompiler($this->collection);
-    $this->tableRows = $compiler->get();
+    unset($this->tableRows);
 };
 
 ?>
@@ -118,20 +119,36 @@ $save = function() {
 
     <div class="my-8"></div>
 
-    <x-input wire:model.live.debounce.250ms="search" placeholder="Search term or filter using rules..." icon="o-magnifying-glass" clearable />
+    <x-input wire:model.live.debounce.250ms="filter" placeholder="Search term or filter using rules..." icon="o-magnifying-glass" clearable />
 
     <div class="my-8"></div>
 
-    <x-table :headers="$tableHeaders" :rows="$tableRows" striped @row-click="alert($event.detail.name)" />
+    <x-table 
+        :headers="$this->tableHeaders"
+        :rows="$this->tableRows"
+        {{-- @row-click="alert($event.detail.name)" --}}
+        wire:model="selected"
+        selectable
+        striped 
+        with-pagination
+        per-page="perPage"
+        :per-page-values="[10, 15, 25, 50, 100, 250, 500]"
+        :sort-by="$sortBy"
+        >
+        <x-slot:empty>
+            <div class="flex flex-col items-center my-4">
+                <p class="text-gray-500 text-center mb-4">No results found.</p>
+                <x-button label="New Record" class="btn-primary btn-soft btn-sm" icon="o-plus" wire:click="$toggle('showDetailDrawer')" />
+            </div>
+        </x-slot:empty>
 
-    @if($tableRows->count() < 1)
-
-        <div class="flex flex-col items-center my-8">
-            <p class="text-gray-500 text-center mb-4">No results found.</p>
-            <x-button label="New Record" class="btn-primary btn-soft btn-sm" icon="o-plus" wire:click="$toggle('showDetailDrawer')" />
-        </div>
-
-    @endif
+        @scope('cell_id', $row)
+            <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
+                <p>{{ $row->id }}</p>
+                <x-button icon="o-document-duplicate" class="btn-circle btn-ghost btn-xs" x-on:click="window.copyText('{{ $row->id }}')" />
+            </div>
+        @endscope
+    </x-table>
 
     <x-drawer wire:model="showDetailDrawer" class="w-11/12 lg:w-1/3" right>
         <div class="flex justify-between">

@@ -42,5 +42,15 @@
 
     {{--  TOAST area --}}
     <x-toast />
+
+    <script>
+        window.copyText = (text) => {
+            navigator.clipboard.writeText(text)
+            .then(() => {})
+            .catch(err => {
+                console.error("Failed to copy", err);
+            });
+        }
+    </script>
 </body>
 </html>
