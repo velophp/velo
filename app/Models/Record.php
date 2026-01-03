@@ -39,11 +39,11 @@ class Record extends Model
             }
 
             if (!$record->exists && $data->has('created')) {
-                $data->put('created', now()->timestamp);
+                $data->put('created', now()->utc()->toIso8601String());
             }
 
             if ($data->has('updated')) {
-                $data->put('updated', now()->timestamp);
+                $data->put('updated', now()->utc()->toIso8601String());
             }
 
             $record->data = $data;

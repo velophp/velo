@@ -127,16 +127,19 @@
                         <x-toggle :label="$field->name" wire:model="form.{{ $field->name }}" id="form-{{ $field->name }}" />
                         @break
                     @case(\App\Enums\FieldType::Email)
-                        <x-input :label="$field->name" type="email" wire:model="form.{{ $field->name }}" icon="o-envelope" :required="$field->required"  />
+                        <x-input :label="$field->name" type="email" wire:model="form.{{ $field->name }}" icon="o-envelope" :required="$field->required == true" />
                         @break
                     @case(\App\Enums\FieldType::Number)
-                        <x-input :label="$field->name" type="number" wire:model="form.{{ $field->name }}" icon="o-hashtag" :required="$field->required"  />
+                        <x-input :label="$field->name" type="number" wire:model="form.{{ $field->name }}" icon="o-hashtag" :required="$field->required == true" />
                         @break
                     @case(\App\Enums\FieldType::Datetime)
-                        <x-input :label="$field->name" type="datetime" wire:model="form.{{ $field->name }}" icon="o-calendar-days" :required="$field->required"  />
+                        <x-input :label="$field->name" type="datetime" wire:model="form.{{ $field->name }}" icon="o-calendar-days" :required="$field->required == true" />
+                        @break
+                    @case(\App\Enums\FieldType::File)
+                            <x-file-library :label="$field->name" wire:model="files.{{ $field->name }}" wire:library="library.{{ $field->name }}" :preview="data_get($library, $field->name, collect([]))" hint="rule" accept="image/*" />
                         @break
                     @default
-                        <x-input :label="$field->name" wire:model="form.{{ $field->name }}" icon="lucide.text-cursor"  />
+                        <x-input :label="$field->name" wire:model="form.{{ $field->name }}" icon="lucide.text-cursor" :required="$field->required == true" />
                 @endswitch
             @endforeach
         

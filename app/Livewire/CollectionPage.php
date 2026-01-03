@@ -5,15 +5,16 @@ namespace App\Livewire;
 use App\Enums\{FieldType, CollectionType};
 use App\Models\{Collection, CollectionField, Record};
 use App\Services\{RecordQueryCompiler,RecordRulesCompiler};
-use Livewire\Attributes\{Computed, Title, On};
+use App\Traits\FileLibrarySync;
+use Livewire\Attributes\{Computed, Title, On, Rule};
 use Livewire\Component;
 use Livewire\{WithFileUploads, WithPagination};
 use Mary\Traits\Toast;
-use Carbon\Carbon;
+use Illuminate\Support\Collection as LaravelCollection;
 
 class CollectionPage extends Component
 {
-    use WithFileUploads, WithPagination, Toast;
+    use WithFileUploads, WithPagination, Toast, FileLibrarySync;
 
     public Collection $collection;
     public $fields;
@@ -22,9 +23,16 @@ class CollectionPage extends Component
     public bool $showConfirmDeleteDialog = false;
     public bool $showConfigureCollectionDrawer = false;
     public array $recordToDelete = [];
-    public array $form = [];
     public array $collectionForm = ['fields' => []];
     public string $tabSelected = 'fields-tab';
+
+    // Form State
+    public array $form = [];
+
+    // File Library State
+    #[Rule(['files.*.*' => 'image|max:10240'])]
+    public array $files = []; // Temp files for image library
+    public array $library = [];
 
     // Table State
     public int $perPage = 15;
@@ -37,13 +45,20 @@ class CollectionPage extends Component
         $this->collection = $collection;
         $this->fields = $collection->fields;
         
+        $this->library = [];
+
         foreach ($this->fields as $field) {
             $this->form[$field->name] = $field->type === FieldType::Bool ? false : '';
+            
+            if ($field->type === FieldType::File) {
+                $this->files[$field->name] = [];
+                $this->library[$field->name] = collect([]);
+            }
         }
 
         $this->breadcrumbs = [
             ['link' => route('home'), 'icon' => 's-home'],
-            ['label' => 'Collection'],
+            ['label' => ucfirst(request()->segment(2))],
             ['label' => $this->collection->name]
         ];
     }
@@ -66,7 +81,9 @@ class CollectionPage extends Component
     #[Computed]
     public function tableHeaders(): array
     {
-        return $this->fields->map(function ($f) {
+        $parseFiles = fn($f) => empty($f) ? '-' : implode(' ', array_map(fn($v) => '[IMAGE][' . $v->url . ']', $f));
+
+        return $this->fields->map(function ($f) use ($parseFiles) {
             $headers = [
                 'key' => $f->name,
                 'label' => $f->name,
@@ -77,8 +94,10 @@ class CollectionPage extends Component
                 $headers['format'] = ['date', 'Y-m-d H:i:s'];
             } elseif ($f->type == FieldType::Bool) {
                 $headers['format'] = fn($row, $field) => $field ? 'Yes' : 'No';
+            } elseif ($f->type == FieldType::File) {
+                $headers['format'] = fn($row, $field) => $parseFiles($field);
             } else {
-                $headers['format'] = fn($row, $field) => $field ? $field : '-';
+                $headers['format'] = fn($row, $field) => $field ?: '-';
             }
 
             return $headers;
@@ -123,22 +142,76 @@ class CollectionPage extends Component
                 ->firstRaw();
         }
 
+        unset($this->form['id_old']);
+
         if ($record) {
-            unset($this->form['id_old']);
+            
+            // Sync file fields to storage and update form
+            foreach ($this->fields as $field) {
+                if ($field->type === FieldType::File) {
+                    $existingLibrary = is_array($record->data) && isset($record->data[$field->name]) 
+                        ? $record->data[$field->name] 
+                        : [];
+                    
+                    if (!empty($this->files[$field->name])) {
+                        $updatedLibrary = $this->syncMedia(
+                            library: "library.{$field->name}",
+                            files: "files.{$field->name}",
+                            storage_subpath: "collections/{$this->collection->name}/{$record->data['id']}/{$field->name}",
+                            existingLibrary: $existingLibrary
+                        );
+                        
+                        $this->form[$field->name] = $updatedLibrary->toArray();
+                    } else {
+                        // Just update library if files were removed but not added
+                        $currentLibrary = data_get($this, "library.{$field->name}");
+                        if ($currentLibrary instanceof LaravelCollection) {
+                            $this->form[$field->name] = $currentLibrary->toArray();
+                        }
+                    }
+                }
+            }
+            
             $record->update([
                 'data' => $this->form,
             ]);
         } else {
-            Record::create([
+            $record = Record::create([
                 'collection_id' => $this->collection->id,
                 'data' => $this->form,
             ]);
+
+            // Sync file fields to storage and update form
+            foreach ($this->fields as $field) {
+                if ($field->type === FieldType::File && !empty($this->files[$field->name])) {
+                    $updatedLibrary = $this->syncMedia(
+                        library: "library.{$field->name}",
+                        files: "files.{$field->name}",
+                        storage_subpath: "collections/{$this->collection->name}/{$record->data['id']}/{$field->name}",
+                        existingLibrary: []
+                    );
+                    
+                    $this->form[$field->name] = $updatedLibrary->toArray();
+                }
+            }
+            
+            // Update record with file URLs if any were uploaded
+            if (collect($this->fields)->where('type', FieldType::File)->isNotEmpty()) {
+                $record->update([
+                    'data' => $this->form,
+                ]);
+            }
         }
 
         $this->showRecordDetailDrawer = false;
 
         foreach ($this->fields as $field) {
             $this->form[$field->name] = $field->type === FieldType::Bool ? false : '';
+            
+            if ($field->type === FieldType::File) {
+                $this->files[$field->name] = [];
+                $this->library[$field->name] = collect([]);
+            }
         }
         
         unset($this->tableRows);
@@ -170,9 +243,9 @@ class CollectionPage extends Component
             return;
         }
 
-        $data = $result->data;
-        $this->form = ['id_old' => $data['id'], ...$data];
-        $this->showRecordDetailDrawer = true;
+        $data = collect($result->data);
+        $data = ['id_old' => $data['id'], ...$data];
+        $this->openRecordDrawer($data);
     }
 
     public function duplicate(string $id): void 
@@ -192,7 +265,7 @@ class CollectionPage extends Component
             return;
         }
 
-        $data = $result->data;
+        $data = collect($result->data);
         $this->form = [...$data, 'id' => ''];
         $this->showRecordDetailDrawer = true;
     }
@@ -244,10 +317,40 @@ class CollectionPage extends Component
         );
     }
 
-    public function openRecordDrawer()
+    public function openRecordDrawer($data = null)
     {
-        foreach ($this->fields as $field) {
-            $this->form[$field->name] = $field->type === FieldType::Bool ? false : '';
+        if (!$data) {
+            foreach ($this->fields as $field) {
+                if ($field->type === FieldType::Bool) {
+                    $this->form[$field->name] = false;
+                    continue;
+                }
+
+                if ($field->type === FieldType::File) {
+                    $this->form[$field->name] = [];
+                    $this->files[$field->name] = [];
+                    $this->library[$field->name] = collect([]);
+                    continue;
+                }
+
+                $this->form[$field->name] = '';
+            }
+        } else {
+            $this->form = $data;
+            
+            foreach ($this->fields as $field) {
+                if ($field->type === FieldType::File) {
+                    $this->files[$field->name] = [];
+                    
+                    // Load existing library data from form if it exists
+                    $existingLibrary = $this->form[$field->name] ?? [];
+                    if (is_array($existingLibrary) && !empty($existingLibrary)) {
+                        $this->library[$field->name] = collect($existingLibrary);
+                    } else {
+                        $this->library[$field->name] = collect([]);
+                    }
+                }
+            }
         }
         
         $this->showRecordDetailDrawer = true;
