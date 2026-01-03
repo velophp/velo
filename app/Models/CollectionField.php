@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Enums\FieldType;
+use App\Models\Collection;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CollectionField extends Model
 {
@@ -16,7 +18,12 @@ class CollectionField extends Model
         ];
     }
 
-    public static function createAuthFrom($fields)
+    public function collection(): BelongsTo
+    {
+        return $this->belongsTo(Collection::class);
+    }
+
+    public static function createAuthFrom($fields): array
     {
         $fields = [
             [
@@ -39,7 +46,7 @@ class CollectionField extends Model
             ],
             [
                 'name' => 'password',
-                'type' => FieldType::Password,
+                'type' => FieldType::Text,
                 'unique' => false,
                 'required' => true,
             ],
@@ -61,35 +68,5 @@ class CollectionField extends Model
         ];
 
         return $fields;
-    }
-
-    public static function createFrom($fields)
-    {
-
-        $headers = [
-            [
-                'name' => 'id',
-                'type' => FieldType::Number,
-                'unique' => true,
-                'required' => true,
-            ],
-
-            ...$fields,
-
-            [
-                'name' => 'created',
-                'type' => FieldType::Timestamp,
-                'unique' => false,
-                'required' => false,
-            ],
-            [
-                'name' => 'updated',
-                'type' => FieldType::Timestamp,
-                'unique' => false,
-                'required' => false,
-            ],
-        ];
-
-        return $headers;
     }
 }

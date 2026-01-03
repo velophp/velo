@@ -1,9 +1,9 @@
 <?php
 
-use App\Enums\FieldType;
+use App\Enums\{FieldType, CollectionType};
 use App\Models\{Collection, Record};
 use App\Services\{RecordQueryCompiler,RecordRulesCompiler};
-use Livewire\Attributes\{Computed, Title};
+use Livewire\Attributes\{Computed, Title, On};
 use Livewire\Volt\Component;
 use Livewire\{WithFileUploads, WithPagination};
 use Mary\Traits\Toast;
@@ -103,10 +103,29 @@ new class extends Component
     {
         $this->validateFields();
 
-        Record::create([
-            'collection_id' => $this->collection->id,
-            'data' => $this->form
-        ]);
+        $recordId = $this->form['id_old'] ?? null;
+
+        $status = $recordId ? 'Updated' : 'Created';
+
+        $record = null;
+
+        if ($recordId) {
+            $record = $this->collection->queryCompiler()
+                ->filter('id', '=', $recordId)
+                ->firstRaw();
+        }
+
+        if ($record) {
+            unset($this->form['id_old']);
+            $record->update([
+                'data' => $this->form,
+            ]);
+        } else {
+            Record::create([
+                'collection_id' => $this->collection->id,
+                'data' => $this->form,
+            ]);
+        }
 
         $this->showRecordDetailDrawer = false;
 
@@ -118,7 +137,7 @@ new class extends Component
 
         $this->success(
             title: 'Success!',
-            description: "Created new {$this->collection->name} record",
+            description: "$status new {$this->collection->name} record",
             position: 'toast-bottom toast-end',
             icon: 'o-check-circle',
             css: 'alert-success',
@@ -129,7 +148,7 @@ new class extends Component
     public function show(string $id): void 
     {
         $compiler = new RecordQueryCompiler($this->collection);
-        $result = $compiler->filter('id', '=', $id)->firstRaw(casts: true);
+        $result = $compiler->filter('id', '=', $id)->first();
 
         if (!$result) {
             $this->error(
@@ -143,7 +162,30 @@ new class extends Component
             return;
         }
 
-        $this->form = $result->data->all();
+        $data = $result->data;
+        $this->form = ['id_old' => $data['id'], ...$data];
+        $this->showRecordDetailDrawer = true;
+    }
+
+    public function duplicate(string $id): void 
+    {
+        $compiler = new RecordQueryCompiler($this->collection);
+        $result = $compiler->filter('id', '=', $id)->first();
+
+        if (!$result) {
+            $this->error(
+                title: 'Cannot duplicate record.',
+                description: "Record not found.",
+                position: 'toast-bottom toast-end',
+                icon: 'o-information-circle',
+                css: 'alert-error',
+                timeout: 3000,
+            );
+            return;
+        }
+
+        $data = $result->data;
+        $this->form = [...$data, 'id' => ''];
         $this->showRecordDetailDrawer = true;
     }
 
@@ -202,6 +244,18 @@ new class extends Component
         
         $this->showRecordDetailDrawer = true;
     }
+
+    #[On('toast')]
+    public function showToast($message = 'Ok')
+    {
+        $this->info(
+            title: $message,
+            position: 'toast-bottom toast-end',
+            icon: 'o-information-circle',
+            css: 'alert-info',
+            timeout: 3000,
+        );
+    }
 }
 ?>
 
@@ -249,19 +303,19 @@ new class extends Component
         @scope('cell_id', $row)
             <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
                 <p>{{ $row->id }}</p>
-                <x-button icon="o-document-duplicate" class="btn-circle btn-ghost btn-xs" x-on:click="window.copyText('{{ $row->id }}')" />
+                <x-copy-button :text="$row->id" />
             </div>
         @endscope
 
         @scope('cell_created', $row)
-            <div class="flex flex-col">
+            <div class="flex flex-col w-20">
                 <p>{{ Carbon::parse($row->created)->format('Y-m-d') }}</p>
                 <p class="text-xs opacity-80">{{ Carbon::parse($row->created)->format('H:i:s') }}</p>
             </div>
         @endscope
 
         @scope('cell_updated', $row)
-            <div class="flex flex-col">
+            <div class="flex flex-col w-20">
                 <p>{{ Carbon::parse($row->created)->format('Y-m-d') }}</p>
                 <p class="text-xs opacity-80">{{ Carbon::parse($row->created)->format('H:i:s') }}</p>
             </div>
@@ -297,12 +351,19 @@ new class extends Component
                     <x-button icon="o-bars-2" class="btn-circle btn-ghost" :hidden="empty($form['id'])" />
                 </x-slot:trigger>
             
-                <x-menu-item title="Copy raw JSON" icon="o-document-text" />
-                <x-menu-item title="Duplicate" icon="o-document-duplicate" />
+                <x-menu-item title="Copy raw JSON" icon="o-document-text" x-data="{
+                    copyJson() {
+                        const data = Object.fromEntries(Object.entries($wire.form).filter(([key]) => key !== 'id_old'));
+                        const json = JSON.stringify(data, null, 2);
+                        window.copyText(json);
+                        $wire.dispatchSelf('toast', {message: 'Copied raw JSON to your clipboard.'});
+                    }
+                }" x-on:click="copyJson" />
+                <x-menu-item title="Duplicate" icon="o-document-duplicate" x-on:click="$wire.duplicate($wire.form.id_old)" />
 
                 <x-menu-separator />
 
-                <x-menu-item title="Delete" icon="o-trash" class="text-error" wire:click="promptDelete('{{ $form['id'] }}')" />
+                <x-menu-item title="Delete" icon="o-trash" class="text-error" x-on:click="$wire.promptDelete($wire.form.id_old)" />
             </x-dropdown>
         </div>
         
@@ -311,10 +372,14 @@ new class extends Component
         <x-form wire:submit="save">
             @foreach($fields as $field)
                 @if ($field->name === 'id')
+                    <x-input type="text" wire:model="form.id_old" class="hidden" />
                     <x-input :label="$field->name" type="text" wire:model="form.id" icon="o-key" placeholder="Leave blank to auto generate..." />
                     @continue
                 @elseif ($field->name === 'created' || $field->name === 'updated')
                     <x-input :label="$field->name" type="datetime" wire:model="form.{{ $field->name }}" icon="o-calendar-days" readonly />
+                    @continue
+                @elseif ($field->name === 'password' && $field->collection->type === CollectionType::Auth)
+                    <x-password :label="$field->name" wire:model="form.{{ $field->name }}" password-icon="o-lock-closed" placeholder="Fill to change password..." />
                     @continue
                 @endif
 
@@ -330,9 +395,6 @@ new class extends Component
                         @break
                     @case(\App\Enums\FieldType::Timestamp)
                         <x-input :label="$field->name" type="datetime" wire:model="form.{{ $field->name }}" icon="o-calendar-days" :required="$field->required"  />
-                        @break
-                    @case(\App\Enums\FieldType::Password)
-                        <x-password :label="$field->name" wire:model="form.{{ $field->name }}" password-icon="o-lock-closed" :required="$field->required"  />
                         @break
                     @default
                         <x-input :label="$field->name" wire:model="form.{{ $field->name }}" icon="lucide.text-cursor"  />

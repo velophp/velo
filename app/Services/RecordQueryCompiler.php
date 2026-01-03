@@ -162,7 +162,16 @@ class RecordQueryCompiler
     {
         $result = $this->buildQuery(Record::query())->first();
         if ($casts && $result?->data) {
-            $result->data = $this->casts($result->data);
+            $this->casts($result->data);
+        }
+        return $result;
+    }
+
+    public function first(): Record|null
+    {
+        $result = $this->buildQuery(Record::query())->first();
+        if ($result?->data) {
+            $this->casts($result->data);
         }
         return $result;
     }
