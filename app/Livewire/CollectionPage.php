@@ -16,6 +16,8 @@ class CollectionPage extends Component
 {
     use WithFileUploads, WithPagination, Toast, FileLibrarySync;
 
+    public $testScope = 'cell_avatar';
+
     public Collection $collection;
     public $fields;
     public array $breadcrumbs = [];
@@ -30,14 +32,14 @@ class CollectionPage extends Component
     public array $form = [];
 
     // File Library State
-    #[Rule(['files.*.*' => 'image|max:10240'])]
+    #[Rule(['files.*.*' => 'max:10240'])]
     public array $files = []; // Temp files for image library
     public array $library = [];
 
     // Table State
     public int $perPage = 15;
     public string $filter = '';
-    public array $sortBy = ['column' => 'created', 'direction' => 'desc'];
+    public array $sortBy = ['column' => 'created', 'direction' => 'asc'];
     public array $selected = [];
 
     public function mount(Collection $collection): void
@@ -171,7 +173,7 @@ class CollectionPage extends Component
                     }
                 }
             }
-            
+
             $record->update([
                 'data' => $this->form,
             ]);
@@ -266,8 +268,8 @@ class CollectionPage extends Component
         }
 
         $data = collect($result->data);
-        $this->form = [...$data, 'id' => ''];
-        $this->showRecordDetailDrawer = true;
+        $data = [...$data, 'id' => ''];
+        $this->openRecordDrawer($data);
     }
 
     public function promptDelete($id): void

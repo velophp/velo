@@ -1,5 +1,5 @@
 BUG:
-- x-input required=false will still be interpreted as required == true by the browser
+- duplicating a row with files in it will not copy the files from original row, hence pointing to the same file
 
 IMPROVEMENT:
 - add whereIn record query compiler for efficient filtering

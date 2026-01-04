@@ -1,3 +1,9 @@
+@assets
+    <script src="https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/umd/photoswipe.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/umd/photoswipe-lightbox.umd.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/photoswipe.min.css" rel="stylesheet">
+@endassets
+
 <div class="relative">
     
     <div class="flex justify-between flex-wrap">
@@ -25,7 +31,6 @@
         {{-- @row-click="$wire.show($event.detail.id)" --}}
         wire:model.live.debounce.250ms="selected"
         selectable
-        @row-selection="console.log($event.detail)"
         striped 
         with-pagination
         per-page="perPage"
@@ -47,18 +52,71 @@
         @endscope
 
         @scope('cell_created', $row)
-            <div class="flex flex-col w-20">
-                <p>{{ Carbon\Carbon::parse($row->created)->format('Y-m-d') }}</p>
-                <p class="text-xs opacity-80">{{ Carbon\Carbon::parse($row->created)->format('H:i:s') }}</p>
-            </div>
+            @if(isset($row->created) && $row->created)
+                <div class="flex flex-col w-20">
+                    <p>{{ Carbon\Carbon::parse($row->created)->format('Y-m-d') }}</p>
+                    <p class="text-xs opacity-80">{{ Carbon\Carbon::parse($row->created)->format('H:i:s') }}</p>
+                </div>
+            @else
+                <p>-</p>
+            @endif
         @endscope
 
         @scope('cell_updated', $row)
-            <div class="flex flex-col w-20">
-                <p>{{ Carbon\Carbon::parse($row->created)->format('Y-m-d') }}</p>
-                <p class="text-xs opacity-80">{{ Carbon\Carbon::parse($row->created)->format('H:i:s') }}</p>
-            </div>
+            @if(isset($row->updated) && $row->updated)
+                <div class="flex flex-col w-20">
+                    <p>{{ Carbon\Carbon::parse($row->updated)->format('Y-m-d') }}</p>
+                    <p class="text-xs opacity-80">{{ Carbon\Carbon::parse($row->updated)->format('H:i:s') }}</p>
+                </div>
+            @else
+                <p>-</p>
+            @endif
         @endscope
+
+        @foreach ($fields as $field)
+            @if ($field->type === App\Enums\FieldType::File)
+                @cscope('cell_' . $field->name, $row, $field)
+                    @php
+                        $files = isset($row->{$field->name}) ?  $row->{$field->name} : [];
+                    @endphp
+                    @if (!empty($files))
+                        <div
+                            x-data="{
+                                init() {
+                                    const lightbox = new PhotoSwipeLightbox({
+                                        gallery: '#gallery-{{ str($row->id . '-' . $field->name)->slug() }}',
+                                        children: 'a',
+                                        pswpModule: PhotoSwipe
+                                    });
+
+                                    lightbox.init();
+                                }
+                            }"
+                        >
+                            <div id="gallery-{{ str($row->id . '-' . $field->name)->slug() }}" class="pswp-gallery pswp-gallery--single-column carousel">
+                                @foreach(array_slice($files, 0, 3) as $file)
+                                    <a class="carousel-item" href="{{ $file->url }}" @if(!$file->is_previewable) x-on:click.prevent="window.open('{{ $file->url }}')" @endif target="_blank">
+                                        @if ($file->is_previewable)
+                                            <img
+                                                src="{{ $file->url }}"
+                                                class="object-cover hover:opacity-70 transition max-w-12 w-full aspect-square rounded me-2"
+                                                onload="this.parentNode.setAttribute('data-pswp-width', this.naturalWidth); this.parentNode.setAttribute('data-pswp-height', this.naturalHeight)"
+                                            />
+                                        @else
+                                            <div class="w-12 h-12 rounded hover:opacity-70 me-2 border flex justify-center items-center">
+                                                <x-icon name="o-document" />
+                                            </div>
+                                        @endif
+                                    </a>
+                                @endforeach
+                            </div>
+                        </div>
+                    @else
+                        -
+                    @endif
+                @endscope
+            @endif
+        @endforeach
 
         @scope('actions', $row)
             <x-button icon="o-arrow-right" wire:click="show('{{ $row->id }}')" spinner class="btn-sm" />
@@ -77,7 +135,7 @@
         </div>
     </div>
 
-    {{-- === MODALS === --}}
+    {{-- MODALS --}}
 
     <x-drawer wire:model="showRecordDetailDrawer" class="w-11/12 lg:w-1/3" right>
         <div class="flex justify-between">
@@ -136,7 +194,7 @@
                         <x-input :label="$field->name" type="datetime" wire:model="form.{{ $field->name }}" icon="o-calendar-days" :required="$field->required == true" />
                         @break
                     @case(\App\Enums\FieldType::File)
-                            <x-file-library :label="$field->name" wire:model="files.{{ $field->name }}" wire:library="library.{{ $field->name }}" :preview="data_get($library, $field->name, collect([]))" hint="rule" accept="image/*" />
+                            <x-file-library :label="$field->name" wire:model="files.{{ $field->name }}" wire:library="library.{{ $field->name }}" :preview="data_get($library, $field->name, collect([]))" hint="rule" accept="*" />
                         @break
                     @default
                         <x-input :label="$field->name" wire:model="form.{{ $field->name }}" icon="lucide.text-cursor" :required="$field->required == true" />
@@ -301,4 +359,5 @@
             <x-button class="btn-error" label="Delete" wire:click="confirmDelete" spinner="confirmDelete" />
         </x-slot:actions>
     </x-modal>
+
 </div>

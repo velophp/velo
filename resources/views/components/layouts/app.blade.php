@@ -22,35 +22,19 @@
         </x-slot:actions>
     </x-nav>
 
-    {{-- MAIN --}}
     <x-main :fullWidth="true">
-        {{-- SIDEBAR --}}
         <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-100 lg:bg-inherit">
 
-            {{-- BRAND --}}
             <x-app-brand class="px-5 pt-4" />
 
-            {{-- MENU --}}
             <livewire:sidebar-menu />
         </x-slot:sidebar>
 
-        {{-- The `$slot` goes here --}}
         <x-slot:content>
             {{ $slot }}
         </x-slot:content>
     </x-main>
 
-    {{--  TOAST area --}}
     <x-toast />
-
-    <script>
-        window.copyText = (text) => {
-            navigator.clipboard.writeText(text)
-            .then(() => {})
-            .catch(err => {
-                console.error("Failed to copy", err);
-            });
-        }
-    </script>
 </body>
 </html>

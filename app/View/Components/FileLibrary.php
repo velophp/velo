@@ -1,4 +1,5 @@
 <?php
+# Source: MaryUI Image Library
 
 namespace App\View\Components;
 
@@ -130,13 +131,10 @@ class FileLibrary extends Component
                                                 @click="document.getElementById('file-{{ $uuid}}-{{ $key }}').click()"
                                                 id="image-{{ $modelName().'.'.$key  }}-{{ $uuid }}" />
                                         @else
-                                            <div class="h-24 w-full flex items-center gap-2 border-2 border-base-content/10 rounded-lg px-3 bg-base-200/60 cursor-pointer" @click="document.getElementById('file-{{ $uuid}}-{{ $key }}').click()">
+                                            <div class="h-24 flex max-w-64 items-center gap-2 border-2 border-base-content/10 rounded-lg px-3 bg-base-200/60 cursor-pointer" @click="document.getElementById('file-{{ $uuid}}-{{ $key }}').click()">
                                                 <x-icon name="o-document" class="w-8 h-8" />
-                                                <div class="text-sm truncate">
-                                                    @if(isset($image['extension']))
-                                                        <span class="font-semibold uppercase text-xs mr-1">.{{ $image['extension'] }}</span>
-                                                    @endif
-                                                    {{ basename($image['url'] ?? 'file') }}
+                                                <div class="text-sm text-wrap">
+                                                    {{ $image['uuid'] . '.' . $image['extension'] }}
                                                 </div>
                                             </div>
                                         @endif
