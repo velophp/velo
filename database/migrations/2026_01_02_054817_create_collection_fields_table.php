@@ -18,7 +18,7 @@ return new class extends Migration
             $table->integer('order')->default(0);
             $table->string('name');
             $table->string('type')->default(FieldType::Text);
-            $table->text('rules')->nullable();
+            $table->json('rules')->nullable();
             $table->boolean('required')->default(false);
             $table->boolean('unique')->default(false);
             $table->boolean('indexed')->default(false);

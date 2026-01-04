@@ -16,12 +16,10 @@ class CollectionPage extends Component
 {
     use WithFileUploads, WithPagination, Toast, FileLibrarySync;
 
-    public $testScope = 'cell_avatar';
-
     public Collection $collection;
     public $fields;
     public array $breadcrumbs = [];
-    public bool $showRecordDetailDrawer = false;
+    public bool $showRecordDrawer = false;
     public bool $showConfirmDeleteDialog = false;
     public bool $showConfigureCollectionDrawer = false;
     public array $recordToDelete = [];
@@ -49,6 +47,9 @@ class CollectionPage extends Component
         $this->fields = $collection->fields;
 
         $this->library = [];
+
+        // Preload forms for snappier feels
+        $this->fillCollectionForm();
 
         foreach ($this->fields as $i => $field) {
             $this->fieldsVisibility[$field->name] = $i < 6 || \in_array($field->name, ['created', 'updated']);
@@ -219,7 +220,7 @@ class CollectionPage extends Component
             }
         }
 
-        $this->showRecordDetailDrawer = false;
+        $this->showRecordDrawer = false;
 
         foreach ($this->fields as $field) {
             $this->form[$field->name] = $field->type === FieldType::Bool ? false : '';
@@ -261,79 +262,11 @@ class CollectionPage extends Component
 
         $data = collect($result->data);
         $data = ['id_old' => $data['id'], ...$data];
-        $this->openRecordDrawer($data);
+        $this->fillRecordForm($data);
+        $this->showRecordDrawer = true;
     }
 
-    public function duplicate(string $id): void 
-    {
-        $compiler = new RecordQueryCompiler($this->collection);
-        $result = $compiler->filter('id', '=', $id)->first();
-
-        if (!$result) {
-            $this->error(
-                title: 'Cannot duplicate record.',
-                description: "Record not found.",
-                position: 'toast-bottom toast-end',
-                icon: 'o-information-circle',
-                css: 'alert-error',
-                timeout: 2000,
-            );
-            return;
-        }
-
-        $data = collect($result->data);
-        $data = [...$data, 'id' => ''];
-        $this->openRecordDrawer($data);
-    }
-
-    public function promptDelete($id): void
-    {
-        $this->recordToDelete = array_filter(explode(',', $id));
-        $this->showConfirmDeleteDialog = true;
-    }
-
-    public function confirmDelete(): void
-    {
-        $count = count($this->recordToDelete);
-
-        foreach ($this->recordToDelete as $id) {
-            $compiler = new RecordQueryCompiler($this->collection);
-            $result = $compiler->filter('id', '=', $id)->firstRaw();
-
-            if (!$result) {
-                $this->error(
-                    title: 'Cannot delete record.',
-                    description: "Record not found.",
-                    position: 'toast-bottom toast-end',
-                    icon: 'o-information-circle',
-                    css: 'alert-error',
-                    timeout: 2000,
-                );
-                $this->showConfirmDeleteDialog = false;
-                return;
-            }
-
-            $result->delete();
-        }
-
-        $this->showRecordDetailDrawer = false;
-        $this->showConfirmDeleteDialog = false;
-        $this->recordToDelete = [];
-        $this->selected = [];
-        
-        unset($this->tableRows);
-
-        $this->success(
-            title: 'Success!',
-            description: "Deleted $count {$this->collection->name} " . str('record')->plural($count) . ".",
-            position: 'toast-bottom toast-end',
-            icon: 'o-check-circle',
-            css: 'alert-success',
-            timeout: 2000,
-        );
-    }
-
-    public function openRecordDrawer($data = null)
+    public function fillRecordForm($data = null)
     {
         if (!$data) {
             foreach ($this->fields as $field) {
@@ -367,9 +300,76 @@ class CollectionPage extends Component
                     }
                 }
             }
+        }        
+    }
+
+    public function duplicate(string $id): void 
+    {
+        $compiler = new RecordQueryCompiler($this->collection);
+        $result = $compiler->filter('id', '=', $id)->first();
+
+        if (!$result) {
+            $this->error(
+                title: 'Cannot duplicate record.',
+                description: "Record not found.",
+                position: 'toast-bottom toast-end',
+                icon: 'o-information-circle',
+                css: 'alert-error',
+                timeout: 2000,
+            );
+            return;
         }
+
+        $data = collect($result->data);
+        $data = [...$data, 'id' => ''];
+        $this->fillRecordForm($data);
+    }
+
+    public function promptDelete($id): void
+    {
+        $this->recordToDelete = array_filter(explode(',', $id));
+        $this->showConfirmDeleteDialog = true;
+    }
+
+    public function confirmDelete(): void
+    {
+        $count = count($this->recordToDelete);
+
+        foreach ($this->recordToDelete as $id) {
+            $compiler = new RecordQueryCompiler($this->collection);
+            $result = $compiler->filter('id', '=', $id)->firstRaw();
+
+            if (!$result) {
+                $this->error(
+                    title: 'Cannot delete record.',
+                    description: "Record not found.",
+                    position: 'toast-bottom toast-end',
+                    icon: 'o-information-circle',
+                    css: 'alert-error',
+                    timeout: 2000,
+                );
+                $this->showConfirmDeleteDialog = false;
+                return;
+            }
+
+            $result->delete();
+        }
+
+        $this->showRecordDrawer = false;
+        $this->showConfirmDeleteDialog = false;
+        $this->recordToDelete = [];
+        $this->selected = [];
         
-        $this->showRecordDetailDrawer = true;
+        unset($this->tableRows);
+
+        $this->success(
+            title: 'Success!',
+            description: "Deleted $count {$this->collection->name} " . str('record')->plural($count) . ".",
+            position: 'toast-bottom toast-end',
+            icon: 'o-check-circle',
+            css: 'alert-success',
+            timeout: 2000,
+        );
     }
 
     public function saveCollectionConfiguration(): void
@@ -471,10 +471,6 @@ class CollectionPage extends Component
             }
         }
 
-        $this->collection->update([
-            'name' => $this->collectionForm['name'],
-        ]);
-
         $newFieldIds = [];
         
         foreach ($this->collectionForm['fields'] as $fieldData) {
@@ -546,6 +542,15 @@ class CollectionPage extends Component
             }
         }
 
+        if ($this->collectionForm['name'] !== $this->collection->name) {
+            $this->collection->update([
+                'name' => $this->collectionForm['name'],
+            ]);
+
+            $this->redirect(route('collection', ['collection' => $this->collectionForm['name']]), navigate: true);
+            return;
+        }
+
 
         $this->fields = $this->collection->fresh()->fields;
         $this->collectionForm['fields'] = $this->fields->map(fn ($field) => $field->toArray())->toArray();
@@ -570,11 +575,10 @@ class CollectionPage extends Component
         );
     }
 
-    public function openConfigureCollectionDrawer()
+    public function fillCollectionForm()
     {
         $this->collectionForm = $this->collection->toArray();
         $this->collectionForm['fields'] = $this->fields->toArray();
-        $this->showConfigureCollectionDrawer = true;
     }
 
     public function duplicateField(int $index): void
@@ -603,15 +607,6 @@ class CollectionPage extends Component
         $this->collectionForm['fields'] = $fields;
 
         $this->dispatch('fields-updated');
-
-        $this->info(
-            title: 'Field Duplicated',
-            description: "Field '{$fieldToDuplicate['name']}' has been duplicated.",
-            position: 'toast-bottom toast-end',
-            icon: 'o-document-duplicate',
-            css: 'alert-info',
-            timeout: 1500,
-        );
     }
 
     public function deleteField(int $index): void

@@ -4,18 +4,18 @@
     <link href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/photoswipe.min.css" rel="stylesheet">
 @endassets
 
-<div class="relative">
+<div>
     
     <div class="flex justify-between flex-wrap">
         <div class="flex items-center gap-4">
             <x-breadcrumbs :items="$breadcrumbs" />
             <div class="flex items-center gap-2">
-                <x-button icon="o-cog-6-tooth" tooltip-bottom="Configure Collection" class="btn-circle btn-ghost" x-on:click="$wire.openConfigureCollectionDrawer()" />
+                <x-button icon="o-cog-6-tooth" tooltip-bottom="Configure Collection" class="btn-circle btn-ghost" x-on:click="$wire.showConfigureCollectionDrawer = true; $wire.fillCollectionForm()" />
                 <x-button icon="o-arrow-path" tooltip-bottom="Refresh" class="btn-circle btn-ghost" wire:click="$refresh" />
             </div>
         </div>
         <div class="flex items-center gap-2">
-            <x-button label="New Record" class="btn-primary" icon="o-plus" wire:click="openRecordDrawer" />
+            <x-button label="New Record" class="btn-primary" icon="o-plus" x-on:click="$wire.showRecordDrawer = true; $wire.fillRecordForm()" />
         </div>
     </div>
 
@@ -58,7 +58,7 @@
         <x-slot:empty>
             <div class="flex flex-col items-center my-4">
                 <p class="text-gray-500 text-center mb-4">No results found.</p>
-                <x-button label="New Record" class="btn-primary btn-soft btn-sm" icon="o-plus" wire:click="openRecordDrawer" />
+                <x-button label="New Record" class="btn-primary btn-soft btn-sm" icon="o-plus" x-on:click="$wire.showRecordDrawer = true; $wire.fillRecordForm()" />
             </div>
         </x-slot:empty>
 
@@ -101,7 +101,7 @@
         
             @if ($field->type === App\Enums\FieldType::Bool)
                 @cscope('cell_' . $field->name, $row, $field)
-                    <x-badge :wire:key="$field->name . $row->id" :value="$row->{$field->name} ? 'True' : 'False'" class="{{ $row->{$field->name} ? 'badge-primary' : '' }} badge-soft " />
+                    <x-badge :wire:key="$field->name . $row->id" :value="$row->{$field->name} ? 'True' : 'False'" class="{{ $row->{$field->name} ? 'badge-success' : '' }} badge-soft " />
                 @endcscope
                 @continue
             @endif
@@ -151,7 +151,7 @@
         @endforeach
 
         @scope('actions', $row)
-            <x-button icon="o-arrow-right" wire:click="show('{{ $row->id }}')" spinner class="btn-sm" />
+            <x-button icon="o-arrow-right" x-on:click="$wire.show('{{ $row->id }}');" spinner class="btn-sm" />
         @endscope
     </x-table>
 
@@ -169,10 +169,10 @@
 
     {{-- MODALS --}}
 
-    <x-drawer wire:model="showRecordDetailDrawer" class="w-11/12 lg:w-1/3" right>
+    <x-drawer wire:model="showRecordDrawer" class="w-11/12 lg:w-1/3" right>
         <div class="flex justify-between">
             <div class="flex items-center gap-2">
-                <x-button icon="o-x-mark" class="btn-circle btn-ghost" x-on:click="$wire.showRecordDetailDrawer = false" />
+                <x-button icon="o-x-mark" class="btn-circle btn-ghost" x-on:click="$wire.showRecordDrawer = false" />
                 <p class="text-sm">{{ $form['id'] ? 'Update' : 'New' }} <span class="font-bold">{{ $collection->name }}</span> record</p>
             </div>
             <x-dropdown right>
@@ -202,40 +202,40 @@
             @foreach($fields as $field)
                 @if ($field->name === 'id')
                     <x-input type="text" wire:model="form.id_old" class="hidden" />
-                    <x-input :wire:key="$field->name" :label="$field->name" type="text" wire:model="form.id" icon="o-key" placeholder="Leave blank to auto generate..." />
+                    <x-input :wire:key="$field->name" :label="$field->name" type="text" wire:model="form.id" icon="o-key" placeholder="Leave blank to auto generate..." wire:loading.attr="disabled" wire:target="fillRecordForm" />
                     @continue
                 @elseif ($field->name === 'created' || $field->name === 'updated')
-                    <x-input  :wire:key="$field->name" :label="$field->name" type="datetime" wire:model="form.{{ $field->name }}" icon="o-calendar-days" readonly />
+                    <x-input  :wire:key="$field->name" :label="$field->name" type="datetime" wire:model="form.{{ $field->name }}" icon="o-calendar-days" readonly wire:loading.attr="disabled" wire:target="fillRecordForm" />
                     @continue
                 @elseif ($field->name === 'password' && $field->collection->type === App\Enums\CollectionType::Auth)
-                    <x-password wire:model="form.{{ $field->name }}" class="hidden" />
-                    <x-password :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}_new" password-icon="o-lock-closed" placeholder="Fill to change password..." />
+                    <x-input type="hidden" wire:model="form.{{ $field->name }}" class="hidden" />
+                    <x-password :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}_new" password-icon="o-lock-closed" placeholder="Fill to change password..." autocomplete="new-password" wire:loading.attr="disabled" wire:target="fillRecordForm" />
                     @continue
                 @endif
 
                 @switch($field->type)
                     @case(\App\Enums\FieldType::Bool)
-                        <x-toggle :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}" id="form-{{ $field->name }}" />
+                        <x-toggle :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}" id="form-{{ $field->name }}" wire:loading.attr="disabled" wire:target="fillRecordForm" />
                         @break 
                     @case(\App\Enums\FieldType::Email)
-                        <x-input :wire:key="$field->name" :label="$field->name" type="email" wire:model="form.{{ $field->name }}" icon="o-envelope" :required="$field->required == true" />
+                        <x-input :wire:key="$field->name" :label="$field->name" type="email" wire:model="form.{{ $field->name }}" icon="o-envelope" :required="$field->required == true" autocomplete="email" wire:loading.attr="disabled" wire:target="fillRecordForm" />
                         @break
                     @case(\App\Enums\FieldType::Number)
-                        <x-input :wire:key="$field->name" :label="$field->name" type="number" wire:model="form.{{ $field->name }}" icon="o-hashtag" :required="$field->required == true" />
+                        <x-input :wire:key="$field->name" :label="$field->name" type="number" wire:model="form.{{ $field->name }}" icon="o-hashtag" :required="$field->required == true" wire:loading.attr="disabled" wire:target="fillRecordForm" />
                         @break
                     @case(\App\Enums\FieldType::Datetime)
-                        <x-input :wire:key="$field->name" :label="$field->name" type="datetime" wire:model="form.{{ $field->name }}" icon="o-calendar-days" :required="$field->required == true" />
+                        <x-input :wire:key="$field->name" :label="$field->name" type="datetime" wire:model="form.{{ $field->name }}" icon="o-calendar-days" :required="$field->required == true" wire:loading.attr="disabled" wire:target="fillRecordForm" />
                         @break
                     @case(\App\Enums\FieldType::File)
-                            <x-file-library :wire:key="$field->name" :label="$field->name" wire:model="files.{{ $field->name }}" wire:library="library.{{ $field->name }}" :preview="data_get($library, $field->name, collect([]))" hint="rule" accept="*" />
+                            <x-file-library :wire:key="$field->name" :label="$field->name" wire:model="files.{{ $field->name }}" wire:library="library.{{ $field->name }}" :preview="data_get($library, $field->name, collect([]))" hint="rule" accept="*" wire:loading.attr="disabled" wire:target="fillRecordForm" />
                         @break
                     @default
-                        <x-input :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}" icon="lucide.text-cursor" :required="$field->required == true" />
+                        <x-input :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}" icon="lucide.text-cursor" :required="$field->required == true" wire:loading.attr="disabled" wire:target="fillRecordForm" />
                 @endswitch
             @endforeach
         
             <x-slot:actions>
-                <x-button label="Cancel" x-on:click="$wire.showRecordDetailDrawer = false" />
+                <x-button label="Cancel" x-on:click="$wire.showRecordDrawer = false" />
                 <x-button label="Save" class="btn-primary" type="submit" spinner="save" />
             </x-slot:actions>
         </x-form>
@@ -253,7 +253,7 @@
         <div class="my-4"></div>
 
         <x-form wire:submit="saveCollectionConfiguration">
-            <x-input label="Name" wire:model="collectionForm.name" suffix="Type: {{ $collection->type }}" required />
+            <x-input label="Name" wire:model="collectionForm.name" suffix="Type: {{ $collection->type }}" wire:loading.attr="disabled" wire:target="fillCollectionForm" required />
         
             <div class="my-2"></div>
 
@@ -305,14 +305,14 @@
 
                                 <div class="flex items-center gap-2 mb-4 group relative" data-field-id="{{ $fieldId }}" wire:key="field-{{ $fieldId }}">
                                     <x-icon name="o-bars-3" class="w-4 h-4 drag-handle cursor-move text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 absolute left-0 -translate-x-6" />
-                                    <x-collapse separator :class="$isDeleted ? 'opacity-50 bg-error/5' : ''" class="w-full">
+                                    <x-collapse separator :class="$isDeleted ? 'opacity-50 bg-error/5' : ''" class="w-full" name="{{ $field->name }}" wire:loading.class="opacity-50" wire:target="duplicateField({{ $index }}),deleteField({{ $index }})">
                                         <x-slot:heading>
                                             <div class="flex items-center gap-2 w-full">
                                                 <x-icon name="{{ $field->getIcon() }}" class="w-4 h-4" />
                                                 <span class="font-semibold" class="{{ $isDeleted ? 'line-through' : '' }}">{{ $field->name }}</span>
                                                 <x-badge value="{{ $field->type->value }}" class="badge-sm badge-ghost" />
                                                 @if($isDeleted)
-                                                    <x-badge value="Marked for Deletion" class="badge-sm badge-error" />
+                                                    <x-badge value="Deleted" class="badge-sm badge-error" />
                                                 @endif
                                             </div>
                                         </x-slot:heading>
@@ -328,7 +328,7 @@
                                             @else
                                             <div class="space-y-3 pt-2">
                                                 <div class="grid grid-cols-2 gap-4">
-                                                        <x-input label="Name" wire:model.blur="collectionForm.fields.{{ $index }}.name" :disabled="$field->locked == true" />
+                                                        <x-input label="Name" wire:model.blur="collectionForm.fields.{{ $index }}.name" :disabled="$field->locked == true"  />
                                                         <x-select label="Type" wire:model.live="collectionForm.fields.{{ $index }}.type" :options="App\Enums\FieldType::toArray()" :icon="$field->getIcon()" :disabled="$field->locked == true" />
                                                         @if ($field->type === App\Enums\FieldType::Text && $field->locked != true)
                                                             <x-input label="Min Length" type="number" wire:model="collectionForm.fields.{{ $index }}.min_length" placeholder="Default to 0" min="0" :disabled="$field->locked == true" />
@@ -337,8 +337,8 @@
                                                 </div>
                                                 <div class="flex items-baseline justify-between gap-6">
                                                     <div class="flex items-center gap-4">
-                                                        <x-toggle label="Nonempty" hint="Value cannot be empty" wire:model="collectionForm.fields.{{ $index }}.required" :disabled="$field->locked == true" />
-                                                        <x-toggle label="Hidden" hint="Hide field from API response" wire:model="collectionForm.fields.{{ $index }}.hidden" :disabled="$field->locked == true" />
+                                                        <x-toggle id="toggle-required-{{ $index }}" label="Nonempty" hint="Value cannot be empty" wire:model="collectionForm.fields.{{ $index }}.required" :disabled="$field->locked == true" />
+                                                        <x-toggle id="toggle-hidden-{{ $index }}" label="Hidden" hint="Hide field from API response" wire:model="collectionForm.fields.{{ $index }}.hidden" :disabled="$field->locked == true" />
                                                     </div>
                                                     <x-dropdown top left>
                                                         <x-slot:trigger>
@@ -365,7 +365,7 @@
                             @endforeach
                         </div>
 
-                        <x-button label="New Field" icon="o-plus" class="w-full btn-outline btn-primary" wire:click="addNewField" />
+                        <x-button label="New Field" icon="o-plus" class="w-full btn-outline btn-primary" wire:click="addNewField" spinner />
                     </div>
                 </x-tab>
                 <x-tab name="api-rules-tab" label="API Rules">
