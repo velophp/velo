@@ -44,6 +44,12 @@
             </div>
         </x-slot:empty>
 
+        @foreach ($fields as $field)
+            @cscope('header_' . $field->name, $header, $field)
+                <x-icon name="{{ $field->getIcon() }}" class="w-3 opacity-80" /> {{ $header['label'] }}
+            @endcscope
+        @endforeach
+
         @scope('cell_id', $row)
             <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
                 <p>{{ $row->id }}</p>
