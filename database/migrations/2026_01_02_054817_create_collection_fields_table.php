@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('collection_fields', function (Blueprint $table) {
             $table->id();
             $table->foreignId('collection_id')->constrained()->cascadeOnDelete();
-            $table->integer('order')->default(0);
+            $table->integer('order')->nullable();
             $table->string('name');
             $table->json('options');
             $table->string('type')->default(FieldType::Text);
@@ -25,6 +25,8 @@ return new class extends Migration
             $table->boolean('indexed')->default(false);
             $table->boolean('hidden')->default(false);
             $table->timestamps();
+
+            $table->unique(['collection_id', 'name']);
         });
     }
 

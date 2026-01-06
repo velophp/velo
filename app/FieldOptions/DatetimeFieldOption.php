@@ -44,4 +44,17 @@ class DatetimeFieldOption implements CollectionFieldOption
 
         return true;
     }
+
+    public function getValidationRules(): array
+    {
+        return [
+            'minDate' => ['nullable', 'string'],
+            'maxDate' => ['nullable', 'string'],
+        ];
+    }
+
+    public function getValidationMessages(): array
+    {
+        return [];
+    }
 }

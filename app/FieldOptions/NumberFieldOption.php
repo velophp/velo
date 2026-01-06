@@ -40,4 +40,18 @@ class NumberFieldOption implements CollectionFieldOption
 
         return true;
     }
+    
+    public function getValidationRules(): array
+    {
+        return [
+            'min' => ['nullable', 'numeric'],
+            'max' => ['nullable', 'numeric'],
+            'allowDecimals' => ['boolean'],
+        ];
+    }
+
+    public function getValidationMessages(): array
+    {
+        return [];
+    }
 }

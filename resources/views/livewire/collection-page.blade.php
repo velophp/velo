@@ -167,7 +167,7 @@
 
     {{-- MODALS --}}
 
-    <x-drawer wire:model="showRecordDrawer" class="w-11/12 lg:w-1/3" right>
+    <x-drawer wire:model="showRecordDrawer" class="w-full lg:w-2/5" right>
         <div class="flex justify-between">
             <div class="flex items-center gap-2">
                 <x-button icon="o-x-mark" class="btn-circle btn-ghost" x-on:click="$wire.showRecordDrawer = false" />
@@ -266,7 +266,7 @@
 
     </x-drawer>
 
-    <x-drawer wire:model="showConfigureCollectionDrawer" class="w-11/12 lg:w-1/3" right>
+    <x-drawer wire:model="showConfigureCollectionDrawer" class="w-full lg:w-2/5" right>
         <div class="flex justify-between">
             <div class="flex items-center gap-2">
                 <x-button icon="o-x-mark" class="btn-circle btn-ghost"
@@ -286,251 +286,227 @@
             <x-tabs wire:model="tabSelected" active-class="bg-primary rounded !text-white"
                 label-class="font-semibold w-full p-2" label-div-class="bg-primary/5 flex rounded">
                 <x-tab name="fields-tab" label="Fields">
-                    <div class="space-y-2 px-0.5" x-data="{
-                        sortableInstance: null,
-                        initSortable() {
-                            const el = document.getElementById('sortable-fields-list');
-                            if (window.Sortable && el) {
+                    <x-accordion wire:model="fieldOpen">
+                        <div class="space-y-2 px-0.5" x-data="{
+                            sortableInstance: null,
+                            initSortable() {
+                                const el = document.getElementById('sortable-fields-list');
+                                if (window.Sortable && el) {
+                                    if (this.sortableInstance) {
+                                        this.sortableInstance.destroy();
+                                        this.sortableInstance = null;
+                                    }
+                        
+                                    this.sortableInstance = new Sortable(el, {
+                                        animation: 150,
+                                        handle: '.drag-handle',
+                                        ghostClass: 'bg-primary/10',
+                                        dragClass: 'opacity-50',
+                                        onEnd: (evt) => {
+                                            const items = Array.from(el.children).map(item => item.dataset.fieldId);
+                                            $wire.updateFieldOrder(items);
+                                        }
+                                    });
+                                }
+                            },
+                            destroySortable() {
                                 if (this.sortableInstance) {
                                     this.sortableInstance.destroy();
                                     this.sortableInstance = null;
                                 }
-                    
-                                this.sortableInstance = new Sortable(el, {
-                                    animation: 150,
-                                    handle: '.drag-handle',
-                                    ghostClass: 'bg-primary/10',
-                                    dragClass: 'opacity-50',
-                                    onEnd: (evt) => {
-                                        const items = Array.from(el.children).map(item => item.dataset.fieldId);
-                                        $wire.updateFieldOrder(items);
-                                    }
-                                });
                             }
-                        },
-                        destroySortable() {
-                            if (this.sortableInstance) {
-                                this.sortableInstance.destroy();
-                                this.sortableInstance = null;
-                            }
-                        }
-                    }" x-init="initSortable()"
-                        @fields-updated.window="destroySortable(); $nextTick(() => initSortable())">
-                        <div id="sortable-fields-list">
-                            @foreach ($collectionForm['fields'] as $index => $field)
-                                @php
-                                    $field = new App\Models\CollectionField($field);
-                                    $isDeleted =
-                                        isset($collectionForm['fields'][$index]['_deleted']) &&
-                                        $collectionForm['fields'][$index]['_deleted'];
-                                    $fieldId =
-                                        $collectionForm['fields'][$index]['id'] ??
-                                        ($collectionForm['fields'][$index]['name'] ?? $index);
-                                @endphp
+                        }" x-init="initSortable()"
+                            @fields-updated.window="destroySortable(); $nextTick(() => initSortable())"
+                            @destroy-sortable.window="destroySortable()">
+                            <div id="sortable-fields-list">
+                                
+                                    @foreach ($collectionForm['fields'] as $index => $field)
+                                        @php
+                                            $fieldId = $field['id'];
+                                            $field = new App\Models\CollectionField($field);
+                                            $isDeleted = isset($collectionForm['fields'][$index]['_deleted']) && $collectionForm['fields'][$index]['_deleted'];
+                                        @endphp
 
-                                <div class="flex items-center gap-2 mb-4 group relative"
-                                    data-field-id="{{ $fieldId }}" wire:key="field-{{ $fieldId }}">
-                                    <x-icon name="o-bars-3"
-                                        class="w-4 h-4 drag-handle cursor-move text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 absolute left-0 -translate-x-6" />
-                                    <x-collapse separator :class="$isDeleted ? 'opacity-50 bg-error/5' : ''" class="w-full"
-                                        name="{{ $field->name }}" wire:loading.class="opacity-50"
-                                        wire:target="duplicateField({{ $index }}),deleteField({{ $index }})">
-                                        <x-slot:heading>
-                                            <div class="flex items-center gap-2 w-full">
-                                                <x-icon name="{{ $field->getIcon() }}" class="w-4 h-4" />
-                                                <span class="font-semibold"
-                                                    class="{{ $isDeleted ? 'line-through' : '' }}">{{ $field->name }}</span>
-                                                <x-badge value="{{ $field->type->value }}"
-                                                    class="badge-sm badge-ghost" />
-                                                @if ($isDeleted)
-                                                    <x-badge value="Deleted" class="badge-sm badge-error" />
-                                                @endif
-                                            </div>
-                                        </x-slot:heading>
-                                        <x-slot:content>
-                                            @if ($isDeleted)
-                                                <div
-                                                    class="flex items-center justify-between p-4 bg-error/10 rounded-lg">
-                                                    <div>
-                                                        <p class="font-semibold text-error">This field will be deleted
-                                                            when you save.</p>
-                                                    </div>
-                                                    <x-button label="Restore" icon="o-arrow-uturn-left"
-                                                        wire:click="restoreField({{ $index }})"
-                                                        class="btn-sm btn-primary" />
-                                                </div>
-                                            @else
-                                                <div class="space-y-3 pt-2">
-                                                    <div class="grid grid-cols-2 gap-4">
-                                                        <x-input label="Name"
-                                                            wire:model.blur="collectionForm.fields.{{ $index }}.name"
-                                                            :disabled="$field->locked == true" />
-                                                        <x-select label="Type"
-                                                            wire:model.live="collectionForm.fields.{{ $index }}.type"
-                                                            :options="App\Enums\FieldType::toArray()" :icon="$field->getIcon()" :disabled="$field->locked == true" />
-                                                        @if (!$field->locked)
-                                                            @switch($field->type)
-                                                                @case(App\Enums\FieldType::Text)
-                                                                    <x-input label="Min Length" type="number"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.minLength"
-                                                                        placeholder="No minimum" min="0" />
-                                                                    <x-input label="Max Length" type="number"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.maxLength"
-                                                                        placeholder="No maximum" min="1" />
-                                                                    <x-input label="Pattern (Regex)"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.pattern"
-                                                                        placeholder="e.g., /^[A-Z]/" class="col-span-2" />
-                                                                @break
-
-                                                                @case(App\Enums\FieldType::Email)
-                                                                    <x-tags label="Allowed Domains"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.allowedDomains"
-                                                                        icon="o-globe-asia-australia"
-                                                                        hint="Can be more than 1 domain" clearable />
-                                                                    <x-tags label="Blocked Domains"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.blockedDomains"
-                                                                        icon="o-globe-asia-australia"
-                                                                        hint="Can be more than 1 domain" clearable />
-                                                                @break
-
-                                                                @case(App\Enums\FieldType::Number)
-                                                                    <x-input label="Min" type="number"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.min"
-                                                                        placeholder="No minimum" step="any" />
-                                                                    <x-input label="Max" type="number"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.max"
-                                                                        placeholder="No maximum" step="any" />
-                                                                    <x-input label="Step" type="number"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.step"
-                                                                        placeholder="Any" step="any" />
-                                                                    <x-input label="Default Value" type="number"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.defaultValue"
-                                                                        placeholder="Default value" step="any" />
-                                                                    <x-input label="Prefix"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.prefix"
-                                                                        placeholder="e.g., $, €" />
-                                                                    <x-input label="Suffix"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.suffix"
-                                                                        placeholder="e.g., %, kg" />
-                                                                    <x-toggle label="Allow Decimals"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.allowDecimals" />
-                                                                    <x-input label="Decimal Places" type="number"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.decimalPlaces"
-                                                                        placeholder="Auto" min="0" max="10" />
-                                                                @break
-
-                                                                @case(App\Enums\FieldType::Bool)
-                                                                    <x-input label="True Label"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.trueLabel"
-                                                                        placeholder="Yes, True, Enabled" />
-                                                                    <x-input label="False Label"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.falseLabel"
-                                                                        placeholder="No, False, Disabled" />
-                                                                    <x-select label="Display As"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.displayAs"
-                                                                        :options="[
-                                                                            ['id' => 'toggle', 'name' => 'Toggle'],
-                                                                            ['id' => 'checkbox', 'name' => 'Checkbox'],
-                                                                            ['id' => 'switch', 'name' => 'Switch'],
-                                                                            ['id' => 'radio', 'name' => 'Radio'],
-                                                                        ]" class="col-span-2" />
-                                                                @break
-
-                                                                @case(App\Enums\FieldType::Datetime)
-                                                                    <x-input label="Format"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.format"
-                                                                        placeholder="Y-m-d H:i:s" class="col-span-2" />
-                                                                    <x-input label="Display Format"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.displayFormat"
-                                                                        placeholder="d/m/Y" class="col-span-2" />
-                                                                    <x-input label="Min Date"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.minDate"
-                                                                        placeholder="2024-01-01 or 'now'" />
-                                                                    <x-input label="Max Date"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.maxDate"
-                                                                        placeholder="2024-12-31 or 'now'" />
-                                                                    <x-select label="Type"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.type"
-                                                                        :options="[
-                                                                            [
-                                                                                'id' => 'datetime',
-                                                                                'name' => 'Date & Time',
-                                                                            ],
-                                                                            ['id' => 'date', 'name' => 'Date Only'],
-                                                                            ['id' => 'time', 'name' => 'Time Only'],
-                                                                        ]" />
-                                                                    <x-toggle label="Include Time"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.includeTime" />
-                                                                @break
-
-                                                                @case(App\Enums\FieldType::File)
-                                                                    <x-input label="Max Size (bytes)" type="number"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.maxSize"
-                                                                        placeholder="No limit" min="0" />
-                                                                    <x-input label="Min Size (bytes)" type="number"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.minSize"
-                                                                        placeholder="No limit" min="0" />
-                                                                    <x-toggle label="Multiple Files"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.multiple"
-                                                                        hint="Allow multiple file uploads" />
-                                                                    <x-input label="Max Files" type="number"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.maxFiles"
-                                                                        placeholder="Unlimited" min="1" />
-                                                                    <x-input label="Storage Path"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.storagePath"
-                                                                        placeholder="Custom storage path"
-                                                                        class="col-span-2" />
-                                                                    <x-toggle label="Generate Thumbnail"
-                                                                        wire:model="collectionForm.fields.{{ $index }}.options.generateThumbnail"
-                                                                        hint="Generate thumbnails for images"
-                                                                        class="col-span-2" />
-                                                                @break
-                                                            @endswitch
-                                                        @endif
-                                                    </div>
-                                                    <div class="flex items-baseline justify-between gap-6">
-                                                        <div class="flex items-center gap-4">
-                                                            <x-toggle id="toggle-required-{{ $index }}"
-                                                                label="Nonempty" hint="Value cannot be empty"
-                                                                wire:model="collectionForm.fields.{{ $index }}.required"
-                                                                :disabled="$field->locked == true" />
-                                                            <x-toggle id="toggle-hidden-{{ $index }}"
-                                                                label="Hidden" hint="Hide field from API response"
-                                                                wire:model="collectionForm.fields.{{ $index }}.hidden"
-                                                                :disabled="$field->locked == true" />
+                                        <div class="flex items-center gap-2 mb-4 group relative"
+                                            data-field-id="{{ $fieldId }}" wire:key="field-{{ $fieldId }}">
+                                            <x-icon name="o-bars-3"
+                                                class="w-4 h-4 drag-handle cursor-move text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 absolute left-0 -translate-x-6" />
+                                            <x-collapse separator :class="$isDeleted ? 'opacity-50 bg-error/5' : ''" class="w-full rounded"
+                                                name="{{ $field->name }}" wire:loading.class="opacity-50" name="collapse_{{ $fieldId }}"
+                                                wire:target="duplicateField({{ $index }}),deleteField({{ $index }})">
+                                                <x-slot:heading>
+                                                    <div class="flex flex-col md:flex-row justify-between gap-2 w-full">
+                                                        <div class="flex items-center gap-2">
+                                                            <x-icon name="{{ $field->getIcon() }}" class="w-4 h-4" />
+                                                            <span class="font-semibold"
+                                                                class="{{ $isDeleted ? 'line-through' : '' }}">{{ $field->name }}</span>
                                                         </div>
-                                                        <x-dropdown top left>
-                                                            <x-slot:trigger>
-                                                                <x-button icon="o-bars-3"
-                                                                    class="btn-circle btn-ghost" />
-                                                            </x-slot:trigger>
-
-                                                            <x-menu-item title="Duplicate" icon="o-document-duplicate"
-                                                                x-on:click="$wire.duplicateField({{ $index }})" />
-                                                            @if (!$field->locked)
-                                                                <x-menu-item title="Delete" icon="o-trash"
-                                                                    class="text-error"
-                                                                    x-on:click="$wire.deleteField({{ $index }})" />
+                                                        <div class="flex md:flex-row-reverse items-center flex-wrap gap-2">
+                                                            <x-badge value="{{ $field->type->value }}"
+                                                                class="badge-sm badge-ghost" />
+                                                            @if ($isDeleted)
+                                                                <x-badge value="Deleted" class="badge-sm badge-error" />
                                                             @endif
-                                                        </x-dropdown>
+                                                            @if ($field->required)
+                                                                <x-badge value="Nonempty" class="badge-sm badge-info badge-soft" />
+                                                            @endif
+                                                            @if ($field->hidden)
+                                                                <x-badge value="Hidden" class="badge-sm badge-error badge-soft" />
+                                                            @endif
+                                                        </div>
                                                     </div>
-                                                    @if ($field->rules)
-                                                        <div>
-                                                            <label
-                                                                class="text-xs font-semibold text-gray-600">Validation
-                                                                Rules</label>
-                                                            <p class="text-sm font-mono bg-base-200 p-2 rounded">
-                                                                {{ is_array($field->rules) ? implode(', ', $field->rules) : $field->rules }}
-                                                            </p>
+                                                </x-slot:heading>
+                                                <x-slot:content>
+                                                    @if ($isDeleted)
+                                                        <div
+                                                            class="flex items-center justify-between p-4 bg-error/10 rounded-lg">
+                                                            <div>
+                                                                <p class="font-semibold text-error">This field will be deleted
+                                                                    when you save.</p>
+                                                            </div>
+                                                            <x-button label="Restore" icon="o-arrow-uturn-left"
+                                                                wire:click="restoreField({{ $fieldId }})"
+                                                                class="btn-sm btn-primary" />
+                                                        </div>
+                                                    @else
+                                                        <div class="space-y-3 pt-2">
+                                                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <x-input label="Name"
+                                                                    wire:model.blur="collectionForm.fields.{{ $index }}.name"
+                                                                    :disabled="$field->locked == true" />
+                                                                <x-select label="Type"
+                                                                    wire:model.live="collectionForm.fields.{{ $index }}.type"
+                                                                    :options="App\Enums\FieldType::toArray()" :icon="$field->getIcon()" :disabled="$field->locked == true" />
+                                                                @switch($field->type)
+                                                                        @case(App\Enums\FieldType::Text)
+                                                                            <x-input label="Min Length" type="number"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.minLength"
+                                                                                placeholder="No minimum" min="0" :disabled="$field->name === 'password'" />
+                                                                            <x-input label="Max Length" type="number"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.maxLength"
+                                                                                placeholder="No maximum" min="1" :disabled="$field->name === 'password'" />
+                                                                            <x-input label="Pattern (Regex)"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.pattern"
+                                                                                placeholder="e.g., /^[A-Z]/" :disabled="$field->name === 'password'" />
+                                                                            <x-input label="Auto Generate Pattern (Regex)"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.autoGeneratePattern"
+                                                                                placeholder="e.g., /^[A-Z]/" :disabled="$field->name === 'password'" />
+                                                                        @break
+
+                                                                        @case(App\Enums\FieldType::Email)
+                                                                         {{-- @TODO: Fix email validation and x-tags --}}
+                                                                            <x-tags label="Allowed Domains"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.allowedDomains"
+                                                                                icon="o-globe-asia-australia"
+                                                                                hint="Separate each domain with a comma" clearable />
+                                                                            <x-tags label="Blocked Domains"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.blockedDomains"
+                                                                                icon="o-globe-asia-australia"
+                                                                                hint="Separate each domain with a comma" clearable />
+                                                                        @break
+
+                                                                        @case(App\Enums\FieldType::Number)
+                                                                            <x-input label="Min" type="number"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.min"
+                                                                                placeholder="No minimum" step="any" />
+                                                                            <x-input label="Max" type="number"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.max"
+                                                                                placeholder="No maximum" step="any" />
+                                                                            <x-toggle label="Allow Decimals"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.allowDecimals" />
+                                                                        @break
+
+                                                                        @case(App\Enums\FieldType::Bool)
+                                                                            {{-- // --}}
+                                                                        @break
+
+                                                                        @case(App\Enums\FieldType::Datetime)
+                                                                            <x-input label="Min Date"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.minDate"
+                                                                                placeholder="2024-01-01 or 'now'" :disabled="in_array($field->name, ['created', 'updated'])" />
+                                                                            <x-input label="Max Date"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.maxDate"
+                                                                                placeholder="2024-12-31 or 'now'" :disabled="in_array($field->name, ['created', 'updated'])" />
+                                                                        @break
+
+                                                                        @case(App\Enums\FieldType::File)
+                                                                            <div class="col-span-1 md:col-span-2">
+                                                                                <x-choices-offline label="Allowed Mime Types" wire:model="collectionForm.fields.{{ $index }}.options.allowedMimeTypes" :options="$mimeTypes" placeholder="Search..." multiple searchable />
+                                                                                <div class="my-2"></div>
+                                                                                <x-dropdown>
+                                                                                    <x-slot:trigger>
+                                                                                        <x-button label="Use Presets" class="btn-sm btn-soft" icon-right="o-chevron-down" />
+                                                                                    </x-slot:trigger>
+
+                                                                                    @foreach ($mimeTypePresets as $presets => $mimes)
+                                                                                        <x-menu-item :title="$presets" x-on:click="$wire.applyFilePresets({{ $index }}, '{{ $presets }}')" />
+                                                                                    @endforeach
+                                                                                </x-dropdown>
+                                                                            </div>
+                                                                            <x-input label="Min Size (bytes)" type="number"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.minSize"
+                                                                                placeholder="No Limit" min="0" />
+                                                                            <x-input label="Max Size (bytes)" type="number"
+                                                                                wire:model="collectionForm.fields.{{ $index }}.options.maxSize"
+                                                                                placeholder="No Limit" min="0" />
+                                                                            @if ($collectionForm['fields'][$index]['options']['multiple'])
+                                                                                <x-input label="Max Files" type="number"
+                                                                                    wire:model="collectionForm.fields.{{ $index }}.options.maxFiles"
+                                                                                    placeholder="Unlimited" min="1" />
+                                                                            @endif
+                                                                            {{-- @TODO: Add thumbnail option for future --}}
+                                                                        @break
+                                                                    @endswitch
+                                                            </div>
+                                                            <div class="flex items-baseline justify-between gap-6">
+                                                                <div class="flex flex-wrap items-center gap-4">
+                                                                    @if ($field->type == App\Enums\FieldType::File)
+                                                                        <x-toggle id="toggle-multiple-{{ $index }}" label="Allow Multiple"
+                                                                                wire:model.live="collectionForm.fields.{{ $index }}.options.multiple"
+                                                                                hint="Allow multiple file uploads" />
+                                                                    @endif
+                                                                    <x-toggle id="toggle-required-{{ $index }}"
+                                                                        label="Nonempty" hint="Value cannot be empty"
+                                                                        wire:model="collectionForm.fields.{{ $index }}.required"
+                                                                        :disabled="$field->locked == true" />
+                                                                    <x-toggle id="toggle-hidden-{{ $index }}"
+                                                                        label="Hidden" hint="Hide field from API response"
+                                                                        wire:model="collectionForm.fields.{{ $index }}.hidden"
+                                                                        :disabled="$field->locked == true" />
+                                                                </div>
+                                                                <x-dropdown top left>
+                                                                    <x-slot:trigger>
+                                                                        <x-button icon="o-bars-3"
+                                                                            class="btn-circle btn-ghost" />
+                                                                    </x-slot:trigger>
+
+                                                                    <x-menu-item title="Duplicate" icon="o-document-duplicate"
+                                                                        x-on:click="$wire.duplicateField({{ $fieldId }})" />
+                                                                    @if (!$field->locked)
+                                                                        <x-menu-item title="Delete" icon="o-trash"
+                                                                            class="text-error"
+                                                                            x-on:click="$wire.deleteField({{ $fieldId }})" />
+                                                                    @endif
+                                                                </x-dropdown>
+                                                            </div>
+                                                            @if ($field->rules)
+                                                                <div>
+                                                                    <label
+                                                                        class="text-xs font-semibold text-gray-600">Validation
+                                                                        Rules</label>
+                                                                    <p class="text-sm font-mono bg-base-200 p-2 rounded">
+                                                                        {{ is_array($field->rules) ? implode(', ', $field->rules) : $field->rules }}
+                                                                    </p>
+                                                                </div>
+                                                            @endif
                                                         </div>
                                                     @endif
-                                                </div>
-                                            @endif
-                                        </x-slot:content>
-                                    </x-collapse>
-                                </div>
-                            @endforeach
-                        </div>
+                                                </x-slot:content>
+                                            </x-collapse>
+                                        </div>
+                                    @endforeach
+                            </div>
+                        </x-accordion>
 
                         <x-button label="New Field" icon="o-plus" class="w-full btn-outline btn-primary"
                             wire:click="addNewField" spinner />
@@ -546,8 +522,8 @@
 
             <x-slot:actions>
                 <x-button label="Cancel" x-on:click="$wire.showConfigureCollectionDrawer = false" />
-                <x-button label="Save" class="btn-primary" type="button" wire:click="saveCollectionConfiguration"
-                    spinner="saveCollectionConfiguration" />
+                <x-button label="Save" class="btn-primary" type="button" wire:click="saveCollection"
+                    spinner="saveCollection" />
             </x-slot:actions>
         </x-form>
 

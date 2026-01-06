@@ -7,7 +7,7 @@ use Illuminate\Validation\ValidationException;
 
 layout('components.layouts.guest');
 
-state(['email', 'password']);
+state(['email' => 'admin@larabase.com', 'password' => 'password']);
 
 rules([
     'email' => 'required|email',
@@ -16,6 +16,7 @@ rules([
 
 mount(function() {
     if (!Project::exists()) {
+        \App\Helper::initProject(); // @TODO: Remove on production
         return $this->redirect(route('register'), navigate: true);
     }
 });

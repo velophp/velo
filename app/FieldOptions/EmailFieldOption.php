@@ -3,12 +3,13 @@
 namespace App\FieldOptions;
 
 use App\Contracts\CollectionFieldOption;
+use App\Rules\Domain;
 
 class EmailFieldOption implements CollectionFieldOption
 {
     public function __construct(
-        public ?array $allowedDomains = null, // e.g., ['gmail.com', 'company.com']
-        public ?array $blockedDomains = null,
+        public ?array $allowedDomains = [], // e.g., ['gmail.com', 'company.com']
+        public ?array $blockedDomains = [],
     ) {}
 
     public function toArray(): array
@@ -22,18 +23,28 @@ class EmailFieldOption implements CollectionFieldOption
     public static function fromArray(array $data): static
     {
         return new static(
-            allowedDomains: $data['allowedDomains'] ?? null,
-            blockedDomains: $data['blockedDomains'] ?? null,
+            allowedDomains: $data['allowedDomains'] ?? [],
+            blockedDomains: $data['blockedDomains'] ?? [],
         );
     }
 
     public function validate(): bool
     {
-        // Cannot have both allowed and blocked domains
-        if ($this->allowedDomains !== null && $this->blockedDomains !== null) {
-            return false;
-        }
-
         return true;
+    }
+
+    public function getValidationRules(): array
+    {
+        return [
+            'allowedDomains' => ['array'],
+            'allowedDomains.*' => ['string', new Domain],
+            'blockedDomains' => ['array'],
+            'blockedDomains.*' => ['string', new Domain],
+        ];
+    }
+
+    public function getValidationMessages(): array
+    {
+        return [];
     }
 }

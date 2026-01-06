@@ -18,6 +18,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('type')->default(CollectionType::Base);
             $table->timestamps();
+
+            $table->unique(['project_id', 'name']);
         });
     }
 

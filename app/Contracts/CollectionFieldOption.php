@@ -20,9 +20,11 @@ interface CollectionFieldOption
     public static function fromArray(array $data): static;
 
     /**
-     * Validate the option data.
-     * 
+     * @deprecated use getValidationRules
      * @return bool
      */
     public function validate(): bool;
+
+    public function getValidationRules(): array;
+    public function getValidationMessages(): array;
 }

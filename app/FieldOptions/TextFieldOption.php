@@ -10,6 +10,7 @@ class TextFieldOption implements CollectionFieldOption
         public ?int $minLength = null,
         public ?int $maxLength = null,
         public ?string $pattern = null,
+        public ?string $autoGeneratePattern = null,
     ) {}
 
     public function toArray(): array
@@ -18,6 +19,7 @@ class TextFieldOption implements CollectionFieldOption
             'minLength' => $this->minLength,
             'maxLength' => $this->maxLength,
             'pattern' => $this->pattern,
+            'autoGeneratePattern' => $this->autoGeneratePattern,
         ];
     }
 
@@ -27,21 +29,29 @@ class TextFieldOption implements CollectionFieldOption
             minLength: $data['minLength'] ?? null,
             maxLength: $data['maxLength'] ?? null,
             pattern: $data['pattern'] ?? null,
+            autoGeneratePattern: $data['autoGeneratePattern'] ?? null
         );
     }
 
     public function validate(): bool
     {
-        if ($this->minLength !== null && $this->maxLength !== null) {
-            if ($this->minLength > $this->maxLength) {
-                return false;
-            }
-        }
-
-        if ($this->minLength !== null && $this->minLength < 0) {
-            return false;
-        }
-
         return true;
+    }
+
+    public function getValidationRules(): array
+    {
+        return [
+            'minLength' => ['nullable', 'integer', 'min:0', 'max:' . PHP_INT_MAX],
+            'maxLength' => ['nullable', 'integer', 'min:1', 'max:' . PHP_INT_MAX],
+            'pattern' => ['nullable', 'string'],
+            'autoGeneratePattern' => ['nullable', 'string']
+        ];
+    }
+
+    public function getValidationMessages(): array
+    {
+        return [
+            'pattern' => 'it must be a string yoo...',
+        ];
     }
 }

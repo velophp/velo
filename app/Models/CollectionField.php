@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CollectionField extends Model
 {
-    protected $fillable = ['collection_id', 'order', 'name', 'type', 'rules', 'unique', 'required', 'indexed', 'locked', 'options'];
+    protected $fillable = ['collection_id', 'order', 'name', 'type', 'rules', 'unique', 'required', 'indexed', 'locked', 'options', 'hidden'];
 
     protected function casts(): array
     {
@@ -89,20 +89,12 @@ class CollectionField extends Model
         return $fields;
     }
 
-    protected static function boot()
+    protected static function booted()
     {
-        parent::boot();
-
         static::saving(function (CollectionField $field) {
-            if ($field->exists && $field->order == null) {
-                $maxOrder = static::where('collection_id', $field->collection_id)
-                    ->max('order');
-                
+            if ($field->order === null) {
+                $maxOrder = static::where('collection_id', $field->collection_id)->max('order');
                 $field->order = ($maxOrder ?? -1) + 1;
-            }
-
-            if ($field->options == null) {
-                $field->options = [];
             }
         });
     }

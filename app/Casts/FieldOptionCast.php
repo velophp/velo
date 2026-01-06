@@ -94,10 +94,6 @@ class FieldOptionCast implements CastsAttributes
 
             $instance = $optionClass::fromArray($value);
             
-            if (!$instance->validate()) {
-                throw new InvalidArgumentException('Invalid option data for field type: ' . $fieldType->value);
-            }
-
             return json_encode($instance->toArray());
         }
 

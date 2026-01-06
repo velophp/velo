@@ -1,8 +1,8 @@
 BUG:
 - duplicating a row with files in it will not copy the files from original row, hence pointing to the same file
+- errors may appear after updating collection fields order --doesn't break functionality
 
 IMPROVEMENT:
-- validate rules return an exception or error message not just bool
 - refactor file handling
 - add auto generate thumbnail feature for created lifecycle
-- add whereIn record query compiler for efficient filtering
+- add whereIn record query compiler for efficient filterings

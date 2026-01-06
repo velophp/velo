@@ -2,15 +2,19 @@
 
 namespace App\Livewire;
 
-use App\Enums\{FieldType, CollectionType};
-use App\Models\{Collection, CollectionField, Record};
-use App\Services\{CompareArrays, RecordQueryCompiler, RecordRulesCompiler};
-use App\Traits\FileLibrarySync;
-use Livewire\Attributes\{Computed, Title, On, Rule};
-use Livewire\Component;
-use Livewire\{WithFileUploads, WithPagination};
+use DB;
+use Illuminate\Validation\Rules\Enum;
 use Mary\Traits\Toast;
+use Livewire\Component;
+use Illuminate\Support\Str;
+use App\Traits\FileLibrarySync;
+use Illuminate\Support\Facades\Validator;
+use App\Enums\{FieldType, CollectionType};
+use Livewire\{WithFileUploads, WithPagination};
+use Livewire\Attributes\{Computed, Title, On, Rule};
+use App\Models\{Collection, CollectionField, Record};
 use Illuminate\Support\Collection as LaravelCollection;
+use App\Services\{CompareArrays, RecordQueryCompiler, RecordRulesCompiler};
 
 class CollectionPage extends Component
 {
@@ -22,12 +26,14 @@ class CollectionPage extends Component
     public bool $showRecordDrawer = false;
     public bool $showConfirmDeleteDialog = false;
     public bool $showConfigureCollectionDrawer = false;
-    public array $recordToDelete = [];
-    public array $collectionForm = ['fields' => []];
-    public string $tabSelected = 'fields-tab';
 
-    // Form State
+    // Record Form State
     public array $form = [];
+
+    // Collection Form State
+    public $collectionForm = ['fields' => []];
+    public string $tabSelected = 'fields-tab';
+    public string $fieldOpen = '';
 
     // File Library State
     #[Rule(['files.*.*' => 'max:10240'])]
@@ -40,18 +46,72 @@ class CollectionPage extends Component
     public array $sortBy = ['column' => 'created', 'direction' => 'asc'];
     public array $selected = [];
     public array $fieldsVisibility = [];
+    public array $recordToDelete = [];
+
+    // Helpers
+    public array $optionsBool = [['id' => 0, 'name' => 'Single'], ['id' => 1, 'name' => 'Multiple']];
+    public array $mimeTypes = [
+        ['id' => 'application/pdf', 'name' => 'application/pdf', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/337/337946.png'],
+        ['id' => 'application/json', 'name' => 'application/json', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136525.png'],
+        ['id' => 'application/xml', 'name' => 'application/xml', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136526.png'],
+        ['id' => 'application/zip', 'name' => 'application/zip', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136544.png'],
+        ['id' => 'audio/mpeg', 'name' => 'audio/mpeg', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136548.png'],
+        ['id' => 'audio/wav', 'name' => 'audio/wav', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136548.png'],
+        ['id' => 'image/gif', 'name' => 'image/gif', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136521.png'],
+        ['id' => 'image/jpeg', 'name' => 'image/jpeg', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136524.png'],
+        ['id' => 'image/png', 'name' => 'image/png', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136523.png'],
+        ['id' => 'image/svg+xml', 'name' => 'image/svg+xml', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136530.png'],
+        ['id' => 'image/webp', 'name' => 'image/webp', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/8263/8263118.png'],
+        ['id' => 'text/css', 'name' => 'text/css', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136527.png'],
+        ['id' => 'text/csv', 'name' => 'text/csv', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136533.png'],
+        ['id' => 'text/html', 'name' => 'text/html', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136528.png'],
+        ['id' => 'text/plain', 'name' => 'text/plain', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136538.png'],
+        ['id' => 'video/mp4', 'name' => 'video/mp4', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136545.png'],
+        ['id' => 'video/mpeg', 'name' => 'video/mpeg', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136545.png'],
+        ['id' => 'video/quicktime', 'name' => 'video/quicktime', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136545.png'],
+        ['id' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'name' => '.docx', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/888/888883.png'],
+        ['id' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'name' => '.xlsx', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/888/888850.png'],
+    ];
+    public array $mimeTypePresets = [
+        'image' => [
+            'image/gif',
+            'image/jpeg',
+            'image/png',
+            'image/svg+xml',
+            'image/webp',
+        ],
+        'audio' => [
+            'audio/mpeg',
+            'audio/wav',
+        ],
+        'video' => [
+            'video/mp4',
+            'video/mpeg',
+            'video/quicktime',
+        ],
+        'documents' => [
+            'application/pdf',
+            'text/csv',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
+        'archive' => [
+            'application/zip',
+        ],
+    ];
 
     public function mount(Collection $collection): void
     {
         $this->collection = $collection;
-        $this->fields = $this->collection->fields;
+        $this->fields = $collection->fields->sortBy('order')->values();
         $this->library = [];
 
-        // Preload forms for snappier feels
+        // Preload form values
         $this->fillCollectionForm();
 
+        // @TODO: refactor this to fillRecordForm
         foreach ($this->fields as $i => $field) {
-            $this->fieldsVisibility[$field->name] = $i < 6 || \in_array($field->name, ['created', 'updated']);
+            $this->fieldsVisibility[$field->name] = true;
 
             if ($field->name === 'password') {
                 $this->fieldsVisibility['password'] = false;
@@ -65,6 +125,7 @@ class CollectionPage extends Component
             }
         }
 
+        // Populate
         $this->breadcrumbs = [
             ['link' => route('home'), 'icon' => 's-home'],
             ['label' => ucfirst(request()->segment(2))],
@@ -74,12 +135,7 @@ class CollectionPage extends Component
 
     public function render()
     {
-        return view('livewire.collection-page');
-    }
-
-    public function title(): string
-    {
-        return "Collection - {$this->collection->name}";
+        return view('livewire.collection-page')->title("Collection - {$this->collection->name}");
     }
 
     public function updatedFilter(): void
@@ -100,6 +156,7 @@ class CollectionPage extends Component
     {
         return $this->fields
             ->filter(fn($f) => isset($this->fieldsVisibility[$f->name]) && $this->fieldsVisibility[$f->name])
+            ->sortBy('order')
             ->map(function ($f) {
                 $headers = [
                     'key' => $f->name,
@@ -372,169 +429,384 @@ class CollectionPage extends Component
         );
     }
 
-    public function saveCollectionConfiguration(): void
+    /* === COLLECTION CONFIGURATION === */
+
+    public function updatedCollectionForm($value, $key)
     {
-        $this->validate(
-            [
-                'collectionForm.name' => 'required|string|regex:/^[a-zA-Z_]+$/|max:255',
-            ],
-            [
-                'collectionForm.name.regex' => 'Only letters and underscore are allowed.'
-            ]
-        );
+        $tokens = explode('.', $key);
+        $index = $tokens[1] ?? null;
 
-        $oldFields = $this->fields->mapWithKeys(function ($f) {
-            $fieldArray = $f->toArray();
-            if ($f->options) {
-                $fieldArray['options'] = $f->options->toArray();
-            }
-            return [$f->id => $fieldArray];
-        })->toArray();
-
-        $validationRules = [];
-        $validationMessages = [];
-
-        foreach ($this->collectionForm['fields'] as $index => $fieldData) {
-            $fieldId = $fieldData['id'] ?? null;
-            $oldField = $oldFields[$fieldId] ?? null;
-
-            if ($oldField && $oldField['locked']) {
-                if ($oldField['name'] !== $fieldData['name']) {
-                    $this->addError(
-                        "collectionForm.fields.{$index}.name",
-                        "Field '{$oldField['name']}' is locked and cannot be renamed."
-                    );
-                }
-                if ($oldField['type'] !== $fieldData['type']) {
-                    $this->addError(
-                        "collectionForm.fields.{$index}.type",
-                        "Field '{$oldField['name']}' is locked and its type cannot be changed."
-                    );
-                }
-            }
-
-            $validationRules["collectionForm.fields.{$index}.name"] = 'required|string|regex:/^[a-zA-Z_][a-zA-Z0-9_]*$/|max:255';
-            $validationMessages["collectionForm.fields.{$index}.name.regex"] = 'Field name must start with a letter or underscore and contain only letters, numbers, and underscores.';
-
-            $validationRules["collectionForm.fields.{$index}.type"] = 'required|string';
-
-            if (isset($fieldData['type']) && $fieldData['type'] === FieldType::Text->value) {
-                if (isset($fieldData['min_length'])) {
-                    $validationRules["collectionForm.fields.{$index}.min_length"] = 'nullable|integer|min:0';
-                }
-                if (isset($fieldData['max_length'])) {
-                    $validationRules["collectionForm.fields.{$index}.max_length"] = 'nullable|integer|min:1|max:65535';
-                }
-                if (isset($fieldData['min_length']) && isset($fieldData['max_length'])) {
-                    if ($fieldData['min_length'] > $fieldData['max_length']) {
-                        $this->addError(
-                            "collectionForm.fields.{$index}.min_length",
-                            "Minimum length cannot be greater than maximum length."
-                        );
-                    }
-                }
-            }
+        if ($tokens[0] == 'fields' && $tokens[2] == 'options' && $tokens[3] == 'multiple') {
+            $this->collectionForm['fields'][$index]['options']['multiple'] = \intval($value);
         }
 
-        if (!empty($validationRules)) {
-            $this->validate($validationRules, $validationMessages);
-        }
+        $model = new CollectionField($this->collectionForm['fields'][$index]);
+        $this->collectionForm['fields'][$index]['options'] = $model->options->toArray();
 
-        if ($this->getErrorBag()->isNotEmpty()) {
-            $this->error(
-                title: 'Validation Failed',
-                description: "Please fix the errors and try again.",
-                position: 'toast-bottom toast-end',
-                icon: 'o-exclamation-circle',
-                css: 'alert-error',
-                timeout: 5000,
-            );
-            return;
-        }
+        $this->ensureFieldOptionsDefaults($this->collectionForm['fields'][$index]);
+    }
 
-        foreach ($this->collectionForm['fields'] as $fieldData) {
-            $fieldId = $fieldData['id'] ?? null;
-
-            if (isset($fieldData['_deleted']) && $fieldData['_deleted']) {
-                continue;
-            }
-
-            if ($fieldId) {
-                $field = CollectionField::find($fieldId);
-
-                if ($field) {
-                    $updateData = [];
-
-                    if (!$field->locked) {
-                        $updateData['name'] = $fieldData['name'];
-                        $updateData['type'] = $fieldData['type'];
-                    }
-
-                    if (isset($fieldData['required'])) {
-                        $updateData['required'] = $fieldData['required'];
-                    }
-                    if (isset($fieldData['unique'])) {
-                        $updateData['unique'] = $fieldData['unique'];
-                    }
-                    if (isset($fieldData['indexed'])) {
-                        $updateData['indexed'] = $fieldData['indexed'];
-                    }
-                    if (isset($fieldData['hidden'])) {
-                        $updateData['hidden'] = $fieldData['hidden'];
-                    }
-                    
-                    $updateData['options'] = $fieldData['options'];
-
-                    if (!empty($updateData)) {
-                        $field->update($updateData);
-                    }
-                }
-            } else {
-                $newField = $this->collection->fields()->create([
-                    'name' => $fieldData['name'],
-                    'type' => $fieldData['type'],
-                    'order' => $fieldData['order'] ?? 999,
-                    'required' => $fieldData['required'] ?? false,
-                    'unique' => $fieldData['unique'] ?? false,
-                    'indexed' => $fieldData['indexed'] ?? false,
-                    'locked' => $fieldData['locked'] ?? false,
-                    'hidden' => $fieldData['hidden'] ?? false,
-                    'min_length' => $fieldData['min_length'] ?? 0,
-                    'max_length' => $fieldData['max_length'] ?? 5000,
-                ]);
-            }
-        }
-
-        foreach ($this->collectionForm['fields'] as $fieldData) {
-            if (isset($fieldData['_deleted']) && $fieldData['_deleted'] && isset($fieldData['id'])) {
-                if (!($fieldData['locked'] ?? false)) {
-                    CollectionField::find($fieldData['id'])?->delete();
-                }
-            }
-        }
-
-        if ($this->collectionForm['name'] !== $this->collection->name) {
-            $this->collection->update([
-                'name' => $this->collectionForm['name'],
-            ]);
-
-            $this->redirect(route('collection', ['collection' => $this->collectionForm['name']]), navigate: true);
-            return;
-        }
-
-
-        $this->fields = $this->collection->fresh()->fields;
-        $this->collectionForm['fields'] = $this->fields->map(function ($f) {
+    #[Computed]
+    public function fieldsToArray()
+    {
+        return $this->fields->map(function ($f) {
             $fieldArray = $f->toArray();
             if ($f->options) {
                 $fieldArray['options'] = $f->options->toArray();
             }
             return $fieldArray;
         })->toArray();
+    }
+
+    public function fillCollectionForm()
+    {
+        $this->collectionForm = $this->collection->toArray();
+        $this->collectionForm['fields'] = $this->fieldsToArray();
+        
+        foreach ($this->collectionForm['fields'] as &$field) {
+            $this->ensureFieldOptionsDefaults($field);
+        }
+    }
+
+    public function updateFieldOrder(array $orderedIds)
+    {
+        foreach ($orderedIds as $newOrder => $fieldId) {
+            foreach ($this->collectionForm['fields'] as &$formField) {
+                if ($formField['id'] == $fieldId) {
+                    $formField['order'] = $newOrder;
+                    break;
+                }
+            }
+        }
+
+        usort($this->collectionForm['fields'], function ($a, $b) {
+            return ($a['order'] ?? 0) <=> ($b['order'] ?? 0);
+        });
+        
+        $this->collectionForm['fields'] = array_values($this->collectionForm['fields']);
+
+        foreach ($this->collectionForm['fields'] as &$field) {
+            $this->ensureFieldOptionsDefaults($field);
+        }
+
+        $this->dispatch('fields-updated');
+    }
+
+    public function addNewField()
+    {
+        $newField = [
+            'collection_id' => $this->collection->id,
+            'id' => time(),
+            'name' => 'newField__' . time(),
+            'type' => FieldType::Text,
+            'order' => \count($this->collectionForm['fields']),
+            'unique' => false,
+            'indexed' => false,
+            'required' => false,
+            'locked' => false,
+            'options' => []
+        ];
+
+        $model = new CollectionField($newField);
+        $newField['options'] = $model->options->toArray();
+        $this->ensureFieldOptionsDefaults($newField);
+
+        $this->collectionForm['fields'][] = $newField;
+        $this->fieldOpen = 'collapse_' . $newField['id'];
+    }
+
+    public function duplicateField($targetId)
+    {
+        $field = array_find($this->collectionForm['fields'], fn($f) => $f['id'] === $targetId);
+
+        if (!$field) {
+            $this->error(
+                title: 'Cannot duplicate field.',
+                description: "Field not found.",
+                position: 'toast-bottom toast-end',
+                icon: 'o-information-circle',
+                css: 'alert-error',
+                timeout: 2000,
+            );
+            return;
+        }
+
+        $targetIndex = $field['order'] + 1;
+
+        $newField = [
+            ...$field,
+            'collection_id' => $this->collection->id,
+            'id' => time(),
+            'name' => $field['name'] . '__copy',
+            'order' => $targetIndex,
+        ];
+
+
+        array_splice($this->collectionForm['fields'], $targetIndex, 0, [$newField]);
+        foreach ($this->collectionForm['fields'] as $index => &$field) {
+            $field['order'] = $index;
+        }
+
+        $this->fieldOpen = 'collapse_' . $newField['id'];
+    }
+
+    public function deleteField($targetId)
+    {
+        $key = array_find_key($this->collectionForm['fields'], fn($f) => $f['id'] === $targetId);
+
+        if (!$key) {
+            $this->error(
+                title: 'Cannot delete field.',
+                description: "Field not found.",
+                position: 'toast-bottom toast-end',
+                icon: 'o-information-circle',
+                css: 'alert-error',
+                timeout: 2000,
+            );
+            return;
+        }
+
+        // Straight to hell if not exists on original data
+        if ($this->fields->contains('id', $targetId)) {
+            $this->collectionForm['fields'][$key]['_deleted'] = true;
+            return;
+        }
+
+        unset($this->collectionForm['fields'][$key]);
+        foreach ($this->collectionForm['fields'] as $index => &$field) {
+            $field['order'] = $index;
+        }
+
+        $this->fieldOpen = '';
+    }
+
+    public function restoreField($targetId)
+    {
+        $key = array_find_key($this->collectionForm['fields'], fn($f) => $f['id'] === $targetId);
+
+        if (!$key) {
+            $this->error(
+                title: 'Cannot restore field.',
+                description: "Field not found.",
+                position: 'toast-bottom toast-end',
+                icon: 'o-information-circle',
+                css: 'alert-error',
+                timeout: 2000,
+            );
+            return;
+        }
+
+        unset($this->collectionForm['fields'][$key]['_deleted']);
+
+        $this->fieldOpen = 'collapse_' . $this->collectionForm['fields'][$key]['id'];
+    }
+
+    public function applyFilePresets($fieldIdx, string $presetsName)
+    {
+        if (!isset($this->mimeTypePresets[$presetsName])) {
+            $this->showToast('Preset does not exist.');
+            return;
+        }
+
+        if (!isset($this->collectionForm['fields'][$fieldIdx]['options']['allowedMimeTypes']) || !\is_array($this->collectionForm['fields'][$fieldIdx]['options']['allowedMimeTypes'])) {
+            $this->showToast('Presets can only be applied to file-type fields.');
+            return;
+        }
+
+        $this->collectionForm['fields'][$fieldIdx]['options']['allowedMimeTypes'] = $this->mimeTypePresets[$presetsName];
+    }
+
+    public function saveCollection()
+    {
+        /* === PREPARE VALIDATION RULES === */
+
+        $rules = [];
+        $messages = [];
+        $attributes = [];
+
+        $rules['collectionForm.name'] = ['required', 'regex:/^[a-zA-Z_]+$/', 'unique:collections,name,' . $this->collectionForm['id']];
+        $messages['collectionForm.name.regex'][] = 'Collection name can only contain letters and underscores.';
+        $messages['collectionForm.name.unique'][] = 'Collection with the same name already exists.';
+
+        $incomingFields = $this->collectionForm['fields'];
+
+        // Stitch all rules together
+        foreach ($incomingFields as $index => $field) {
+
+            $rules["collectionForm.fields.{$index}.name"] = ['required', 'regex:/^[a-zA-Z0-9_]+$/', 'unique:collection_fields,name,' . $field['id']];
+            $messages["collectionForm.fields.{$index}.name.regex"] = 'Field name can only contain letters, numbers, and underscores.';
+            $messages["collectionForm.fields.{$index}.name.unique"] = 'Field with the same name already exists.';
+
+            $rules["collectionForm.fields.{$index}.type"] = ['required', new Enum(type: FieldType::class)];
+            $rules["collectionForm.fields.{$index}.required"] = ['boolean'];
+            $rules["collectionForm.fields.{$index}.hidden"] = ['boolean'];
+
+            $model = new CollectionField($field);
+            $typeRules = $model->options->getValidationRules();
+            $typeRuleMessages = $model->options->getValidationMessages();
+            $minToMaxMap = [
+                'minSize' => 'maxSize',
+                'min' => 'max',
+                'minLength' => 'maxLength',
+            ];
+
+            foreach ($typeRules as $field => $rule) {
+                if (isset($minToMaxMap[$field]) && isset($typeRules[$minToMaxMap[$field]])) {
+                    $rule[] = "lte:collectionForm.fields.{$index}.options.{$minToMaxMap[$field]}";
+                }
+
+                $rules["collectionForm.fields.{$index}.options.{$field}"] = $rule;
+            }
+
+            foreach ($typeRuleMessages as $field => $msg) {
+                $messages["collectionForm.fields.{$index}.options.{$field}"] = $msg;
+            }
+
+        }
+
+        foreach ($rules as $ruleName => $rule) {
+            if (str_ends_with($ruleName, '.*')) {
+                $index = Str::between($ruleName, 'fields.', '.options');
+                $attributes[$ruleName] = "value on [{$index}]";
+                continue;
+            }
+
+            $newName = explode('.', $ruleName);
+            $newName = $newName[\count($newName) - 1];
+            $attributes[$ruleName] = Str::lower(Str::headline($newName));
+        }
+
+        /* === PREPARE VALIDATION RULES === */
+
+        try {
+            $this->validate($rules, $messages, $attributes);
+        } catch (\Exception $e) {
+            // dump($e);
+            throw $e;
+        }
+
+        try {
+
+            DB::beginTransaction();
+
+            // dump($this->collectionForm['fields']);
+
+            foreach($incomingFields as $field) {
+
+                $oldField = CollectionField::find($field['id']);
+                
+                // Handle deletion of existing fields
+                if ($oldField && isset($field['_deleted']) && $field['_deleted']) {
+                    if ($oldField->locked) continue;
+
+                    $oldField->delete();
+                    continue;
+                }
+
+                // Skip deleted fields that don't exist in DB
+                if (isset($field['_deleted']) && $field['_deleted']) {
+                    continue;
+                }
+
+                // Handle new fields (id is timestamp, not found in DB)
+                if (!$oldField) {
+                    CollectionField::create([
+                        'collection_id' => $this->collection->id,
+                        'name' => $field['name'],
+                        'type' => $field['type'],
+                        'order' => $field['order'],
+                        'unique' => $field['unique'] ?? false,
+                        'indexed' => $field['indexed'] ?? false,
+                        'required' => $field['required'] ?? false,
+                        'locked' => false,
+                        'options' => $field['options'] ?? [],
+                        'hidden' => $field['hidden'] ?? false,
+                    ]);
+                    continue;
+                }
+
+                // Handle locked fields - only allow updating specific fields
+                if ($oldField->locked) {
+                    $allowedProperties = ['order'];
+                    $allowedOptions = ['allowedDomains', 'blockedDomains'];
+                    $optionsToUpdate = [];
+                    $propertiesToUpdate = [];
+                    
+                    foreach ($allowedOptions as $optionKey) {
+                        if (isset($field['options'][$optionKey])) {
+                            $optionsToUpdate[$optionKey] = $field['options'][$optionKey];
+                        }
+                    }
+
+                    foreach ($allowedProperties as $propKey) {
+                        if (isset($field[$propKey])) {
+                            $propertiesToUpdate[$propKey] = $field[$propKey];
+                        }
+                    }
+                    
+                    if (!empty($optionsToUpdate) || !empty($propertiesToUpdate)) {
+                        $updateData = $propertiesToUpdate;
+                        
+                        if (!empty($optionsToUpdate)) {
+                            $currentOptions = $oldField->options->toArray();
+                            $updateData['options'] = array_merge($currentOptions, $optionsToUpdate);
+                        }
+                        
+                        $oldField->update($updateData);
+                    }
+                    continue;
+                }
+
+                // Prepare update data for unlocked fields (protect reserved properties: locked, collection_id)
+                $toUpdateData = [
+                    'name' => $field['name'],
+                    'type' => $field['type'],
+                    'order' => $field['order'],
+                    'unique' => $field['unique'] ?? false,
+                    'indexed' => $field['indexed'] ?? false,
+                    'required' => $field['required'] ?? false,
+                    'options' => $field['options'] ?? [],
+                    'hidden' => $field['hidden'] ?? false,
+                ];
+
+                $oldField->update($toUpdateData);
+            }
+
+            DB::commit();
+
+        } catch (\Exception $e) {
+
+            DB::rollBack();
+
+            $this->collection = $this->collection->fresh();
+            $this->fields = $this->collection->fields->sortBy('order')->values();
+            $this->fillCollectionForm();
+
+            $this->showConfigureCollectionDrawer = false;
+            $this->fieldOpen = '';
+            
+            $this->error(
+                title: 'Failed to Save!',
+                description: "Failed to save collection configuration. $e",
+                position: 'toast-bottom toast-end',
+                icon: 'o-check-circle',
+                css: 'alert-error',
+                timeout: 2000,
+            );
+            
+            return;
+        }
+
+        // Refresh collection and fields
+        $this->collection = $this->collection->fresh();
+        $this->fields = $this->collection->fields->sortBy('order')->values();
+        $this->fillCollectionForm();
+        $this->dispatch('fields-updated');
 
         $this->showConfigureCollectionDrawer = false;
 
         $this->dispatch('fields-updated');
+        $this->fieldOpen = '';
 
         $this->success(
             title: 'Success!',
@@ -544,150 +816,33 @@ class CollectionPage extends Component
             css: 'alert-success',
             timeout: 2000,
         );
-    }
 
-    public function fillCollectionForm()
-    {
-        $this->collectionForm = $this->collection->toArray();
-        $this->collectionForm['fields'] = $this->fields->map(function ($f) {
-            $fieldArray = $f->toArray();
-            if ($f->options) {
-                $fieldArray['options'] = $f->options->toArray();
-            }
-            return $fieldArray;
-        })->toArray();
-    }
+        // Place this at last - handle collection name change
+        if ($this->collectionForm['name'] != $this->collection->name) {
+            $this->collection->update([
+                'name' => $this->collectionForm['name'],
+            ]);
 
-    public function duplicateField(int $index): void
-    {
-        if (!isset($this->collectionForm['fields'][$index])) {
-            $this->error(
-                title: 'Error',
-                description: "Field not found.",
-                position: 'toast-bottom toast-end',
-                icon: 'o-exclamation-circle',
-                css: 'alert-error',
-                timeout: 1500,
-            );
+            $this->navigate(route('collection', ['collection' => $this->collection->fresh()]), navigate: true);
             return;
         }
 
-        $fieldToDuplicate = $this->collectionForm['fields'][$index];
-
-        $newField = $fieldToDuplicate;
-        unset($newField['id']);
-        $newField['name'] = $fieldToDuplicate['name'] . '_copy';
-        $newField['locked'] = false;
-
-        $fields = $this->collectionForm['fields'];
-        array_splice($fields, $index + 1, 0, [$newField]);
-        $this->collectionForm['fields'] = $fields;
-
-        $this->dispatch('fields-updated');
     }
 
-    public function deleteField(int $index): void
+    /* === COLLECTION CONFIGURATION === */
+
+    /**
+     * Ensure field options have required default empty arrays for UI components
+     */
+    private function ensureFieldOptionsDefaults(array &$field): void
     {
-        if (!isset($this->collectionForm['fields'][$index])) {
-            $this->error(
-                title: 'Error',
-                description: "Field not found.",
-                position: 'toast-bottom toast-end',
-                icon: 'o-exclamation-circle',
-                css: 'alert-error',
-                timeout: 1500,
-            );
-            return;
-        }
-
-        $fieldToDelete = $this->collectionForm['fields'][$index];
-
-        if ($fieldToDelete['locked'] ?? false) {
-            $this->error(
-                title: 'Cannot Delete',
-                description: "Field '{$fieldToDelete['name']}' is locked and cannot be deleted.",
-                position: 'toast-bottom toast-end',
-                icon: 'o-lock-closed',
-                css: 'alert-error',
-                timeout: 1500,
-            );
-            return;
-        }
-
-        $this->collectionForm['fields'][$index]['_deleted'] = true;
-
-    }
-
-    public function restoreField(int $index): void
-    {
-        if (!isset($this->collectionForm['fields'][$index])) {
-            $this->error(
-                title: 'Error',
-                description: "Field not found.",
-                position: 'toast-bottom toast-end',
-                icon: 'o-exclamation-circle',
-                css: 'alert-error',
-                timeout: 1500,
-            );
-            return;
-        }
-
-        $fieldToRestore = $this->collectionForm['fields'][$index];
-
-        unset($this->collectionForm['fields'][$index]['_deleted']);
-    }
-
-    public function addNewField(): void
-    {
-        $newField = [
-            'name' => 'new_field_' . time(),
-            'type' => FieldType::Text->value,
-            'required' => false,
-            'unique' => false,
-            'indexed' => false,
-            'locked' => false,
-            'hidden' => false,
-            'options' => null,
-            'rules' => null,
-        ];
-
-        $this->collectionForm['fields'][] = $newField;
-
-        $this->dispatch('fields-updated');
-    }
-
-    public function updateFieldOrder(array $orderedIds): void
-    {
-        $reorderedFields = [];
-
-        foreach ($orderedIds as $order => $id) {
-            foreach ($this->collectionForm['fields'] as $field) {
-                if (($field['id'] ?? null) == $id || ($field['name'] ?? null) == $id) {
-                    $field['order'] = $order;
-                    $reorderedFields[] = $field;
-
-                    // Update order in database for existing fields
-                    if (isset($field['id'])) {
-                        CollectionField::where('id', $field['id'])->update(['order' => $order]);
-                    }
-                    break;
-                }
+        $requiredDefaults = ['allowedDomains', 'blockedDomains', 'allowedMimeTypes'];
+        
+        foreach ($requiredDefaults as $key) {
+            if (!isset($field['options'][$key])) {
+                $field['options'][$key] = [];
             }
         }
-
-        // Add any fields that weren't in the ordered list (new fields without IDs)
-        foreach ($this->collectionForm['fields'] as $field) {
-            $fieldId = $field['id'] ?? $field['name'] ?? null;
-            if ($fieldId && !in_array($fieldId, $orderedIds)) {
-                $field['order'] = count($reorderedFields);
-                $reorderedFields[] = $field;
-            }
-        }
-
-        $this->collectionForm['fields'] = $reorderedFields;
-
-        // Don't re-render after reordering to prevent SortableJS conflicts
-        $this->skipRender();
     }
 
     #[On('toast')]
