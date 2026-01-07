@@ -2,7 +2,7 @@
 
 namespace App\Services;
 
-use App\Constracts\IndexStrategy;
+use App\Contracts\IndexStrategy;
 use App\Enums\FieldType;
 use App\FieldOptions\DatetimeFieldOption;
 use App\FieldOptions\EmailFieldOption;
@@ -12,20 +12,23 @@ use App\FieldOptions\TextFieldOption;
 use App\Helper;
 use App\Models\Collection;
 use App\Models\CollectionField;
+use App\Rules\AllowedEmailDomains;
+use App\Rules\BlockedEmailDomains;
 use Illuminate\Validation\Rule;
 
 class RecordRulesCompiler
 {
     public function __construct(
         protected Collection $collection,
-        private IndexStrategy $indexManager
+        private IndexStrategy $indexManager,
+        private ?string $ignoreId = null,
     ) {}
 
     /**
      * Returns a laravel style rules for each fields
      * @return string[][]
      */
-    public function getRules(): array
+    public function getRules(string $prefix = ''): array
     {
         $rules = [];
 
@@ -35,7 +38,13 @@ class RecordRulesCompiler
             }
 
             $fieldRules = $this->compileFieldRules($field);
-            $rules['form.' . $field->name] = $fieldRules;
+
+            if ($field->type === FieldType::File) {
+                // @TODO: Implement File type validation rules
+                continue;
+            }
+
+            $rules[$prefix . $field->name] = $fieldRules;
         }
 
         return $rules;
@@ -54,23 +63,33 @@ class RecordRulesCompiler
         // Basic required/nullable rules
         if ($field->name === 'id') {
             $fieldRules[] = 'nullable';
-        } elseif ($field->required) {
+        } elseif ($field->required && $field->type !== FieldType::File) {
             $fieldRules[] = 'required';
+        } elseif ($field->required && $field->type === FieldType::File) {
+            $fieldRules[] = 'required';
+            $fieldRules[] = 'min:1';
         } else {
             $fieldRules[] = 'nullable';
         }
 
-        // Unique via generated unique index
         if ($field->unique) {
-            if ($this->indexManager->hasIndex(Helper::generateIndexName($collection, $field->name, unique: true))) {
-                $fieldRules[] = Rule::unique('records', $field->name)->where(fn($q) => $q->where('collection_id', $collection->id));
+            $virtualCol = Helper::generateVirtualColumnName($collection, $field->name);
+            $indexName = Helper::generateIndexName($collection, $field->name, true);
+
+            if ($this->indexManager->hasIndex($indexName)) {
+                $fieldRules[] = Rule::unique('records', $virtualCol)
+                    ->where('collection_id', $collection->id)
+                    ->ignore($this->ignoreId);
             } else {
+                // Slow fallback for non-indexed fields
                 \Log::alert('Unique index not found. Reverting to fallback.', [
                     'collection' => $collection->name,
                     'field' => $field->name
                 ]);
 
-                $fieldRules[] = Rule::unique('records', "data->{$field->name}")->where('collection_id', $collection->id);
+                $fieldRules[] = Rule::unique('records', "data->>{$field->name}")
+                    ->where('collection_id', $collection->id)
+                    ->ignore($this->ignoreId);
             }
         }
 
@@ -97,7 +116,7 @@ class RecordRulesCompiler
             FieldType::Number => ['numeric'],
             FieldType::Bool => ['boolean'],
             FieldType::Datetime => ['date'],
-            FieldType::File => ['file'],
+            FieldType::File => ['image'],
             FieldType::Text => ['string'],
             default => [],
         };
@@ -128,12 +147,11 @@ class RecordRulesCompiler
 
             case $options instanceof EmailFieldOption:
                 if ($options->allowedDomains !== null && !empty($options->allowedDomains)) {
-                    $domains = implode(',', $options->allowedDomains);
                     $rules[] = "email:rfc,dns,filter";
-                    // Custom rule for domain validation would need to be added
+                    $rules[] = new AllowedEmailDomains($options->allowedDomains);
                 }
                 if ($options->blockedDomains !== null && !empty($options->blockedDomains)) {
-                    // Custom rule for blocked domain validation would need to be added
+                    $rules[] = new BlockedEmailDomains($options->blockedDomains);
                 }
                 break;
 

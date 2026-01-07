@@ -43,6 +43,7 @@ class FileLibrary extends Component
 
     public function validationMessage(string $message): string
     {
+        return $message;
         // Remove common prefixes to make error messages cleaner
         return str($message)
             ->after('field')

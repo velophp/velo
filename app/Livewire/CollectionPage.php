@@ -3,14 +3,15 @@
 namespace App\Livewire;
 
 use DB;
-use Illuminate\Validation\Rules\Enum;
 use Mary\Traits\Toast;
 use Livewire\Component;
 use Illuminate\Support\Str;
 use App\Traits\FileLibrarySync;
+use Illuminate\Validation\Rules\Enum;
 use Illuminate\Support\Facades\Validator;
 use App\Enums\{FieldType, CollectionType};
 use Livewire\{WithFileUploads, WithPagination};
+use App\Services\IndexStrategies\MysqlIndexStrategy;
 use Livewire\Attributes\{Computed, Title, On, Rule};
 use App\Models\{Collection, CollectionField, Record};
 use Illuminate\Support\Collection as LaravelCollection;
@@ -36,7 +37,7 @@ class CollectionPage extends Component
     public string $fieldOpen = '';
 
     // File Library State
-    #[Rule(['files.*.*' => 'max:10240'])]
+    #[Rule(['files.*.*' => 'file'])]
     public array $files = []; // Temp files for image library
     public array $library = [];
 
@@ -106,26 +107,10 @@ class CollectionPage extends Component
         $this->fields = $collection->fields->sortBy('order')->values();
         $this->library = [];
 
-        // Preload form values
+        // Preload values
+        $this->fillFieldsVisibility();
+        $this->fillRecordForm();
         $this->fillCollectionForm();
-
-        // @TODO: refactor this to fillRecordForm
-        foreach ($this->fields as $i => $field) {
-            $this->fieldsVisibility[$field->name] = true;
-
-            if ($field->name === 'password') {
-                $this->fieldsVisibility['password'] = false;
-            }
-
-            $this->form[$field->name] = $field->type === FieldType::Bool ? false : '';
-
-            if ($field->type === FieldType::File) {
-                $this->files[$field->name] = [];
-                $this->library[$field->name] = collect([]);
-            }
-        }
-
-        // Populate
         $this->breadcrumbs = [
             ['link' => route('home'), 'icon' => 's-home'],
             ['label' => ucfirst(request()->segment(2))],
@@ -137,6 +122,8 @@ class CollectionPage extends Component
     {
         return view('livewire.collection-page')->title("Collection - {$this->collection->name}");
     }
+
+    /* === START TABLE METHODS === */
 
     public function updatedFilter(): void
     {
@@ -194,34 +181,186 @@ class CollectionPage extends Component
         return $compiler->paginate($this->perPage);
     }
 
-    /* === RECORD OPERATION === */
-
-    // @TODO: rename all record methods to {operation}Record
-    // @TODO: Remove validateFields method, move it to saveRecord, and update the usage of RecordRulesCompiler
-
-    protected function validateFields(): array
+    public function fillFieldsVisibility()
     {
-        $rulesCompiler = new RecordRulesCompiler($this->collection);
-        return $this->validate($rulesCompiler->getRules());
+        foreach ($this->fields as $i => $field) {
+            $this->fieldsVisibility[$field->name] = true;
+
+            if ($this->collection->type === CollectionType::Auth) {
+                if ($field->name === 'password') {
+                    $this->fieldsVisibility['password'] = false;
+                }
+            }
+        }
     }
 
-    public function save(): void
+    /* === END TABLE METHODS === */
+
+    /* === START RECORD OPERATION === */
+
+    public function fillRecordForm($data = null)
     {
-        $this->validateFields();
+        if ($data == null) {
+            foreach ($this->fields as $field) {
+                if ($field->type === FieldType::Bool) {
+                    $this->form[$field->name] = false;
+                    continue;
+                }
 
-        $recordId = $this->form['id_old'] ?? null;
+                if ($field->type === FieldType::File) {
+                    $this->form[$field->name] = [];
+                    $this->files[$field->name] = [];
+                    $this->library[$field->name] = collect([]);
+                    continue;
+                }
 
-        $status = $recordId ? 'Updated' : 'Created';
-
-        $record = null;
-
-        if ($recordId) {
-            $record = $this->collection->queryCompiler()
-                ->filter('id', '=', $recordId)
-                ->firstRaw();
+                $this->form[$field->name] = '';
+            }
+            return;
         }
 
-        unset($this->form['id_old']);
+        $this->form = $data;
+        foreach ($this->fields as $field) {
+            if ($field->type === FieldType::File) {
+                $this->files[$field->name] = [];
+
+                // Load existing library data from form if it exists
+                $existingLibrary = $this->form[$field->name] ?? [];
+                if (\is_array($existingLibrary) && !empty($existingLibrary)) {
+                    $this->library[$field->name] = collect($existingLibrary);
+                } else {
+                    $this->library[$field->name] = collect([]);
+                }
+            }
+        }
+    }
+
+    public function showRecord(string $id): void
+    {
+        $compiler = new RecordQueryCompiler($this->collection);
+        $result = $compiler->filter('id', '=', $id)->first();
+
+        if (!$result) {
+            $this->error(
+                title: 'Cannot show record.',
+                description: "Record not found.",
+                position: 'toast-bottom toast-end',
+                icon: 'o-information-circle',
+                css: 'alert-error',
+                timeout: 2000,
+            );
+            return;
+        }
+
+        $data = collect($result->data);
+        $data = ['id_old' => $data['id'], ...$data];
+        $this->fillRecordForm($data);
+        $this->showRecordDrawer = true;
+    }
+
+    public function duplicateRecord(string $id): void
+    {
+        $compiler = new RecordQueryCompiler($this->collection);
+        $result = $compiler->filter('id', '=', $id)->first();
+
+        if (!$result) {
+            $this->error(
+                title: 'Cannot duplicate record.',
+                description: "Record not found.",
+                position: 'toast-bottom toast-end',
+                icon: 'o-information-circle',
+                css: 'alert-error',
+                timeout: 2000,
+            );
+            return;
+        }
+
+        $data = collect($result->data);
+        $data = [...$data, 'id' => ''];
+        $this->fillRecordForm($data);
+    }
+
+    public function promptDeleteRecord($id): void
+    {
+        $this->recordToDelete = array_filter(explode(',', $id));
+        $this->showConfirmDeleteDialog = true;
+    }
+
+    public function confirmDeleteRecord(): void
+    {
+        $count = count($this->recordToDelete);
+
+        foreach ($this->recordToDelete as $id) {
+            $compiler = new RecordQueryCompiler($this->collection);
+            $result = $compiler->filter('id', '=', $id)->firstRaw();
+
+            if (!$result) {
+                $this->error(
+                    title: 'Cannot delete record.',
+                    description: "Record not found.",
+                    position: 'toast-bottom toast-end',
+                    icon: 'o-information-circle',
+                    css: 'alert-error',
+                    timeout: 2000,
+                );
+                $this->showConfirmDeleteDialog = false;
+                return;
+            }
+
+            $result->delete();
+        }
+
+        $this->showRecordDrawer = false;
+        $this->showConfirmDeleteDialog = false;
+        $this->recordToDelete = [];
+        $this->selected = [];
+
+        unset($this->tableRows);
+
+        $this->success(
+            title: 'Success!',
+            description: "Deleted $count {$this->collection->name} " . str('record')->plural($count) . ".",
+            position: 'toast-bottom toast-end',
+            icon: 'o-check-circle',
+            css: 'alert-success',
+            timeout: 2000,
+        );
+    }
+
+    public function saveRecord(): void
+    {
+        $recordId = $this->form['id_old'] ?? null;
+        $status = $recordId ? 'Updated' : 'Created';
+        $record = null;
+
+        $rulesCompiler = new RecordRulesCompiler($this->collection, new MysqlIndexStrategy, ignoreId: $recordId);
+
+        $rules = $rulesCompiler->getRules(prefix: 'form.');
+        $messages = [];
+        $attributes = [];
+
+        if ($recordId) {
+            $record = $this->collection->queryCompiler()->filter('id', '=', $recordId)->firstRaw();
+        }
+        
+        foreach ($rules as $ruleName => $rule) {
+            if (str_ends_with($ruleName, '.*')) {
+                $index = Str::between($ruleName, 'fields.', '.options');
+                $attributes[$ruleName] = "value on [{$index}]";
+                continue;
+            }
+
+            $newName = explode('.', $ruleName);
+            $newName = $newName[\count($newName) - 1];
+            $attributes[$ruleName] = Str::lower(Str::headline($newName));
+        }
+
+        try {
+            $this->validate($rules, $messages, $attributes);
+        } catch (\Exception $e) {
+            // dd($e,  data_get($this, 'form.avatar'));
+            throw $e;
+        }
 
         if ($record) {
 
@@ -251,10 +390,13 @@ class CollectionPage extends Component
                 }
             }
 
+            unset($this->form['id_old']);
             $record->update([
                 'data' => $this->form,
             ]);
         } else {
+
+            unset($this->form['id_old']);
             $record = Record::create([
                 'collection_id' => $this->collection->id,
                 'data' => $this->form,
@@ -305,139 +447,10 @@ class CollectionPage extends Component
         );
     }
 
-    public function show(string $id): void
-    {
-        $compiler = new RecordQueryCompiler($this->collection);
-        $result = $compiler->filter('id', '=', $id)->first();
+    /* === END RECORD OPERATION === */
 
-        if (!$result) {
-            $this->error(
-                title: 'Cannot show record.',
-                description: "Record not found.",
-                position: 'toast-bottom toast-end',
-                icon: 'o-information-circle',
-                css: 'alert-error',
-                timeout: 2000,
-            );
-            return;
-        }
 
-        $data = collect($result->data);
-        $data = ['id_old' => $data['id'], ...$data];
-        $this->fillRecordForm($data);
-        $this->showRecordDrawer = true;
-    }
-
-    public function fillRecordForm($data = null)
-    {
-        if (!$data) {
-            foreach ($this->fields as $field) {
-                if ($field->type === FieldType::Bool) {
-                    $this->form[$field->name] = false;
-                    continue;
-                }
-
-                if ($field->type === FieldType::File) {
-                    $this->form[$field->name] = [];
-                    $this->files[$field->name] = [];
-                    $this->library[$field->name] = collect([]);
-                    continue;
-                }
-
-                $this->form[$field->name] = '';
-            }
-        } else {
-            $this->form = $data;
-
-            foreach ($this->fields as $field) {
-                if ($field->type === FieldType::File) {
-                    $this->files[$field->name] = [];
-
-                    // Load existing library data from form if it exists
-                    $existingLibrary = $this->form[$field->name] ?? [];
-                    if (\is_array($existingLibrary) && !empty($existingLibrary)) {
-                        $this->library[$field->name] = collect($existingLibrary);
-                    } else {
-                        $this->library[$field->name] = collect([]);
-                    }
-                }
-            }
-        }
-    }
-
-    public function duplicate(string $id): void
-    {
-        $compiler = new RecordQueryCompiler($this->collection);
-        $result = $compiler->filter('id', '=', $id)->first();
-
-        if (!$result) {
-            $this->error(
-                title: 'Cannot duplicate record.',
-                description: "Record not found.",
-                position: 'toast-bottom toast-end',
-                icon: 'o-information-circle',
-                css: 'alert-error',
-                timeout: 2000,
-            );
-            return;
-        }
-
-        $data = collect($result->data);
-        $data = [...$data, 'id' => ''];
-        $this->fillRecordForm($data);
-    }
-
-    public function promptDelete($id): void
-    {
-        $this->recordToDelete = array_filter(explode(',', $id));
-        $this->showConfirmDeleteDialog = true;
-    }
-
-    public function confirmDelete(): void
-    {
-        $count = count($this->recordToDelete);
-
-        foreach ($this->recordToDelete as $id) {
-            $compiler = new RecordQueryCompiler($this->collection);
-            $result = $compiler->filter('id', '=', $id)->firstRaw();
-
-            if (!$result) {
-                $this->error(
-                    title: 'Cannot delete record.',
-                    description: "Record not found.",
-                    position: 'toast-bottom toast-end',
-                    icon: 'o-information-circle',
-                    css: 'alert-error',
-                    timeout: 2000,
-                );
-                $this->showConfirmDeleteDialog = false;
-                return;
-            }
-
-            $result->delete();
-        }
-
-        $this->showRecordDrawer = false;
-        $this->showConfirmDeleteDialog = false;
-        $this->recordToDelete = [];
-        $this->selected = [];
-
-        unset($this->tableRows);
-
-        $this->success(
-            title: 'Success!',
-            description: "Deleted $count {$this->collection->name} " . str('record')->plural($count) . ".",
-            position: 'toast-bottom toast-end',
-            icon: 'o-check-circle',
-            css: 'alert-success',
-            timeout: 2000,
-        );
-    }
-
-    /* === RECORD OPERATION === */
-    
-
-    /* === COLLECTION CONFIGURATION === */
+    /* === START COLLECTION CONFIGURATION === */
 
     public function updatedCollectionForm($value, $key)
     {
@@ -470,7 +483,7 @@ class CollectionPage extends Component
     {
         $this->collectionForm = $this->collection->toArray();
         $this->collectionForm['fields'] = $this->fieldsToArray();
-        
+
         foreach ($this->collectionForm['fields'] as &$field) {
             $this->ensureFieldOptionsDefaults($field);
         }
@@ -491,10 +504,10 @@ class CollectionPage extends Component
         usort($this->collectionForm['fields'], function ($a, $b) {
             return ($a['order'] ?? 0) <=> ($b['order'] ?? 0);
         });
-        
+
         $this->collectionForm['fields'] = array_values($this->collectionForm['fields']);
 
-        foreach($this->collectionForm['fields'] as $index => $_) {
+        foreach ($this->collectionForm['fields'] as $index => $_) {
             $this->updatedCollectionForm(null, "fields.$index.order");
         }
     }
@@ -563,26 +576,12 @@ class CollectionPage extends Component
         $lockedStatus = $this->fields->where('id', $targetId)->first()?->locked;
 
         if (!$key) {
-            $this->error(
-                title: 'Cannot delete field.',
-                description: "Field not found.",
-                position: 'toast-bottom toast-end',
-                icon: 'o-information-circle',
-                css: 'alert-error',
-                timeout: 2000,
-            );
+            $this->showToast('Field not found.');
             return;
         }
 
-        if (!$lockedStatus) {
-            $this->error(
-                title: 'Cannot delete field.',
-                description: "Field is locked.",
-                position: 'toast-bottom toast-end',
-                icon: 'o-information-circle',
-                css: 'alert-error',
-                timeout: 2000,
-            );
+        if ($lockedStatus) {
+            $this->showToast('Field is locked.');
             return;
         }
 
@@ -639,11 +638,26 @@ class CollectionPage extends Component
     private function ensureFieldOptionsDefaults(array &$field): void
     {
         // Ensure field options have required default empty arrays for UI components
-        $requiredDefaults = ['allowedDomains', 'blockedDomains', 'allowedMimeTypes'];
-        
-        foreach ($requiredDefaults as $key) {
+        $requiredDefaultsArray = ['allowedDomains', 'blockedDomains', 'allowedMimeTypes'];
+
+        foreach ($requiredDefaultsArray as $key) {
             if (!isset($field['options'][$key])) {
                 $field['options'][$key] = [];
+            }
+        }
+
+        $requiredDefaultsBool = ['hidden', 'required', 'multiple', 'allowDecimals'];
+
+        foreach ($requiredDefaultsBool as $key) {
+            if (in_array($key, ['hidden', 'required'])) {
+                if (isset($field[$key])) {
+                    $field[$key] = boolval($field[$key]);
+                }
+                continue;
+            }
+
+            if (isset($field['options'][$key])) {
+                $field['options'][$key] = boolval($field['options'][$key]);
             }
         }
     }
@@ -696,6 +710,7 @@ class CollectionPage extends Component
 
         }
 
+        // Format attributes name
         foreach ($rules as $ruleName => $rule) {
             if (str_ends_with($ruleName, '.*')) {
                 $index = Str::between($ruleName, 'fields.', '.options');
@@ -710,26 +725,20 @@ class CollectionPage extends Component
 
         /* === PREPARE VALIDATION RULES === */
 
-        try {
-            $this->validate($rules, $messages, $attributes);
-        } catch (\Exception $e) {
-            // dump($e);
-            throw $e;
-        }
-
+        $this->validate($rules, $messages, $attributes);
+        
         try {
 
             DB::beginTransaction();
 
-            // dump($this->collectionForm['fields']);
-
-            foreach($incomingFields as $field) {
+            foreach ($incomingFields as $field) {
 
                 $oldField = CollectionField::find($field['id']);
-                
+
                 // Handle deletion of existing fields
                 if ($oldField && isset($field['_deleted']) && $field['_deleted']) {
-                    if ($oldField->locked) continue;
+                    if ($oldField->locked)
+                        continue;
 
                     $oldField->delete();
                     continue;
@@ -760,10 +769,10 @@ class CollectionPage extends Component
                 // Handle locked fields - only allow updating specific fields
                 if ($oldField->locked) {
                     $allowedProperties = ['order'];
-                    $allowedOptions = ['allowedDomains', 'blockedDomains'];
+                    $allowedOptions = ['allowedDomains', 'blockedDomains', 'minLength', 'maxLength'];
                     $optionsToUpdate = [];
                     $propertiesToUpdate = [];
-                    
+
                     foreach ($allowedOptions as $optionKey) {
                         if (isset($field['options'][$optionKey])) {
                             $optionsToUpdate[$optionKey] = $field['options'][$optionKey];
@@ -775,15 +784,15 @@ class CollectionPage extends Component
                             $propertiesToUpdate[$propKey] = $field[$propKey];
                         }
                     }
-                    
+
                     if (!empty($optionsToUpdate) || !empty($propertiesToUpdate)) {
                         $updateData = $propertiesToUpdate;
-                        
+
                         if (!empty($optionsToUpdate)) {
                             $currentOptions = $oldField->options->toArray();
                             $updateData['options'] = array_merge($currentOptions, $optionsToUpdate);
                         }
-                        
+
                         $oldField->update($updateData);
                     }
                     continue;
@@ -816,7 +825,7 @@ class CollectionPage extends Component
 
             $this->showConfigureCollectionDrawer = false;
             $this->fieldOpen = '';
-            
+
             $this->error(
                 title: 'Failed to Save!',
                 description: "Failed to save collection configuration. $e",
@@ -825,7 +834,7 @@ class CollectionPage extends Component
                 css: 'alert-error',
                 timeout: 2000,
             );
-            
+
             return;
         }
 
@@ -861,7 +870,7 @@ class CollectionPage extends Component
 
     }
 
-    /* === COLLECTION CONFIGURATION === */
+    /* === END COLLECTION CONFIGURATION === */
 
     #[On('toast')]
     public function showToast($message = 'Ok')
@@ -871,7 +880,31 @@ class CollectionPage extends Component
             position: 'toast-bottom toast-end',
             icon: 'o-information-circle',
             css: 'alert-info',
-            timeout: 2000,
+            timeout: 1500,
+        );
+    }
+
+    #[On('success')]
+    public function showSuccess($message = 'Success')
+    {
+        $this->info(
+            title: $message,
+            position: 'toast-bottom toast-end',
+            icon: 'o-information-circle',
+            css: 'alert-success',
+            timeout: 1500,
+        );
+    }
+
+    #[On('error')]
+    public function showError($message = 'Error')
+    {
+        $this->info(
+            title: $message,
+            position: 'toast-bottom toast-end',
+            icon: 'o-information-circle',
+            css: 'alert-error',
+            timeout: 1500,
         );
     }
 

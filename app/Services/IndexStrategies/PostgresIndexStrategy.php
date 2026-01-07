@@ -2,7 +2,7 @@
 
 namespace App\Services\IndexStrategies;
 
-use App\Constracts\IndexStrategy;
+use App\Contracts\IndexStrategy;
 use App\Helper;
 use App\Models\Collection;
 use App\Exceptions\IndexOperationException;

@@ -37,7 +37,10 @@ class Record extends Model
             $data = $record->data;
 
             if (!$data->has('id') || empty($data->get('id'))) {
-                $data->put('id', Str::random(16));
+                $min = $fields['id']->options->minLength ?? 16;
+                $max = $fields['id']->options->maxLength ?? 16;
+                $length = random_int($min, $max);
+                $data->put('id', Str::random($length));
             }
 
             app(\App\Collections\Handlers\BaseCollectionHandler::class)->beforeSave($record);

@@ -65,7 +65,7 @@
 
         @scope('cell_id', $row)
             <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
-                <p>{{ $row->id }}</p>
+                <p>{{ str($row->id)->limit(16) }}</p>
                 <x-copy-button :text="$row->id" />
             </div>
         @endscope
@@ -147,7 +147,7 @@
         @endforeach
 
         @scope('actions', $row)
-            <x-button icon="o-arrow-right" x-on:click="$wire.show('{{ $row->id }}');" spinner class="btn-sm" />
+            <x-button icon="o-arrow-right" x-on:click="$wire.showRecord('{{ $row->id }}')" spinner="showRecord('{{ $row->id }}')" class="btn-sm" />
         @endscope
     </x-table>
 
@@ -158,7 +158,7 @@
                     <p>Selected <span class="font-bold">{{ count($this->selected) }}</span>
                         {{ str('record')->plural(count($this->selected)) }}</p>
                     <x-button label="Reset" x-on:click="$wire.selected = []" class="btn-soft" />
-                    <x-button label="Delete Selected" wire:click="promptDelete('{{ implode(',', $selected) }}')"
+                    <x-button label="Delete Selected" wire:click="promptDeleteRecord('{{ implode(',', $selected) }}')"
                         class="btn-error btn-soft" />
                 </div>
             </x-card>
@@ -189,35 +189,41 @@
                 }"
                     x-on:click="copyJson" />
                 <x-menu-item title="Duplicate" icon="o-document-duplicate"
-                    x-on:click="$wire.duplicate($wire.form.id_old)" />
+                    x-on:click="$wire.duplicateRecord($wire.form.id_old)" />
 
                 <x-menu-separator />
 
                 <x-menu-item title="Delete" icon="o-trash" class="text-error"
-                    x-on:click="$wire.promptDelete($wire.form.id_old)" />
+                    x-on:click="$wire.promptDeleteRecord($wire.form.id_old)" />
             </x-dropdown>
         </div>
 
         <div class="my-4"></div>
 
-        <x-form wire:submit="save">
+        <x-form wire:submit="saveRecord">
             @foreach ($fields as $field)
                 @if ($field->name === 'id')
                     <x-input type="text" wire:model="form.id_old" class="hidden" />
                     <x-input :wire:key="$field->name" :label="$field->name" type="text" wire:model="form.id"
-                        icon="o-key" placeholder="Leave blank to auto generate..." wire:loading.attr="disabled"
+                        :icon="$field->getIcon()" placeholder="Leave blank to auto generate..." wire:loading.attr="disabled"
                         wire:target="fillRecordForm" />
                     @continue
                 @elseif ($field->name === 'created' || $field->name === 'updated')
                     <x-input :wire:key="$field->name" :label="$field->name" type="datetime"
-                        wire:model="form.{{ $field->name }}" icon="o-calendar-days" readonly
+                        wire:model="form.{{ $field->name }}" :icon="$field->getIcon()" readonly
                         wire:loading.attr="disabled" wire:target="fillRecordForm" />
                     @continue
-                @elseif ($field->name === 'password' && $field->collection->type === App\Enums\CollectionType::Auth)
-                    <x-input type="hidden" wire:model="form.{{ $field->name }}" class="hidden" />
-                    <x-password :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}_new"
-                        password-icon="o-lock-closed" placeholder="Fill to change password..."
-                        autocomplete="new-password" wire:loading.attr="disabled" wire:target="fillRecordForm" />
+                @elseif ($field->collection->type === App\Enums\CollectionType::Auth && $field->name === 'password')
+                    @if (empty($form['password']))
+                        <x-password :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}"
+                            :password-icon="$field->getIcon()" placeholder=""
+                            autocomplete="new-password" wire:loading.attr="disabled" wire:target="fillRecordForm" :required="true" />
+                    @else
+                        <x-input type="hidden" wire:model="form.{{ $field->name }}" class="hidden" />
+                        <x-password :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}_new"
+                            :password-icon="$field->getIcon()" placeholder="Fill to change password..."
+                            autocomplete="new-password" wire:loading.attr="disabled" wire:target="fillRecordForm" />
+                    @endif
                     @continue
                 @endif
 
@@ -229,38 +235,38 @@
 
                     @case(\App\Enums\FieldType::Email)
                         <x-input :wire:key="$field->name" :label="$field->name" type="email"
-                            wire:model="form.{{ $field->name }}" icon="o-envelope" :required="$field->required == true" autocomplete="email"
+                            wire:model="form.{{ $field->name }}" :icon="$field->getIcon()" :required="$field->required == true" autocomplete="email"
                             wire:loading.attr="disabled" wire:target="fillRecordForm" />
                     @break
 
                     @case(\App\Enums\FieldType::Number)
                         <x-input :wire:key="$field->name" :label="$field->name" type="number"
-                            wire:model="form.{{ $field->name }}" icon="o-hashtag" :required="$field->required == true"
+                            wire:model="form.{{ $field->name }}" :icon="$field->getIcon()" :required="$field->required == true"
                             wire:loading.attr="disabled" wire:target="fillRecordForm" />
                     @break
 
                     @case(\App\Enums\FieldType::Datetime)
                         <x-input :wire:key="$field->name" :label="$field->name" type="datetime"
-                            wire:model="form.{{ $field->name }}" icon="o-calendar-days" :required="$field->required == true"
+                            wire:model="form.{{ $field->name }}" :icon="$field->getIcon()" :required="$field->required == true"
                             wire:loading.attr="disabled" wire:target="fillRecordForm" />
                     @break
 
                     @case(\App\Enums\FieldType::File)
-                        <x-file-library :wire:key="$field->name" :label="$field->name" wire:model="files.{{ $field->name }}"
+                        <x-file-library :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}"
                             wire:library="library.{{ $field->name }}" :preview="data_get($library, $field->name, collect([]))" hint="rule" accept="*"
-                            wire:loading.attr="disabled" wire:target="fillRecordForm" />
+                            wire:loading.attr="disabled" wire:target="fillRecordForm" :required="$field->required == true" />
                     @break
 
                     @default
                         <x-input :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}"
-                            icon="lucide.text-cursor" :required="$field->required == true" wire:loading.attr="disabled"
+                            :icon="$field->getIcon()" :required="$field->required == true" wire:loading.attr="disabled"
                             wire:target="fillRecordForm" />
                 @endswitch
             @endforeach
 
             <x-slot:actions>
                 <x-button label="Cancel" x-on:click="$wire.showRecordDrawer = false" />
-                <x-button label="Save" class="btn-primary" type="submit" spinner="save" />
+                <x-button label="Save" class="btn-primary" type="submit" spinner="saveRecord" />
             </x-slot:actions>
         </x-form>
 
@@ -288,7 +294,7 @@
                 <x-tab name="fields-tab" label="Fields">
                     <x-accordion wire:model="fieldOpen">
                         <div class="space-y-2 px-0.5">
-                            <div id="sortable-fields-list" wire:sortable="updateFieldOrder" wire:sortable.options="{ animation: 150 }">
+                            <div id="sortable-fields-list" wire:sortable="updateFieldOrder" wire:sortable.options="{ animation: 150, ghostClass: 'bg-primary/10', dragClass: 'opacity-50', }">
                                 @foreach ($collectionForm['fields'] as $index => $field)
                                     <div class="flex items-center gap-2 mb-4 group relative" 
                                         wire:key="field-{{ $field['id'] }}" 
@@ -368,7 +374,6 @@
                                                                     @break
 
                                                                     @case(App\Enums\FieldType::Email)
-                                                                        {{-- @TODO: Fix email validation and x-tags --}}
                                                                         <x-tags label="Allowed Domains"
                                                                             wire:model="collectionForm.fields.{{ $index }}.options.allowedDomains"
                                                                             icon="o-globe-asia-australia"
@@ -450,17 +455,14 @@
                                                             </div>
                                                             <x-dropdown top left>
                                                                 <x-slot:trigger>
-                                                                    <x-button icon="o-bars-3"
-                                                                        class="btn-circle btn-ghost" />
+                                                                    <x-button icon="o-bars-3" class="btn-circle btn-ghost" />
                                                                 </x-slot:trigger>
 
                                                                 <x-menu-item title="Duplicate" icon="o-document-duplicate"
                                                                     x-on:click="$wire.duplicateField({{ $fieldId }})" />
-                                                                @if (!$field->locked)
-                                                                    <x-menu-item title="Delete" icon="o-trash"
-                                                                        class="text-error"
-                                                                        x-on:click="$wire.deleteField({{ $fieldId }})" />
-                                                                @endif
+                                                                <x-menu-item title="Delete" icon="o-trash"
+                                                                    class="text-error" :hidden="$field->locked == true"
+                                                                    x-on:click="$wire.deleteField({{ $fieldId }})" />
                                                             </x-dropdown>
                                                         </div>
                                                     </div>
@@ -499,7 +501,7 @@
 
         <x-slot:actions>
             <x-button label="Cancel" x-on:click="$wire.showConfirmDeleteDialog = false" />
-            <x-button class="btn-error" label="Delete" wire:click="confirmDelete" spinner="confirmDelete" />
+            <x-button class="btn-error" label="Delete" wire:click="confirmDeleteRecord" spinner="confirmDeleteRecord" />
         </x-slot:actions>
     </x-modal>
 

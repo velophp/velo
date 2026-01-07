@@ -71,6 +71,11 @@ class Helper
         return "{$prefix}_{$collection->id}_{$fieldName}";
     }
 
+    public static function generateVirtualColumnName(Collection $collection, string $fieldName): string
+    {
+        return "col_{$collection->id}_{$fieldName}";
+    }
+
     public static function getFieldTypeIcon($name, $type) {
         if ($name === 'id') return 'lucide.key';
         if ($name === 'password') return 'lucide.lock';

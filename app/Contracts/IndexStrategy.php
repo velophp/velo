@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Constracts;
+namespace App\Contracts;
 
 use App\Models\Collection;
 

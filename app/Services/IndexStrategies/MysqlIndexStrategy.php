@@ -2,10 +2,10 @@
 
 namespace App\Services\IndexStrategies;
 
-use App\Constracts\IndexStrategy;
 use App\Helper;
 use App\Models\Collection;
 use Illuminate\Support\Facades\DB;
+use App\Contracts\IndexStrategy;
 use App\Exceptions\IndexOperationException;
 
 class MysqlIndexStrategy implements IndexStrategy
@@ -17,12 +17,13 @@ class MysqlIndexStrategy implements IndexStrategy
             DB::beginTransaction();
 
             $indexName = Helper::generateIndexName($collection, $fieldName, $unique);
+            $virtualColName = Helper::generateVirtualColumnName($collection, $fieldName);
 
             $sql = "
                 ALTER TABLE records
-                ADD COLUMN IF NOT EXISTS `{$fieldName}` VARCHAR(255)
+                ADD COLUMN IF NOT EXISTS `{$virtualColName}` VARCHAR(255)
                     GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(data, '$.\"{$fieldName}\"'))) STORED,
-                ADD " . ($unique ? 'UNIQUE ' : '') . "INDEX IF NOT EXISTS `{$indexName}` (`{$fieldName}`);
+                ADD " . ($unique ? 'UNIQUE ' : '') . "INDEX IF NOT EXISTS `{$indexName}` (`{$virtualColName}`);
             ";
 
             DB::statement($sql);
