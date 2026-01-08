@@ -491,11 +491,71 @@
 
                 </x-tab>
                 <x-tab name="api-rules-tab" label="API Rules">
-                    <div>Api Rules</div>
+                    <div class="space-y-4 px-0.5">
+                        @foreach ($collectionForm['api_rules'] as $apiRule => $value)
+                            <x-textarea wire:model="collectionForm.api_rules.{{ $apiRule }}" label="{{ ucfirst($apiRule) }} Rule" placeholder="{{ ucfirst($apiRule) }} Rule. Leave blank to grant everyone access." inline  />
+                        @endforeach
+
+                        @if ($this->collection->type === App\Enums\CollectionType::Auth)
+                            <div class="divider my-2"></div>
+
+                            <x-collapse separator>
+                                <x-slot:heading>
+                                    <p class="text-base-content text-sm">Additional Auth Rules</p>
+                                </x-slot:heading>
+                                <x-slot:content>
+                                    <div class="space-y-4">
+                                        <x-textarea wire:model="collectionForm.api_rules.authenticate" label="Authentication Rule" placeholder="Authentication Rule" hint="This rule is executed every time before authentication allowing you to restrict who can authenticate. For example, to allow only verified users you can set it to verified = true. Leave it empty to allow anyone with an account to authenticate. To disable authentication entirely you can change it to 'Set superusers only'" inline  />
+                                        <x-textarea wire:model="collectionForm.api_rules.manage" label="Manage Rule" placeholder="Manage Rule" inline hint="This rule is executed in addition to the create and update API rules. It enables superuser-like permissions to allow fully managing the auth record(s), eg. changing the password without requiring to enter the old one, directly updating the verified state or email, etc." />
+                                    </div>
+                                </x-slot:content>
+                            </x-collapse>                            
+                        @endif
+                    </div>
                 </x-tab>
-                <x-tab name="options-tab" label="Options">
-                    <div>Options</div>
-                </x-tab>
+                
+                @if ($this->collection->type === App\Enums\CollectionType::Auth)
+                    <x-tab name="options-tab" label="Options">
+                        <div class="space-y-4 px-0.5">
+                            <x-accordion wire:model="collapseGroup">
+                                @foreach ($collectionForm['options'] as $group => $items)
+                                    <x-collapse name="{{ $group }}">
+                                        <x-slot:heading>
+                                            {{ str($group)->replace('_', ' ')->title() }}
+                                        </x-slot:heading>
+                                        
+                                        <x-slot:content>
+                                            <div class="space-y-4">
+                                                @foreach ($items as $key => $value)
+                                                    @if(is_array($value))
+                                                        {{-- Nested section for multi-dimensional values --}}
+                                                        <div class="p-2 rounded shadow-sm">
+                                                            <h4 class="font-bold mb-2">{{ str($key)->replace('_', ' ')->title() }}</h4>
+                                                            @foreach($value as $subKey => $subValue)
+                                                                <div class="mb-2">
+                                                                    <label class="label text-xs">{{ $subKey }}</label>
+                                                                    <x-input wire:model="collectionForm.{{ $group }}.{{ $key }}.{{ $subKey }}" />
+                                                                </div>
+                                                            @endforeach
+                                                        </div>
+                                                    @else
+                                                        {{-- Direct key-value pairs --}}
+                                                        <div class="mb-2">
+                                                            <label class="label text-xs">{{ str($key)->replace('_', ' ')->title() }}</label>
+                                                            <x-input wire:model="collectionForm.{{ $group }}.{{ $key }}" />
+                                                        </div>
+                                                    @endif
+                                                @endforeach
+                                            </div>
+                                        </x-slot:content>
+                                    </x-collapse>
+                                    
+                                @endforeach
+                            </x-accordion>
+                        </div>
+                    </x-tab>
+                @endif
+
             </x-tabs>
 
             <x-slot:actions>

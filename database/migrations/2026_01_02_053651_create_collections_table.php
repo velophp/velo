@@ -17,6 +17,8 @@ return new class extends Migration
             $table->foreignId('project_id')->constrained()->cascadeOnDelete();
             $table->string('name');
             $table->string('type')->default(CollectionType::Base);
+            $table->json('api_rules');
+            $table->json('options');
             $table->timestamps();
 
             $table->unique(['project_id', 'name']);

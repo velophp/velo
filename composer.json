@@ -19,7 +19,8 @@
         "livewire/livewire": "^3.7",
         "livewire/volt": "^1.10",
         "mallardduck/blade-lucide-icons": "^1.26",
-        "robsontenorio/mary": "^2.5"
+        "robsontenorio/mary": "^2.5",
+        "symfony/expression-language": "^8.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

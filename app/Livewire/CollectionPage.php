@@ -8,6 +8,7 @@ use App\Exceptions\IndexOperationException;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\Record;
+use App\Rules\RuleExpression;
 use App\Services\IndexStrategies\MysqlIndexStrategy;
 use App\Services\RecordQueryCompiler;
 use App\Services\RecordRulesCompiler;
@@ -16,6 +17,7 @@ use DB;
 use Illuminate\Support\Collection as LaravelCollection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Enum;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Rule;
@@ -52,6 +54,7 @@ class CollectionPage extends Component
     public string $tabSelected = 'fields-tab';
 
     public string $fieldOpen = '';
+    public string $collapseGroup = '';
 
     // Field Index Form State
     public bool $showFieldIndexModal = false;
@@ -167,18 +170,18 @@ class CollectionPage extends Component
 
     public function toggleField(string $field)
     {
-        if (! \array_key_exists($field, $this->fieldsVisibility)) {
+        if (!\array_key_exists($field, $this->fieldsVisibility)) {
             return;
         }
 
-        $this->fieldsVisibility[$field] = ! $this->fieldsVisibility[$field];
+        $this->fieldsVisibility[$field] = !$this->fieldsVisibility[$field];
     }
 
     #[Computed]
     public function tableHeaders(): array
     {
         return $this->fields
-            ->filter(fn ($f) => isset($this->fieldsVisibility[$f->name]) && $this->fieldsVisibility[$f->name])
+            ->filter(fn($f) => isset($this->fieldsVisibility[$f->name]) && $this->fieldsVisibility[$f->name])
             ->sortBy('order')
             ->map(function ($f) {
                 $headers = [
@@ -190,11 +193,11 @@ class CollectionPage extends Component
                 if ($f->type == FieldType::Datetime) {
                     $headers['format'] = ['date', 'Y-m-d H:i:s'];
                 } elseif ($f->type == FieldType::Bool) {
-                    $headers['format'] = fn ($row, $field) => $field ? 'Yes' : 'No';
+                    $headers['format'] = fn($row, $field) => $field ? 'Yes' : 'No';
                 } elseif ($f->type == FieldType::File) {
-                    $headers['format'] = fn ($row, $field) => json_encode($field);
+                    $headers['format'] = fn($row, $field) => json_encode($field);
                 } else {
-                    $headers['format'] = fn ($row, $field) => $field ?: '-';
+                    $headers['format'] = fn($row, $field) => $field ?: '-';
                 }
 
                 return $headers;
@@ -206,11 +209,11 @@ class CollectionPage extends Component
     {
         $compiler = new RecordQueryCompiler($this->collection);
 
-        if (! empty($this->sortBy['column'])) {
+        if (!empty($this->sortBy['column'])) {
             $compiler->sort($this->sortBy['column'], $this->sortBy['direction']);
         }
 
-        if (! empty($this->filter)) {
+        if (!empty($this->filter)) {
             $compiler->filterFromString($this->filter);
         }
 
@@ -266,7 +269,7 @@ class CollectionPage extends Component
 
                 // Load existing library data from form if it exists
                 $existingLibrary = $this->form[$field->name] ?? [];
-                if (\is_array($existingLibrary) && ! empty($existingLibrary)) {
+                if (\is_array($existingLibrary) && !empty($existingLibrary)) {
                     $this->library[$field->name] = collect($existingLibrary);
                 } else {
                     $this->library[$field->name] = collect([]);
@@ -280,7 +283,7 @@ class CollectionPage extends Component
         $compiler = new RecordQueryCompiler($this->collection);
         $result = $compiler->filter('id', '=', $id)->first();
 
-        if (! $result) {
+        if (!$result) {
             $this->error(
                 title: 'Cannot show record.',
                 description: 'Record not found.',
@@ -304,7 +307,7 @@ class CollectionPage extends Component
         $compiler = new RecordQueryCompiler($this->collection);
         $result = $compiler->filter('id', '=', $id)->first();
 
-        if (! $result) {
+        if (!$result) {
             $this->error(
                 title: 'Cannot duplicate record.',
                 description: 'Record not found.',
@@ -318,8 +321,8 @@ class CollectionPage extends Component
         }
 
         $fileTypeFields = $this->fields
-            ->filter(fn ($f) => $f->type === FieldType::File)
-            ->mapWithKeys(fn ($f) => [$f->name => []])
+            ->filter(fn($f) => $f->type === FieldType::File)
+            ->mapWithKeys(fn($f) => [$f->name => []])
             ->toArray();
 
         $data = collect($result->data);
@@ -341,7 +344,7 @@ class CollectionPage extends Component
             $compiler = new RecordQueryCompiler($this->collection);
             $result = $compiler->filter('id', '=', $id)->firstRaw();
 
-            if (! $result) {
+            if (!$result) {
                 $this->error(
                     title: 'Cannot delete record.',
                     description: 'Record not found.',
@@ -367,7 +370,7 @@ class CollectionPage extends Component
 
         $this->success(
             title: 'Success!',
-            description: "Deleted $count {$this->collection->name} ".str('record')->plural($count).'.',
+            description: "Deleted $count {$this->collection->name} " . str('record')->plural($count) . '.',
             position: 'toast-bottom toast-end',
             icon: 'o-check-circle',
             css: 'alert-success',
@@ -404,15 +407,6 @@ class CollectionPage extends Component
             $attributes[$ruleName] = Str::lower(Str::headline($newName));
         }
 
-        \DB::enableQueryLog();
-
-        try {
-            $this->validate($rules, $messages, $attributes);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            \Log::info(\DB::getQueryLog()); // This will now catch the SQL generated during the failure
-            throw $e; // Re-throw so the frontend still gets the error messages
-        }
-
         $this->validate($rules, $messages, $attributes);
 
         if ($record) {
@@ -423,7 +417,7 @@ class CollectionPage extends Component
                         ? $record->data[$field->name]
                         : [];
 
-                    if (! empty($this->files[$field->name])) {
+                    if (!empty($this->files[$field->name])) {
                         $updatedLibrary = $this->syncMedia(
                             library: "library.{$field->name}",
                             files: "files.{$field->name}",
@@ -455,7 +449,7 @@ class CollectionPage extends Component
 
             // Sync file fields to storage and update form
             foreach ($this->fields as $field) {
-                if ($field->type === FieldType::File && ! empty($this->files[$field->name])) {
+                if ($field->type === FieldType::File && !empty($this->files[$field->name])) {
                     $updatedLibrary = $this->syncMedia(
                         library: "library.{$field->name}",
                         files: "files.{$field->name}",
@@ -505,6 +499,12 @@ class CollectionPage extends Component
     public function updatedCollectionForm($value, $key)
     {
         $tokens = explode('.', $key);
+
+        if (str_starts_with($key, 'api_rules'))
+            return;
+        if (str_starts_with($key, 'options'))
+            return;
+
         $index = $tokens[1] ?? null;
 
         if ($tokens[0] == 'fields' && $tokens[2] == 'options' && $tokens[3] == 'multiple') {
@@ -569,7 +569,7 @@ class CollectionPage extends Component
         $newField = [
             'collection_id' => $this->collection->id,
             'id' => time(),
-            'name' => 'newField__'.time(),
+            'name' => 'newField__' . time(),
             'type' => FieldType::Text,
             'order' => \count($this->collectionForm['fields']),
             'unique' => false,
@@ -584,14 +584,14 @@ class CollectionPage extends Component
         $this->ensureFieldOptionsDefaults($newField);
 
         $this->collectionForm['fields'][] = $newField;
-        $this->fieldOpen = 'collapse_'.$newField['id'];
+        $this->fieldOpen = 'collapse_' . $newField['id'];
     }
 
     public function duplicateField($targetId)
     {
-        $field = array_find($this->collectionForm['fields'], fn ($f) => $f['id'] === $targetId);
+        $field = array_find($this->collectionForm['fields'], fn($f) => $f['id'] === $targetId);
 
-        if (! $field) {
+        if (!$field) {
             $this->error(
                 title: 'Cannot duplicate field.',
                 description: 'Field not found.',
@@ -610,7 +610,7 @@ class CollectionPage extends Component
             ...$field,
             'collection_id' => $this->collection->id,
             'id' => time(),
-            'name' => $field['name'].'__copy',
+            'name' => $field['name'] . '__copy',
             'order' => $targetIndex,
         ];
 
@@ -619,15 +619,15 @@ class CollectionPage extends Component
             $field['order'] = $index;
         }
 
-        $this->fieldOpen = 'collapse_'.$newField['id'];
+        $this->fieldOpen = 'collapse_' . $newField['id'];
     }
 
     public function deleteField($targetId)
     {
-        $key = array_find_key($this->collectionForm['fields'], fn ($f) => $f['id'] === $targetId);
+        $key = array_find_key($this->collectionForm['fields'], fn($f) => $f['id'] === $targetId);
         $lockedStatus = $this->fields->where('id', $targetId)->first()?->locked;
 
-        if (! $key) {
+        if (!$key) {
             $this->showToast('Field not found.');
 
             return;
@@ -656,9 +656,9 @@ class CollectionPage extends Component
 
     public function restoreField($targetId)
     {
-        $key = array_find_key($this->collectionForm['fields'], fn ($f) => $f['id'] === $targetId);
+        $key = array_find_key($this->collectionForm['fields'], fn($f) => $f['id'] === $targetId);
 
-        if (! $key) {
+        if (!$key) {
             $this->error(
                 title: 'Cannot restore field.',
                 description: 'Field not found.',
@@ -673,18 +673,18 @@ class CollectionPage extends Component
 
         unset($this->collectionForm['fields'][$key]['_deleted']);
 
-        $this->fieldOpen = 'collapse_'.$this->collectionForm['fields'][$key]['id'];
+        $this->fieldOpen = 'collapse_' . $this->collectionForm['fields'][$key]['id'];
     }
 
     public function applyFilePresets($fieldIdx, string $presetsName)
     {
-        if (! isset($this->mimeTypePresets[$presetsName])) {
+        if (!isset($this->mimeTypePresets[$presetsName])) {
             $this->showToast('Preset does not exist.');
 
             return;
         }
 
-        if (! isset($this->collectionForm['fields'][$fieldIdx]['options']['allowedMimeTypes']) || ! \is_array($this->collectionForm['fields'][$fieldIdx]['options']['allowedMimeTypes'])) {
+        if (!isset($this->collectionForm['fields'][$fieldIdx]['options']['allowedMimeTypes']) || !\is_array($this->collectionForm['fields'][$fieldIdx]['options']['allowedMimeTypes'])) {
             $this->showToast('Presets can only be applied to file-type fields.');
 
             return;
@@ -699,7 +699,7 @@ class CollectionPage extends Component
         $requiredDefaultsArray = ['allowedDomains', 'blockedDomains', 'allowedMimeTypes'];
 
         foreach ($requiredDefaultsArray as $key) {
-            if (! isset($field['options'][$key])) {
+            if (!isset($field['options'][$key])) {
                 $field['options'][$key] = [];
             }
         }
@@ -721,15 +721,24 @@ class CollectionPage extends Component
         }
     }
 
-    public function saveCollection()
+    protected function validateCollectionForm()
     {
-        /* === PREPARE VALIDATION RULES === */
-
         $rules = [];
         $messages = [];
         $attributes = [];
 
-        $rules['collectionForm.name'] = ['required', 'regex:/^[a-zA-Z_]+$/', 'unique:collections,name,'.$this->collectionForm['id']];
+        $rules['collectionForm.name'] = ['required', 'regex:/^[a-zA-Z_]+$/', 'unique:collections,name,' . $this->collectionForm['id']];
+
+        $expressionRule = new RuleExpression([
+            'sys_request',
+            ...$this->fields->pluck('name'),
+            'SUPERUSER_ONLY'
+        ]);
+
+        foreach (['list', 'view', 'create', 'update', 'delete'] as $action) {
+            $rules["collectionForm.api_rules.$action"] = ['present', 'nullable', $expressionRule];
+        }
+
         $messages['collectionForm.name.regex'][] = 'Collection name can only contain letters and underscores.';
         $messages['collectionForm.name.unique'][] = 'Collection with the same name already exists.';
 
@@ -737,7 +746,7 @@ class CollectionPage extends Component
 
         // Stitch all rules together
         foreach ($incomingFields as $index => $field) {
-            $rules["collectionForm.fields.{$index}.name"] = ['required', 'regex:/^[a-zA-Z0-9_]+$/', \Illuminate\Validation\Rule::unique('collection_fields')->where('collection_id', $this->collection->id)->ignore($field['id'], 'collection_fields.id')];
+            $rules["collectionForm.fields.{$index}.name"] = ['required', 'regex:/^[a-zA-Z0-9_]+$/', \Illuminate\Validation\Rule::unique('collection_fields', 'name')->where('collection_id', $this->collection->id)->ignore($field['id'], 'collection_fields.id')];
             $messages["collectionForm.fields.{$index}.name.regex"] = 'Field name can only contain letters, numbers, and underscores.';
             $messages["collectionForm.fields.{$index}.name.unique"] = 'Field with the same name already exists.';
 
@@ -781,13 +790,29 @@ class CollectionPage extends Component
             $attributes[$ruleName] = Str::lower(Str::headline($newName));
         }
 
-        /* === PREPARE VALIDATION RULES === */
+        try {
+            $this->validate($rules, $messages, $attributes);
+        } catch (ValidationException $e) {
+            if ($e->validator->errors()->has('collectionForm.options.*')) {
+                $this->tabSelected = 'options-tab';
+            }
 
-        $this->validate($rules, $messages, $attributes);
+            if ($e->validator->errors()->has('collectionForm.api_rules.*')) {
+                $this->tabSelected = 'api-rules-tab';
+            }
+            
+            throw $e;
+        }
+    }
+
+    public function saveCollection()
+    {   
+        $this->validateCollectionForm();
 
         try {
             \DB::beginTransaction();
 
+            $incomingFields = $this->collectionForm['fields'];
             foreach ($incomingFields as $field) {
                 $oldField = CollectionField::find($field['id']);
 
@@ -808,7 +833,7 @@ class CollectionPage extends Component
                 }
 
                 // Handle new fields (id is timestamp, not found in DB)
-                if (! $oldField) {
+                if (!$oldField) {
                     CollectionField::create([
                         'collection_id' => $this->collection->id,
                         'name' => $field['name'],
@@ -842,10 +867,10 @@ class CollectionPage extends Component
                         }
                     }
 
-                    if (! empty($optionsToUpdate) || ! empty($propertiesToUpdate)) {
+                    if (!empty($optionsToUpdate) || !empty($propertiesToUpdate)) {
                         $updateData = $propertiesToUpdate;
 
-                        if (! empty($optionsToUpdate)) {
+                        if (!empty($optionsToUpdate)) {
                             $currentOptions = $oldField->options->toArray();
                             $updateData['options'] = array_merge($currentOptions, $optionsToUpdate);
                         }
@@ -868,6 +893,12 @@ class CollectionPage extends Component
 
                 $oldField->update($toUpdateData);
             }
+
+            $this->collection->update([
+                'name' => $this->collectionForm['name'],
+                'api_rules' => $this->collectionForm['api_rules'],
+                'options' => $this->collectionForm['options'],
+            ]);
 
             \DB::commit();
         } catch (\Exception $e) {
@@ -892,6 +923,10 @@ class CollectionPage extends Component
             return;
         }
 
+        if ($this->collection->wasChanged('name')) {
+            return $this->redirectRoute('collection', ['collection' => $this->collection->fresh()]);
+        }
+
         // Refresh collection and fields
         $this->collection = $this->collection->fresh();
         $this->fields = $this->collection->fields->sortBy('order')->values();
@@ -912,16 +947,7 @@ class CollectionPage extends Component
             timeout: 2000,
         );
 
-        // Place this at last - handle collection name change
-        if ($this->collectionForm['name'] != $this->collection->name) {
-            $this->collection->update([
-                'name' => $this->collectionForm['name'],
-            ]);
-
-            $this->navigate(route('collection', ['collection' => $this->collection->fresh()]), navigate: true);
-
-            return;
-        }
+        return;
     }
 
     /* === END COLLECTION CONFIGURATION === */
@@ -940,7 +966,7 @@ class CollectionPage extends Component
 
     public function showIndex($indexId)
     {
-        if (! $this->collectionIndexes->firstWhere('id', '=', $indexId)) {
+        if (!$this->collectionIndexes->firstWhere('id', '=', $indexId)) {
             $this->showToast('Index not found.');
 
             return;
@@ -962,10 +988,10 @@ class CollectionPage extends Component
 
     public function indexToggleField($field)
     {
-        if (! \in_array($field, $this->fieldsToBeIndexed)) {
+        if (!\in_array($field, $this->fieldsToBeIndexed)) {
             $this->fieldsToBeIndexed[] = $field;
         } else {
-            $this->fieldsToBeIndexed = array_filter($this->fieldsToBeIndexed, fn ($a) => $a != $field);
+            $this->fieldsToBeIndexed = array_filter($this->fieldsToBeIndexed, fn($a) => $a != $field);
         }
     }
 
@@ -979,7 +1005,7 @@ class CollectionPage extends Component
 
         $availableFields = $this->fields->pluck('name');
         foreach ($this->fieldsToBeIndexed as $fieldName) {
-            if (! $availableFields->contains($fieldName)) {
+            if (!$availableFields->contains($fieldName)) {
                 $this->showToast("Invalid field: $fieldName.");
 
                 return;
@@ -1008,7 +1034,7 @@ class CollectionPage extends Component
 
         $availableFields = $this->fields->pluck('name');
         foreach ($this->fieldsToBeIndexed as $fieldName) {
-            if (! $availableFields->contains($fieldName)) {
+            if (!$availableFields->contains($fieldName)) {
                 $this->showToast("Invalid field: $fieldName.");
 
                 return;
