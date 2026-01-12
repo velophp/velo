@@ -40,6 +40,7 @@
     <livewire:create-collection />
 
     <x-toast />
+    <x-spotlight />  
 </body>
 
 </html>

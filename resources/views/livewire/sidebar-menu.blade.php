@@ -32,7 +32,7 @@ function getIcon($type){
         <x-menu-separator />
     @endif
 
-    <x-menu-item title="Find collections..." icon="o-magnifying-glass" class="text-gray-500" />
+    <x-menu-item title="Search..." icon="o-magnifying-glass" class="text-gray-500" x-on:click.stop="$dispatch('mary-search-open')" />
 
     <x-menu-separator />
 
@@ -43,8 +43,6 @@ function getIcon($type){
             @endforeach
         </x-menu-sub>
     @endforeach
-
-    <div class="mt-8"></div>
     
     <x-menu-sub title="System" icon="o-cog-6-tooth">
         <x-menu-item title="superusers" icon="o-archive-box" link="" />
