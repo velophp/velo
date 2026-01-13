@@ -94,6 +94,7 @@ class CollectionPage extends Component
         'search' => '',
         'records' => [],
         'selected' => [],
+        'displayField' => 'id'
     ];
 
     // Helpers
@@ -199,6 +200,13 @@ class CollectionPage extends Component
         ];
     }
 
+    public function render()
+    {
+        return view('livewire.collection-page')->title("Collection - {$this->collection->name}");
+    }
+
+    /* === START RELATION PICKER === */
+
     public function openRelationPicker(string $fieldName)
     {
         $field = $this->fields->firstWhere('name', $fieldName);
@@ -232,13 +240,15 @@ class CollectionPage extends Component
             $displayField = 'id';
         }
 
+        $oldValues = \is_array($this->form[$fieldName]) ? $this->form[$fieldName] : [];
+
         $this->relationPicker = [
             'collection' => $collection,
             'fieldName' => $fieldName,
             'multiple' => $field->options->multiple,
             'search' => '',
             'records' => [],
-            'selected' => [],
+            'selected' => [...$oldValues],
             'displayField' => $displayField
         ];
 
@@ -287,10 +297,7 @@ class CollectionPage extends Component
         $this->showRelationPickerModal = false;
     }
 
-    public function render()
-    {
-        return view('livewire.collection-page')->title("Collection - {$this->collection->name}");
-    }
+    /* === END RELATION PICKER === */
 
     /* === START TABLE METHODS === */
 
@@ -733,7 +740,7 @@ class CollectionPage extends Component
         $newField['options'] = $model->options->toArray();
         $this->ensureFieldOptionsDefaults($newField);
 
-        array_splice($this->collectionForm['fields'], $insertPosition, 0, [$newField]);        
+        array_splice($this->collectionForm['fields'], $insertPosition, 0, [$newField]);
         foreach ($this->collectionForm['fields'] as $index => &$field) {
             $field['order'] = $index;
         }
@@ -953,8 +960,8 @@ class CollectionPage extends Component
         } catch (ValidationException $e) {
 
             $fieldErrors = $e->validator->errors()->get('collectionForm.fields.*');
-            foreach($fieldErrors as $path => $messages) {
-                $index = (int) collect(explode('.', $path))->first(fn ($part) => is_numeric($part));
+            foreach ($fieldErrors as $path => $messages) {
+                $index = (int) collect(explode('.', $path))->first(fn($part) => is_numeric($part));
                 $field = $this->collectionForm['fields'][$index];
                 if ($field) {
                     $this->fieldOpen = 'collapse_' . $field['id'];

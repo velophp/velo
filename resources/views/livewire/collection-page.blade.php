@@ -312,7 +312,7 @@
                                                 $record = $relatedCollection->recordQueryCompiler()->filter('id', '=', $recordId)->firstRaw();
                                             @endphp
                                             @if($record)
-                                                <x-badge :value="$record->data[$relationPicker['displayField']]" class="badge-soft" />
+                                                <x-badge :value="$record->data[$relationPicker['displayField'] ?? 'id']" class="badge-soft" />
                                             @endif
                                         @endforeach
                                     @else
