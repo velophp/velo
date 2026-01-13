@@ -4,6 +4,7 @@ namespace App\Enums;
 
 enum FieldType: string
 {
+    case Relation = 'relation';
     case Text = 'text';
     case Email = 'email';
     case Number = 'number';

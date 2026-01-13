@@ -2,20 +2,22 @@
 
 namespace App\Services;
 
-use App\Contracts\IndexStrategy;
-use App\Enums\FieldType;
-use App\FieldOptions\DatetimeFieldOption;
-use App\FieldOptions\EmailFieldOption;
-use App\FieldOptions\FileFieldOption;
-use App\FieldOptions\NumberFieldOption;
-use App\FieldOptions\TextFieldOption;
 use App\Helper;
+use LogicException;
+use App\Enums\FieldType;
 use App\Models\Collection;
+use App\Rules\RecordExists;
 use App\Models\CollectionField;
+use Illuminate\Validation\Rule;
+use App\Contracts\IndexStrategy;
 use App\Rules\AllowedEmailDomains;
 use App\Rules\BlockedEmailDomains;
-use Illuminate\Validation\Rule;
-use LogicException;
+use App\FieldOptions\FileFieldOption;
+use App\FieldOptions\TextFieldOption;
+use App\FieldOptions\EmailFieldOption;
+use App\FieldOptions\NumberFieldOption;
+use App\FieldOptions\DatetimeFieldOption;
+use App\FieldOptions\RelationFieldOption;
 
 class RecordRulesCompiler
 {
@@ -95,7 +97,15 @@ class RecordRulesCompiler
                 continue;
             }
 
-            $rules[$prefix . $field->name] = $fieldRules;
+            // Handle nested array rules (e.g., for relation fields)
+            if (isset($fieldRules['*'])) {
+                $nestedRules = $fieldRules['*'];
+                unset($fieldRules['*']);
+                $rules[$prefix . $field->name] = $fieldRules;
+                $rules[$prefix . $field->name . '.*'] = $nestedRules;
+            } else {
+                $rules[$prefix . $field->name] = $fieldRules;
+            }
         }
 
         return $rules;
@@ -199,7 +209,7 @@ class RecordRulesCompiler
                     $rules[] = "max:{$options->maxLength}";
                 }
                 if ($options->pattern !== null) {
-                    $rules[] = "regex:{$options->pattern}";
+                    $rules[] = "regex:/{$options->pattern}/";
                 }
                 break;
 
@@ -222,7 +232,6 @@ class RecordRulesCompiler
                 }
                 if (!$options->allowDecimals) {
                     $rules[] = 'integer';
-                    $rules[] = 'integer,decimal:0,2';
                 }
                 break;
 
@@ -248,6 +257,26 @@ class RecordRulesCompiler
                 if ($options->minSize !== null) {
                     $minKb = floor($options->minSize / 1024);
                     $rules[] = "min:{$minKb}";
+                }
+                break;
+
+            case $options instanceof RelationFieldOption:
+                $rules[] = 'array';
+                
+                if ($options->minSelect !== null) {
+                    $rules[] = "min:{$options->minSelect}";
+                }
+                
+                if ($options->maxSelect !== null) {
+                    $rules[] = "max:{$options->maxSelect}";
+                } elseif (!$options->multiple) {
+                    $rules[] = 'max:1';
+                }
+                
+                if ($options->collection !== null) {
+                    $rules['*'] = [
+                        new RecordExists($options->collection)
+                    ];
                 }
                 break;
         }

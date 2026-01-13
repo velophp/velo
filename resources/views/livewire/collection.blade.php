@@ -111,7 +111,7 @@ new class extends Component
         $record = null;
 
         if ($recordId) {
-            $record = $this->collection->queryCompiler()
+            $record = $this->collection->recordQueryCompiler()
                 ->filter('id', '=', $recordId)
                 ->firstRaw();
         }

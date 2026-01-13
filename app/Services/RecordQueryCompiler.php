@@ -158,7 +158,7 @@ class RecordQueryCompiler
         return $this;
     }
 
-    protected function buildQuery($baseQuery = null, $select = ['data'])
+    public function buildQuery($baseQuery = null, $select = ['data'])
     {
         $query = ($this->query ?? $baseQuery ?? DB::table('records')
             ->select($select))

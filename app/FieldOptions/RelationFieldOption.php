@@ -44,9 +44,8 @@ class RelationFieldOption implements CollectionFieldOption
 
     public function getValidationRules(): array
     {
-        // $availableCollections = Collection::pluck('name')->toArray();
         return [
-            // 'collection' => 'required|string',
+            'collection' => 'required|string|in:' . Collection::pluck('id')->implode(','),
             'multiple' => 'boolean',
             'cascadeDelete' => 'boolean',
             'minSelect' => ['nullable', 'integer'],

@@ -17,7 +17,7 @@ class RecordController extends Controller
         $filter = $request->input('filter', '');
         $sort = $request->input('sort', '');
 
-        $records = $collection->queryCompiler()
+        $records = $collection->recordQueryCompiler()
             ->filterFromString($filter)
             ->sortFromString($sort)
             ->simplePaginate($perPage, $page);
@@ -27,7 +27,7 @@ class RecordController extends Controller
 
     public function view(RecordRequest $request, Collection $collection, string $recordId): JsonResponse
     {
-        $record = $collection->queryCompiler()->filter('id', '=', $recordId)->firstOrFail();
+        $record = $collection->recordQueryCompiler()->filter('id', '=', $recordId)->firstOrFail();
         $resource = new RecordResource($record);
         return $resource->response();
     }
@@ -41,7 +41,7 @@ class RecordController extends Controller
 
     public function update(RecordRequest $request, Collection $collection, string $recordId): JsonResponse
     {
-        $record = $collection->queryCompiler()->filter('id', '=', $recordId)->firstRawOrFail();
+        $record = $collection->recordQueryCompiler()->filter('id', '=', $recordId)->firstRawOrFail();
 
         $record->update([
             'data' => [...$record->data->toArray(), ...$request->validated()]
@@ -53,7 +53,7 @@ class RecordController extends Controller
 
     public function delete(RecordRequest $request, Collection $collection, string $recordId): JsonResponse
     {
-        $record = $collection->queryCompiler()->filter('id', '=', $recordId)->firstRawOrFail();
+        $record = $collection->recordQueryCompiler()->filter('id', '=', $recordId)->firstRawOrFail();
         $record->delete();
 
         return Response::json([], 204);

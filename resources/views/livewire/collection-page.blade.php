@@ -103,6 +103,28 @@
                 @continue
             @endif
 
+            
+            @if ($field->type === App\Enums\FieldType::Relation)
+                @cscope('cell_' . $field->name, $row, $field)
+                    @php
+                        $relations = isset($row->{$field->name}) ? $row->{$field->name} : [];
+                    @endphp
+                    @if (!empty($relations))
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (array_slice($relations, 0, 3) as $id)
+                                <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
+                                    <p>{{ str($id)->limit(16) }}</p>
+                                    <x-copy-button :text="$id" />
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        -
+                    @endif
+                @endcscope
+                @continue
+            @endif
+
             @if ($field->type === App\Enums\FieldType::File)
                 @cscope('cell_' . $field->name, $row, $field)
                     @php
@@ -144,7 +166,9 @@
                         -
                     @endif
                 @endcscope
+                @continue
             @endif
+
         @endforeach
 
         @scope('actions', $row)
@@ -264,6 +288,57 @@
                             :config="$tinyMceConfig" wire:target="fillRecordForm" />
                     @break
 
+                    @case(\App\Enums\FieldType::Relation)
+                        <div wire:key="{{ $field->name }}">
+                            <fieldset class="fieldset py-0">
+                                <legend class="fieldset-legend mb-0.5">
+                                    {{ $field->name }}
+                                    @if($field->required)
+                                        <span class="text-error">*</span>
+                                    @endif
+                                </legend>
+
+                                <div 
+                                    class="input w-full h-auto min-h-10 py-2 flex flex-wrap gap-2 items-center {{ $errors->has("form.{$field->name}") || $errors->has("form.{$field->name}.*") ? 'input-error' : '' }}"
+                                >
+                                    @php
+                                        $selectedIds = $form[$field->name] ?? [];
+                                        $relatedCollection = \App\Models\Collection::find($field->options->collection);
+                                    @endphp
+                                    
+                                    @if(!empty($selectedIds) && $relatedCollection)
+                                        @foreach($selectedIds as $recordId)
+                                            @php
+                                                $record = $relatedCollection->recordQueryCompiler()->filter('id', '=', $recordId)->firstRaw();
+                                            @endphp
+                                            @if($record)
+                                                <x-badge :value="$record->data[$relationPicker['displayField']]" class="badge-soft" />
+                                            @endif
+                                        @endforeach
+                                    @else
+                                        <span class="opacity-40 select-none">No records selected</span>
+                                    @endif
+                                </div>
+
+                                <x-button 
+                                    label="Open Relation Picker" 
+                                    icon="lucide.pen-tool" 
+                                    class="btn-sm btn-soft mt-2 w-full" 
+                                    x-on:click="$wire.openRelationPicker('{{ $field->name }}')" 
+                                    wire:loading.attr="disabled" 
+                                    wire:target="fillRecordForm" 
+                                />
+
+                                @foreach($errors->get("form.{$field->name}") as $message)
+                                    <div class="text-error text-sm mt-1">{{ json_encode($message) }}</div>
+                                @endforeach
+                                @foreach($errors->get("form.{$field->name}.*") as $message)
+                                    <div class="text-error text-sm mt-1">{{ json_encode($message) }}</div>
+                                @endforeach
+                            </fieldset>
+                        </div>
+                    @break
+
                     @default
                         <x-input :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}"
                             :icon="$field->getIcon()" :required="$field->required == true" wire:loading.attr="disabled"
@@ -290,7 +365,7 @@
 
         <div class="my-4"></div>
 
-        <x-form>
+        <x-form wire:submit.prevent="saveCollection">
             <x-input label="Name" wire:model="collectionForm.name" suffix="Type: {{ $collection->type }}"
                 wire:loading.attr="disabled" wire:target="fillCollectionForm" required />
 
@@ -365,6 +440,17 @@
                                                                 wire:model.live="collectionForm.fields.{{ $index }}.type"
                                                                 :options="App\Enums\FieldType::toArray()" :icon="$field->getIcon()" :disabled="$field->locked == true" />
                                                             @switch($field->type)
+                                                                    @case(App\Enums\FieldType::Relation)
+                                                                        <div class="col-span-1 md:col-span-2">
+                                                                            <x-select label="Reference Collection" wire:model="collectionForm.fields.{{ $index }}.options.collection" :options="$availableCollections" icon="o-share" />
+                                                                        </div>
+                                                                        
+                                                                        @if ($collectionForm['fields'][$index]['options']['multiple'] == true)
+                                                                            <x-input type="number" label="Min Select" wire:model="collectionForm.fields.{{ $index }}.options.minSelect" placeholder="No min select" min="0" />
+                                                                            <x-input type="number" label="Min Select" wire:model="collectionForm.fields.{{ $index }}.options.maxSelect" placeholder="No max select" min="0" />
+                                                                        @endif
+                                                                    @break
+
                                                                     @case(App\Enums\FieldType::Text)
                                                                         <x-input label="Min Length" type="number"
                                                                             wire:model="collectionForm.fields.{{ $index }}.options.minLength"
@@ -445,11 +531,19 @@
                                                                 @endswitch
                                                         </div>
                                                         <div class="flex items-baseline justify-between gap-6">
-                                                            <div class="flex flex-wrap items-center gap-4">
+                                                            <div class="grid grid-cols-1 md:grid-cols-2 gx-4">
                                                                 @if ($field->type == App\Enums\FieldType::File)
                                                                     <x-toggle id="toggle-multiple-{{ $index }}" label="Allow Multiple"
                                                                             wire:model.live="collectionForm.fields.{{ $index }}.options.multiple"
                                                                             hint="Allow multiple file uploads" />
+                                                                @endif
+                                                                @if ($field->type == App\Enums\FieldType::Relation)
+                                                                    <x-toggle id="toggle-multiple-{{ $index }}" label="Allow Multiple" 
+                                                                            wire:model.live="collectionForm.fields.{{ $index }}.options.multiple" 
+                                                                            hint="Allow multiple relations" />
+                                                                    <x-toggle id="toggle-cascadeDelete-{{ $index }}" label="Cascade Delete" 
+                                                                            wire:model.live="collectionForm.fields.{{ $index }}.options.cascadeDelete"
+                                                                            hint="Delete records if relation is deleted" />
                                                                 @endif
                                                                 <x-toggle id="toggle-required-{{ $index }}"
                                                                     label="Nonempty" hint="Value cannot be empty"
@@ -567,7 +661,7 @@
 
             <x-slot:actions>
                 <x-button label="Cancel" x-on:click="$wire.showConfigureCollectionDrawer = false" />
-                <x-button label="Save" class="btn-primary" type="button" wire:click="saveCollection"
+                <x-button label="Save" class="btn-primary" type="submit"
                     spinner="saveCollection" />
             </x-slot:actions>
         </x-form>
@@ -609,6 +703,90 @@
                     <x-button class="btn-primary" label="Set Index" wire:click="createIndex" spinner="createIndex" :disabled="empty($fieldsToBeIndexed)" />
                 </div>
             </div>
+        </x-slot:actions>
+    </x-modal>
+
+    <x-modal wire:model="showRelationPickerModal" title="Select {{ $relationPicker['collection']->name ?? 'users' }} records">
+        <div class="space-y-6">
+            <x-input 
+                wire:model.live.debounce.300ms="relationPicker.search"
+                placeholder="Filter records..."
+                icon="o-magnifying-glass"
+                clearable
+            >
+                <x-slot:append>
+                    <x-button link="{{ route('collection', ['collection' => $relationPicker['collection'] ?? '--', 'recordId' => '--']) }}" external>
+                        New record
+                    </x-button>
+                </x-slot:append>
+            </x-input>
+
+            <div class="border border-base-300 rounded-md overflow-hidden max-h-96 overflow-y-auto">
+                @if(!empty($relationPicker['records']))
+                    @foreach($relationPicker['records'] as $record)
+                        @php($isSelected = in_array($record->data['id'], $relationPicker['selected'] ?? []))
+                        
+                        <div 
+                            wire:key="relation-record-{{ $record->data['id'] }}"
+                            class="group flex items-center justify-between p-4 border-b border-base-200 last:border-b-0 cursor-pointer hover:bg-base-300 transition-colors {{ $isSelected ? 'bg-base-300' : '' }}"
+                            wire:click="toggleRelationRecord('{{ $record->data['id'] }}')">
+                            
+                            <div class="flex items-center gap-4">
+                                <div class="shrink-0">
+                                    <x-icon name="o-check-circle" @class(['size-6 stroke-primary transition-all duration-300', 'opacity-10 grayscale-100' => !$isSelected]) />
+                                </div>
+                                
+                                <div class="flex items-baseline gap-2">
+                                    <div>
+                                        <p class="font-medium">
+                                            {{ $record->data[$relationPicker['displayField']] }}
+                                        </p>
+                                        <p class="text-xs opacity-80">
+                                            {{ $record->data['id'] }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="{{ $isSelected ? 'block' : 'hidden group-hover:block' }}">
+                                {{-- <x-button x-on:click.stop="" class="btn-ghost rounded-full btn-xs">
+                                    <x-icon name="o-pencil" class="w-4 h-4 text-gray-500" />
+                                </x-button> --}}
+                                <x-button x-on:click.stop="" link="{{ route('collection', ['collection' => $relationPicker['collection'], 'recordId' => $record->data['id']]) }}" external class="btn-ghost rounded-full btn-xs">
+                                    <x-icon name="o-arrow-top-right-on-square" class="w-4 h-4 text-gray-400" />
+                                </x-button>
+                            </div>
+                        </div>
+                    @endforeach
+                @else
+                    <div class="p-8 text-center text-gray-500">
+                        No records found
+                    </div>
+                @endif
+            </div>
+
+            <div>
+                <h4 class="font-bold text-gray-600 text-sm mb-2">Selected</h4>
+                @if(empty($relationPicker['selected']))
+                    <p class="text-gray-400 text-sm">No selected records.</p>
+                @else
+                    <div class="flex flex-wrap gap-2">
+                        <span class="text-sm text-gray-600">{{ count($relationPicker['selected']) }} record(s) selected</span>
+                    </div>
+                @endif
+            </div>
+        </div>
+
+        <x-slot:actions>
+            <x-button 
+                label="Cancel" 
+                x-on:click="$wire.showRelationPickerModal = false" />
+            
+            <x-button 
+                label="Set selection" 
+                class="btn-primary"
+                wire:click="saveRelationSelection" 
+                spinner="saveRelationSelection" />
         </x-slot:actions>
     </x-modal>
 

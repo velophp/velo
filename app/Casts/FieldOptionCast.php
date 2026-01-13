@@ -9,6 +9,7 @@ use App\FieldOptions\DatetimeFieldOption;
 use App\FieldOptions\EmailFieldOption;
 use App\FieldOptions\FileFieldOption;
 use App\FieldOptions\NumberFieldOption;
+use App\FieldOptions\RelationFieldOption;
 use App\FieldOptions\RichTextFieldOption;
 use App\FieldOptions\TextFieldOption;
 use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
@@ -106,6 +107,7 @@ class FieldOptionCast implements CastsAttributes
     protected function getOptionClass(FieldType $fieldType): ?string
     {
         return match ($fieldType) {
+            FieldType::Relation => RelationFieldOption::class,
             FieldType::Text => TextFieldOption::class,
             FieldType::Email => EmailFieldOption::class,
             FieldType::Number => NumberFieldOption::class,

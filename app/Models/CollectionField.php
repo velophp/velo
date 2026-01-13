@@ -18,6 +18,7 @@ class CollectionField extends Model
         return [
             'type' => FieldType::class,
             'options' => FieldOptionCast::class,
+            'relation_options' => 'array'
         ];
     }
 

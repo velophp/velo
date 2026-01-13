@@ -13,9 +13,9 @@ class RecordExists implements ValidationRule
     protected ?Collection $collection = null;
     protected bool $isIdIndexed = false;
 
-    public function __construct(string $collectionName)
+    public function __construct(string $collectionId)
     {
-        $this->collection = Collection::where('name', $collectionName)->first();
+        $this->collection = Collection::find($collectionId);
         
         if ($this->collection) {
             $this->isIdIndexed = $this->collection->indexes()

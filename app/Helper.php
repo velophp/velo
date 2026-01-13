@@ -108,6 +108,7 @@ class Helper
             FieldType::Bool => 'lucide.toggle-right',
             FieldType::Datetime => 'lucide.calendar-clock',
             FieldType::File => 'lucide.image',
+            FieldType::Relation => 'lucide.share-2',
             default => 'lucide.text-cursor',
         };
     }

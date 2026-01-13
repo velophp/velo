@@ -14,6 +14,7 @@ use App\Services\RecordQueryCompiler;
 use App\Services\RecordRulesCompiler;
 use App\Traits\FileLibrarySync;
 use DB;
+use Exception;
 use Illuminate\Support\Collection as LaravelCollection;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Enum;
@@ -84,8 +85,20 @@ class CollectionPage extends Component
 
     public array $recordToDelete = [];
 
+    // Relation Picker States
+    public bool $showRelationPickerModal = false;
+    public array $relationPicker = [
+        'collection' => null,
+        'fieldName' => '',
+        'multiple' => false,
+        'search' => '',
+        'records' => [],
+        'selected' => [],
+    ];
+
     // Helpers
-    public array $optionsBool = [['id' => 0, 'name' => 'Single'], ['id' => 1, 'name' => 'Multiple']];
+    public array $optionsBool = [['id' => 0, 'name' => 'False'], ['id' => 1, 'name' => 'True']];
+    public array $optionsBoolSingleMultiple = [['id' => 0, 'name' => 'Single'], ['id' => 1, 'name' => 'Multiple']];
 
     public array $mimeTypes = [
         ['id' => 'application/pdf', 'name' => 'application/pdf', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/337/337946.png'],
@@ -158,6 +171,8 @@ class CollectionPage extends Component
         'quickbars_insert_toolbar' => 'quickimage quicktable',
     ];
 
+    public array $availableCollections = [];
+
     public function mount(Collection $collection): void
     {
         $this->collection = $collection;
@@ -174,6 +189,102 @@ class CollectionPage extends Component
             ['label' => ucfirst(request()->route()->getName())],
             ['label' => $this->collection->name],
         ];
+        $this->availableCollections = [
+            ['id' => '', 'name' => 'Choose collection', 'disabled' => true],
+            ...Collection::whereNot('id', $this->collection->id)
+                ->where('project_id', $this->collection->project_id)
+                ->get()
+                ->map(fn($c) => ['id' => $c->id, 'name' => $c->name])
+                ->toArray()
+        ];
+    }
+
+    public function openRelationPicker(string $fieldName)
+    {
+        $field = $this->fields->firstWhere('name', $fieldName);
+        if (!$field || $field->type !== FieldType::Relation) {
+            return $this->showToast('Invalid field.');
+        }
+
+        $collectionId = $field->options->collection;
+        $collection = Collection::find($collectionId);
+
+        if (!$collection) {
+            return $this->showToast('Collection not found.');
+        }
+
+        $priority = [
+            'name',
+            'title',
+            'email',
+            'fullname',
+            'username',
+            'firstname',
+            'first_name',
+            'firstName',
+        ];
+
+        $displayField = $collection->fields
+            ->whereIn('name', $priority)
+            ->sortBy(fn($field) => array_search($field->name, $priority))
+            ->first()?->name;
+        if (!$displayField) {
+            $displayField = 'id';
+        }
+
+        $this->relationPicker = [
+            'collection' => $collection,
+            'fieldName' => $fieldName,
+            'multiple' => $field->options->multiple,
+            'search' => '',
+            'records' => [],
+            'selected' => [],
+            'displayField' => $displayField
+        ];
+
+        $this->loadRelationRecords();
+        $this->showRelationPickerModal = true;
+    }
+
+    public function loadRelationRecords()
+    {
+        if (!$this->relationPicker['collection'])
+            return;
+
+        $query = $this->relationPicker['collection']->recordQueryCompiler();
+
+        if (!empty($this->relationPicker['search'])) {
+            $query->filterFromString($this->relationPicker['search']);
+        }
+
+        $this->relationPicker['records'] = $query->buildQuery()->get();
+    }
+
+    public function updatedRelationPickerSearch()
+    {
+        $this->loadRelationRecords();
+    }
+
+    public function toggleRelationRecord(string $recordId)
+    {
+        $selected = $this->relationPicker['selected'] ?? [];
+
+        if (\in_array($recordId, $selected)) {
+            $this->relationPicker['selected'] = array_values(array_filter($selected, fn($id) => $id !== $recordId));
+        } else {
+            if ($this->relationPicker['multiple']) {
+                $this->relationPicker['selected'][] = $recordId;
+            } else {
+                $this->relationPicker['selected'] = [$recordId];
+            }
+        }
+    }
+
+    public function saveRelationSelection()
+    {
+        $fieldName = $this->relationPicker['fieldName'];
+        $this->form[$fieldName] = $this->relationPicker['selected'];
+        $this->showRelationPickerModal = false;
     }
 
     public function render()
@@ -399,7 +510,7 @@ class CollectionPage extends Component
         );
     }
 
-    protected function validateRecord(): array
+    protected function validateRecord(): void
     {
         $recordId = $this->form['id_old'] ?? null;
 
@@ -423,18 +534,22 @@ class CollectionPage extends Component
             $attributes[$ruleName] = Str::lower(Str::headline($newName));
         }
 
-        return $this->validate($rules, [], $attributes);
+        try {
+            $this->validate($rules, [], $attributes);
+        } catch (ValidationException $e) {
+            throw $e;
+        }
     }
 
     public function saveRecord(): void
     {
         $this->validateRecord();
-    
+
         $recordId = $this->form['id_old'] ?? null;
         $status = $recordId ? 'Updated' : 'Created';
-        
-        $record = $recordId 
-            ? $this->collection->queryCompiler()->filter('id', '=', $recordId)->firstRaw() 
+
+        $record = $recordId
+            ? $this->collection->recordQueryCompiler()->filter('id', '=', $recordId)->firstRaw()
             : null;
 
         if ($record) {
@@ -594,12 +709,19 @@ class CollectionPage extends Component
 
     public function addNewField()
     {
+        $insertPosition = \count($this->collectionForm['fields']);
+        foreach ($this->collectionForm['fields'] as $index => $field) {
+            if (\in_array($field['name'], ['created', 'updated'])) {
+                $insertPosition = min($insertPosition, $index);
+            }
+        }
+
         $newField = [
             'collection_id' => $this->collection->id,
             'id' => time(),
             'name' => 'newField__' . time(),
             'type' => FieldType::Text,
-            'order' => \count($this->collectionForm['fields']),
+            'order' => $insertPosition,
             'unique' => false,
             'indexed' => false,
             'required' => false,
@@ -611,7 +733,11 @@ class CollectionPage extends Component
         $newField['options'] = $model->options->toArray();
         $this->ensureFieldOptionsDefaults($newField);
 
-        $this->collectionForm['fields'][] = $newField;
+        array_splice($this->collectionForm['fields'], $insertPosition, 0, [$newField]);        
+        foreach ($this->collectionForm['fields'] as $index => &$field) {
+            $field['order'] = $index;
+        }
+
         $this->fieldOpen = 'collapse_' . $newField['id'];
     }
 
@@ -747,7 +873,8 @@ class CollectionPage extends Component
             }
 
             if (isset($field['options'][$key])) {
-                $field['options'][$key] = boolval($field['options'][$key]);
+                // dump($field['options'][$key]);
+                // $field['options'][$key] = filter_var($field['options'][$key], FILTER_VALIDATE_BOOLEAN);
             }
         }
     }
@@ -824,6 +951,16 @@ class CollectionPage extends Component
         try {
             $this->validate($rules, $messages, $attributes);
         } catch (ValidationException $e) {
+
+            $fieldErrors = $e->validator->errors()->get('collectionForm.fields.*');
+            foreach($fieldErrors as $path => $messages) {
+                $index = (int) collect(explode('.', $path))->first(fn ($part) => is_numeric($part));
+                $field = $this->collectionForm['fields'][$index];
+                if ($field) {
+                    $this->fieldOpen = 'collapse_' . $field['id'];
+                }
+            }
+
             if ($e->validator->errors()->has('collectionForm.options.*')) {
                 $this->tabSelected = 'options-tab';
             }
@@ -841,7 +978,7 @@ class CollectionPage extends Component
         $this->validateCollectionForm();
 
         try {
-            \DB::beginTransaction();
+            DB::beginTransaction();
 
             $incomingFields = $this->collectionForm['fields'];
             foreach ($incomingFields as $field) {

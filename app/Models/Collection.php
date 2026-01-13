@@ -38,7 +38,7 @@ class Collection extends Model
         return $this->hasMany(CollectionIndex::class, 'collection_id');
     }
 
-    public function queryCompiler()
+    public function recordQueryCompiler()
     {
         return new RecordQueryCompiler($this);
     }
