@@ -22,6 +22,7 @@ use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Rule;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
@@ -33,6 +34,9 @@ class CollectionPage extends Component
     use Toast;
     use WithFileUploads;
     use WithPagination;
+
+    #[Url]
+    public $recordId = '';
 
     public Collection $collection;
 
@@ -154,8 +158,8 @@ class CollectionPage extends Component
 
     public array $tinyMceConfig = [
         'plugins' => 'autoresize lists link image table code quickbars',
-        'min_height' => 150,
-        'max_height' => 250,
+        'min_height' => 250,
+        'max_height' => 500,
         'statusbar' => false,
 
         'toolbar' =>
@@ -198,6 +202,14 @@ class CollectionPage extends Component
                 ->map(fn($c) => ['id' => $c->id, 'name' => $c->name])
                 ->toArray()
         ];
+
+        if ($this->recordId) {
+            $record = $this->collection->recordQueryCompiler()->filter('id', '=', $this->recordId)->buildQuery()->first();
+            if ($record) {
+                $this->fillRecordForm($record->data->toArray());
+                $this->showRecordDrawer = true;
+            }
+        }
     }
 
     public function render()
@@ -221,16 +233,7 @@ class CollectionPage extends Component
             return $this->showToast('Collection not found.');
         }
 
-        $priority = [
-            'name',
-            'title',
-            'email',
-            'fullname',
-            'username',
-            'firstname',
-            'first_name',
-            'firstName',
-        ];
+        $priority = config('larabase.relation_display_fields');
 
         $displayField = $collection->fields
             ->whereIn('name', $priority)
@@ -413,6 +416,10 @@ class CollectionPage extends Component
                 } else {
                     $this->library[$field->name] = collect([]);
                 }
+            }
+
+            if ($field->type === FieldType::Relation) {
+                $this->relationPicker['selected'] = \is_array($data[$field->name]) ? $data[$field->name] : [];
             }
         }
     }

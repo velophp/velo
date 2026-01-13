@@ -108,13 +108,16 @@
                 @cscope('cell_' . $field->name, $row, $field)
                     @php
                         $relations = isset($row->{$field->name}) ? $row->{$field->name} : [];
+                        $relatedCollections = App\Models\Collection::find($field->options->collection)?->name;
                     @endphp
                     @if (!empty($relations))
                         <div class="flex flex-wrap gap-2">
                             @foreach (array_slice($relations, 0, 3) as $id)
                                 <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
                                     <p>{{ str($id)->limit(16) }}</p>
-                                    <x-copy-button :text="$id" />
+                                    <x-button class="btn-xs btn-ghost btn-circle" link="{{ route('collection', ['collection' => $relatedCollections, 'recordId' => $id]) }}" external>
+                                        <x-icon name="lucide.external-link" class="w-5 h-5" />
+                                    </x-button>
                                 </div>
                             @endforeach
                         </div>
@@ -304,6 +307,11 @@
                                     @php
                                         $selectedIds = $form[$field->name] ?? [];
                                         $relatedCollection = \App\Models\Collection::find($field->options->collection);
+                                        $priority = config('larabase.relation_display_fields');
+                                        $displayField = $relatedCollection->fields->whereIn('name', $priority)->sortBy(fn($field) => array_search($field->name, $priority))->first()?->name;
+                                        if (!$displayField) {
+                                            $displayField = 'id';
+                                        }
                                     @endphp
                                     
                                     @if(!empty($selectedIds) && $relatedCollection)
@@ -312,7 +320,9 @@
                                                 $record = $relatedCollection->recordQueryCompiler()->filter('id', '=', $recordId)->firstRaw();
                                             @endphp
                                             @if($record)
-                                                <x-badge :value="$record->data[$relationPicker['displayField'] ?? 'id']" class="badge-soft" />
+                                                <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
+                                                    <p>{{ $record->data[$displayField] }}</p>
+                                                </div>
                                             @endif
                                         @endforeach
                                     @else
