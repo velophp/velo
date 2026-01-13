@@ -9,12 +9,12 @@ use Illuminate\Support\Facades\Route;
  * !IMPORTANT: Request MUST send Accept headers of application/json when using laravel validation else laravel will throw a web 404 response.
  */
 
-Route::prefix('collections/{collection:name}/records')->group(function () {
+Route::prefix('collections/{collection:name}/records')->name('records.')->group(function () {
 
-    Route::get('/', [RecordController::class, 'index'])->name('index');
-    Route::get('/{recordId}', [RecordController::class, 'show'])->name('show');
-    Route::post('/', [RecordController::class, 'store'])->name('store');
+    Route::get('/', [RecordController::class, 'list'])->name('list');
+    Route::get('/{recordId}', [RecordController::class, 'view'])->name('view');
+    Route::post('/', [RecordController::class, 'create'])->name('create');
     Route::put('/{recordId}', [RecordController::class, 'update'])->name('update');
     Route::delete('/{record}', [RecordController::class, 'delete'])->name('delete');
 
-})->name('records.');
+});

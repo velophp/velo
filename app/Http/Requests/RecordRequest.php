@@ -2,12 +2,12 @@
 
 namespace App\Http\Requests;
 
-use App\Models\Collection;
-use App\Services\IndexStrategies\MysqlIndexStrategy;
-use App\Services\RecordRulesCompiler;
-use Exception;
-use Illuminate\Foundation\Http\FormRequest;
 use Str;
+use App\Helper;
+use App\Services\RecordRulesCompiler;
+use App\Services\EvaluateRuleExpression;
+use Illuminate\Foundation\Http\FormRequest;
+use App\Services\IndexStrategies\MysqlIndexStrategy;
 
 class RecordRequest extends FormRequest
 {
@@ -16,7 +16,28 @@ class RecordRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        $collection = $this->route()->parameter('collection');
+        $rules = $collection->api_rules;
+
+        $operation = $this->route()->getActionMethod();
+
+        if (!isset($rules[$operation])) {
+            return false;
+        }
+
+        $context = [
+            'sys_request' => Helper::toObject([
+                'auth' => $this->user(),
+                'body' => $this->all(),
+                'param' => $this->route()->parameters(),
+                'query' => $this->query()
+            ]),
+            ...$this->only($collection->fields->pluck('name')->toArray())
+        ];
+
+        $rule = app(EvaluateRuleExpression::class)->forExpression($rules[$operation])->withContext($context);
+
+        return $rule->evaluate();
     }
 
     /**
@@ -26,6 +47,9 @@ class RecordRequest extends FormRequest
      */
     public function rules(): array
     {
+        if (\in_array($this->route()->getActionMethod(), ['list', 'view', 'delete']))
+            return [];
+
         $rules = app(RecordRulesCompiler::class)
             ->forCollection($this->route()->parameter('collection'))
             ->using(new MysqlIndexStrategy)

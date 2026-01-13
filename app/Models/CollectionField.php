@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-use App\Casts\FieldOptionCast;
-use App\Enums\CollectionType;
-use App\Enums\FieldType;
 use App\Helper;
+use App\Enums\FieldType;
+use App\Enums\CollectionType;
+use App\Casts\FieldOptionCast;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
