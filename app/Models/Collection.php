@@ -38,6 +38,11 @@ class Collection extends Model
         return $this->hasMany(CollectionIndex::class, 'collection_id');
     }
 
+    public function recordIndexes()
+    {
+        return $this->hasMany(RecordIndex::class, 'collection_id');
+    }
+
     public function recordQueryCompiler()
     {
         return new RecordQueryCompiler($this);

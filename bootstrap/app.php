@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\InvalidRecordException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void { })
     ->withExceptions(function (Exceptions $exceptions): void {
-        
+
         $exceptions->shouldRenderJsonWhen(function (Request $request, Throwable $e) {
             if ($request->is('api/*')) {
                 return true;
@@ -33,5 +34,13 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 404);
             }
         });
-        
+
+        $exceptions->render(function (InvalidRecordException $e, Request $request) {
+            if ($request->is('api/*')) {
+                return response()->json([
+                    'message' => $e->getMessage()
+                ], 409);
+            }
+        });
+
     })->create();

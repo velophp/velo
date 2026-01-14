@@ -133,10 +133,14 @@ class CollectionField extends Model
             if ($field->collection->type === CollectionType::Auth && $field->name === 'password') {
                 $field->hidden = true;
             }
-            
+
             if ($field->order === null) {
                 $maxOrder = static::where('collection_id', $field->collection_id)->max('order');
                 $field->order = ($maxOrder ?? -1) + 1;
+            }
+
+            if ($field->type === FieldType::Relation) {
+                $field->indexed = true;
             }
         });
     }

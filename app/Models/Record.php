@@ -5,7 +5,7 @@ namespace App\Models;
 use App\Collections\Handlers\CollectionTypeHandlerResolver;
 use App\Enums\FieldType;
 use App\Exceptions\InvalidRecordException;
-use Illuminate\Database\Eloquent\Casts\AsCollection;
+use DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -16,7 +16,7 @@ class Record extends Model
     protected function casts(): array
     {
         return [
-            'data' => AsCollection::class,
+            'data' => 'collection',
         ];
     }
 
@@ -31,14 +31,14 @@ class Record extends Model
     }
 
     public static function defaultValueFor(FieldType $type)
-{
-    return match ($type) {
-        FieldType::Text => '',
-        FieldType::Number => 0,
-        FieldType::Bool => false,
-        default => null,
-    };
-}
+    {
+        return match ($type) {
+            FieldType::Text => '',
+            FieldType::Number => 0,
+            FieldType::Bool => false,
+            default => null,
+        };
+    }
 
     protected static function booted(): void
     {
@@ -90,7 +90,7 @@ class Record extends Model
             $dataKeys = $data->keys()->sort()->values()->toArray();
             $missingFields = array_diff($fieldNames, $dataKeys);
 
-            foreach($missingFields as $field) {
+            foreach ($missingFields as $field) {
                 $data[$field] = self::defaultValueFor($fields[$field]->type);
             }
 
@@ -99,6 +99,17 @@ class Record extends Model
 
             if (!empty($missingFields)) {
                 throw new InvalidRecordException('Record structure mismatch. Missing required fields: ' . implode(', ', $missingFields) . '. Expected all fields: ' . implode(', ', $fieldNames));
+            }
+        });
+
+        static::deleting(function (Record $record) {
+            try {
+                DB::beginTransaction();
+                app(\App\Collections\Handlers\BaseCollectionHandler::class)->beforeDelete($record);
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
             }
         });
     }

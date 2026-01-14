@@ -17,4 +17,8 @@ class AuthCollectionHandler implements CollectionTypeHandler
 
         $record->data = $data;
     }
+
+    public function beforeDelete(Record $record): void
+    {
+    }
 }

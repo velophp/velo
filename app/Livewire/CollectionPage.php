@@ -5,6 +5,7 @@ namespace App\Livewire;
 use App\Enums\CollectionType;
 use App\Enums\FieldType;
 use App\Exceptions\IndexOperationException;
+use App\Exceptions\InvalidRecordException;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\Record;
@@ -484,44 +485,48 @@ class CollectionPage extends Component
 
     public function confirmDeleteRecord(): void
     {
-        $count = count($this->recordToDelete);
+        try {
+            $count = count($this->recordToDelete);
 
-        foreach ($this->recordToDelete as $id) {
-            $compiler = new RecordQueryCompiler($this->collection);
-            $result = $compiler->filter('id', '=', $id)->firstRaw();
+            foreach ($this->recordToDelete as $id) {
+                $compiler = new RecordQueryCompiler($this->collection);
+                $result = $compiler->filter('id', '=', $id)->firstRaw();
 
-            if (!$result) {
-                $this->error(
-                    title: 'Cannot delete record.',
-                    description: 'Record not found.',
-                    position: 'toast-bottom toast-end',
-                    icon: 'o-information-circle',
-                    css: 'alert-error',
-                    timeout: 2000,
-                );
-                $this->showConfirmDeleteDialog = false;
+                if (!$result) {
+                    $this->error(
+                        title: 'Cannot delete record.',
+                        description: 'Record not found.',
+                        position: 'toast-bottom toast-end',
+                        icon: 'o-information-circle',
+                        css: 'alert-error',
+                        timeout: 2000,
+                    );
+                    $this->showConfirmDeleteDialog = false;
 
-                return;
+                    return;
+                }
+
+                $result->delete();
             }
 
-            $result->delete();
+            $this->showRecordDrawer = false;
+            $this->showConfirmDeleteDialog = false;
+            $this->recordToDelete = [];
+            $this->selected = [];
+
+            unset($this->tableRows);
+
+            $this->success(
+                title: 'Success!',
+                description: "Deleted $count {$this->collection->name} " . str('record')->plural($count) . '.',
+                position: 'toast-bottom toast-end',
+                icon: 'o-check-circle',
+                css: 'alert-success',
+                timeout: 2000,
+            );
+        } catch (InvalidRecordException $e) {
+            $this->showError($e->getMessage());
         }
-
-        $this->showRecordDrawer = false;
-        $this->showConfirmDeleteDialog = false;
-        $this->recordToDelete = [];
-        $this->selected = [];
-
-        unset($this->tableRows);
-
-        $this->success(
-            title: 'Success!',
-            description: "Deleted $count {$this->collection->name} " . str('record')->plural($count) . '.',
-            position: 'toast-bottom toast-end',
-            icon: 'o-check-circle',
-            css: 'alert-success',
-            timeout: 2000,
-        );
     }
 
     protected function validateRecord(): void
@@ -1170,6 +1175,10 @@ class CollectionPage extends Component
 
     public function indexToggleField($field)
     {
+        if ($this->fields->firstWhere('name', $field)?->type === FieldType::Relation) {
+            return $this->showToast('Indexing relationships is not supported yet.', timeout: 4500);
+        }
+
         if (!\in_array($field, $this->fieldsToBeIndexed)) {
             $this->fieldsToBeIndexed[] = $field;
         } else {
@@ -1255,14 +1264,14 @@ class CollectionPage extends Component
     /* === END INDEX OPERATION === */
 
     #[On('toast')]
-    public function showToast($message = 'Ok')
+    public function showToast($message = 'Ok', $timeout = 1500)
     {
         $this->info(
             title: $message,
             position: 'toast-bottom toast-end',
             icon: 'o-information-circle',
             css: 'alert-info',
-            timeout: 1500,
+            timeout: $timeout,
         );
     }
 
