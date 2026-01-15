@@ -44,6 +44,41 @@ class RecordQueryCompiler
         return $this;
     }
 
+    /**
+     * Build a safe filter string from field-value pairs.
+     * This method properly escapes values to prevent injection attacks.
+     *
+     * @param array $conditions Array of ['field' => 'value'] or [['field' => 'name', 'value' => 'val', 'operator' => '=']]
+     * @param string $logical 'AND' or 'OR'
+     * @return string
+     */
+    public static function buildSaveFilterString(array $conditions, string $logical = 'AND'): string
+    {
+        $parts = [];
+
+        foreach ($conditions as $key => $condition) {
+            if (is_array($condition)) {
+                $field = $condition['field'] ?? '';
+                $value = $condition['value'] ?? '';
+                $operator = $condition['operator'] ?? '=';
+            } else {
+                $field = $key;
+                $value = $condition;
+                $operator = '=';
+            }
+
+            // Sanitize field name (alphanumeric and underscore only)
+            $field = preg_replace('/[^a-zA-Z0-9_]/', '', $field);
+
+            // Escape the value - wrap in quotes and escape internal quotes
+            $escapedValue = '"' . str_replace('"', '\\"', $value) . '"';
+
+            $parts[] = "$field $operator $escapedValue";
+        }
+
+        return implode(" $logical ", $parts);
+    }
+
     // Compiled the string and REPLACES filters with the new value
     public function filterFromString(string $filterString)
     {
@@ -88,14 +123,14 @@ class RecordQueryCompiler
     // Parse a single filter segment like "name = John" or "age >= 18"
     protected function parseFilterSegment(string $segment): ?array
     {
-        // Check operators from longest to shortest to avoid partial matches
-        $operators = ['>=', '<=', '!=', '<>', '=', '>', '<', 'LIKE', 'like'];
+        // Whitelist of allowed operators to prevent operator injection
+        $allowedOperators = ['>=', '<=', '!=', '<>', '=', '>', '<', 'LIKE'];
 
-        foreach ($operators as $op) {
+        foreach ($allowedOperators as $op) {
             // Build regex pattern to find the operator
-            $pattern = in_array($op, ['LIKE', 'like'])
-                ? '/\s+'.preg_quote($op, '/').'\s+/i'
-                : '/'.preg_quote($op, '/').'/';
+            $pattern = ($op === 'LIKE')
+                ? '/\s+' . preg_quote($op, '/') . '\s+/i'
+                : '/' . preg_quote($op, '/') . '/';
 
             // Check if this operator exists in the segment
             if (preg_match($pattern, $segment, $matches, PREG_OFFSET_CAPTURE)) {
@@ -106,8 +141,18 @@ class RecordQueryCompiler
                 $field = trim(substr($segment, 0, $operatorPosition));
                 $value = trim(substr($segment, $operatorPosition + $operatorLength));
 
+                // Sanitize field name - only allow alphanumeric and underscore
+                $field = preg_replace('/[^a-zA-Z0-9_]/', '', $field);
+
+                if (empty($field)) {
+                    return null;
+                }
+
                 // Remove surrounding quotes from value if present
                 $value = $this->removeQuotes($value);
+
+                // Sanitize value to prevent injection
+                $value = $this->sanitizeValue($value);
 
                 return [
                     'field' => $field,
@@ -118,6 +163,22 @@ class RecordQueryCompiler
         }
 
         return null;
+    }
+
+    /**
+     * Sanitize a filter value to prevent injection attacks.
+     */
+    protected function sanitizeValue(string $value): string
+    {
+        // Remove null bytes which can be used in some injection attacks
+        $value = str_replace(chr(0), '', $value);
+
+        // The value is used with parameterized queries in buildQuery(),
+        // so SQL characters don't need escaping. The main protection is that
+        // values are properly quoted when passed through buildFilterString()
+        // and parameterized in the final query.
+
+        return $value;
     }
 
     protected function removeQuotes(string $value): string
@@ -210,7 +271,7 @@ class RecordQueryCompiler
 
                 if ($f['operator'] === 'IN') {
                     if (empty($f['value'])) {
-                        if (! $isOr) {
+                        if (!$isOr) {
                             $q->whereRaw('1 = 0');
                         }
 
@@ -316,8 +377,8 @@ class RecordQueryCompiler
     {
         $result = $this->buildQuery(Record::query())->first();
 
-        if (! $result) {
-            throw new ModelNotFoundException;
+        if (!$result) {
+            throw new ModelNotFoundException('Resource not found.');
         }
 
         if ($result?->data) {
@@ -376,7 +437,7 @@ class RecordQueryCompiler
             ->offset(($currentPage - 1) * $this->perPage)
             ->limit($this->perPage)
             ->get()
-            ->map(fn ($d) => json_decode($d->data));
+            ->map(fn($d) => json_decode($d->data));
 
         return new LengthAwarePaginator(
             $results,
@@ -402,7 +463,7 @@ class RecordQueryCompiler
             ->keyBy('name');
 
         foreach ($this->expands as $fieldName) {
-            if (! $relationFields->has($fieldName)) {
+            if (!$relationFields->has($fieldName)) {
                 continue;
             }
 
@@ -419,7 +480,7 @@ class RecordQueryCompiler
             }
 
             $relatedCollection = Collection::find($relationField->options?->collection);
-            if (! $relatedCollection) {
+            if (!$relatedCollection) {
                 continue;
             }
 
@@ -435,7 +496,7 @@ class RecordQueryCompiler
 
             if ($relationField->options?->multiple) {
                 $expand[$relationField->name] = $idsFromRelation
-                    ->map(fn ($id) => $expandedRecords->get($id))
+                    ->map(fn($id) => $expandedRecords->get($id))
                     ->filter()
                     ->values();
             } else {
@@ -460,7 +521,7 @@ class RecordQueryCompiler
             ->keyBy('name');
 
         foreach ($this->expands as $fieldName) {
-            if (! $relationFields->has($fieldName)) {
+            if (!$relationFields->has($fieldName)) {
                 continue;
             }
 
@@ -478,7 +539,7 @@ class RecordQueryCompiler
             }
 
             $relatedCollection = Collection::find($relationField->options?->collection);
-            if (! $relatedCollection) {
+            if (!$relatedCollection) {
                 continue;
             }
 
@@ -495,7 +556,7 @@ class RecordQueryCompiler
 
                 if ($relationField->options?->multiple) {
                     $expand[$relationField->name] = $idsFromRelation
-                        ->map(fn ($id) => $expandedRecords->get($id))
+                        ->map(fn($id) => $expandedRecords->get($id))
                         ->filter()
                         ->values();
                 } else {

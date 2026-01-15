@@ -11,12 +11,16 @@ class AuthCollectionHandler implements CollectionTypeHandler
     {
         $data = $record->data;
 
-        if ((! $record->exists && $data->has('password')) || ($data->has('password_new') && filled($data->get('password_new')))) {
+        if ($data->has('password_new') && filled($data->get('password_new'))) {
+            $data->put('password', Hash::make($data->pull('password_new')));
+        } elseif (!$record->exists && $data->has('password')) {
             $data->put('password', Hash::make($data->get('password')));
         }
 
         $record->data = $data;
     }
 
-    public function beforeDelete(Record $record): void {}
+    public function beforeDelete(Record $record): void
+    {
+    }
 }

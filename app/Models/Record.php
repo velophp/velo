@@ -16,18 +16,13 @@ class Record extends Model
     protected function casts(): array
     {
         return [
-            'data' => 'collection',
+            'data' => \Illuminate\Database\Eloquent\Casts\AsCollection::class,
         ];
     }
 
     public function collection()
     {
         return $this->belongsTo(Collection::class);
-    }
-
-    public function serialize()
-    {
-        return collect(['collection_id' => $this->collection_id])->merge($this->data);
     }
 
     public static function defaultValueFor(FieldType $type)
@@ -43,24 +38,22 @@ class Record extends Model
     protected static function booted(): void
     {
         static::saving(function (Record $record) {
-            if (! $record->relationLoaded('collection')) {
+            if (!$record->relationLoaded('collection')) {
                 $record->load('collection.fields');
             }
 
             $fields = $record->collection->fields->keyBy('name');
             $fieldNames = $fields->keys()->sort()->values()->toArray();
-            $data = $record->data;
 
-            if (! $data->has('id') || empty($data->get('id'))) {
+            if (!$record->data->has('id') || empty($record->data->get('id'))) {
                 $min = $fields['id']->options->minLength ?? 16;
                 $max = $fields['id']->options->maxLength ?? 16;
                 $length = random_int($min, $max);
-                $data->put('id', Str::random($length));
+                $record->data->put('id', Str::random($length));
             }
 
             app(\App\Collections\Handlers\BaseCollectionHandler::class)->beforeSave($record);
 
-            // Type-specific rules
             $handler = CollectionTypeHandlerResolver::resolve($record->collection->type);
             if ($handler) {
                 $handler->beforeSave($record);
@@ -75,30 +68,30 @@ class Record extends Model
                     : $originalData;
 
                 foreach ($fieldNames as $fieldName) {
-                    if (! $data->has($fieldName) && isset($originalData[$fieldName])) {
-                        $data->put($fieldName, $originalData[$fieldName]);
+                    if (!$record->data->has($fieldName) && isset($originalData[$fieldName])) {
+                        $record->data->put($fieldName, $originalData[$fieldName]);
                     }
                 }
             }
 
-            // Clean unwanted keys
-            $data = $data->only($fieldNames);
-
-            $record->data = $data;
+            // Clean unwanted keys - use current data state (after handler modifications)
+            // Convert to array to avoid AsCollection cast issues
+            $currentData = $record->data->only($fieldNames)->toArray();
+            $record->setRawAttributes(array_merge($record->getAttributes(), ['data' => $currentData]), true);
 
             // Validate structure
-            $dataKeys = $data->keys()->sort()->values()->toArray();
+            $dataKeys = $record->data->keys()->sort()->values()->toArray();
             $missingFields = array_diff($fieldNames, $dataKeys);
 
             foreach ($missingFields as $field) {
-                $data[$field] = self::defaultValueFor($fields[$field]->type);
+                $record->data->put($field, self::defaultValueFor($fields[$field]->type));
             }
 
-            $dataKeys = $data->keys()->sort()->values()->toArray();
+            $dataKeys = $record->data->keys()->sort()->values()->toArray();
             $missingFields = array_diff($fieldNames, $dataKeys);
 
-            if (! empty($missingFields)) {
-                throw new InvalidRecordException('Record structure mismatch. Missing required fields: '.implode(', ', $missingFields).'. Expected all fields: '.implode(', ', $fieldNames));
+            if (!empty($missingFields)) {
+                throw new InvalidRecordException('Record structure mismatch. Missing required fields: ' . implode(', ', $missingFields) . '. Expected all fields: ' . implode(', ', $fieldNames));
             }
         });
 

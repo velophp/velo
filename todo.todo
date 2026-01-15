@@ -1,4 +1,5 @@
 BUG:
+- collection page toggle fields visibility doesn't work
 
 IMPROVEMENT:
 - fix file type validation

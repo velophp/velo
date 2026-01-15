@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ae2b2a1364f457c72d4e7822a2fb44b7",
+    "content-hash": "408ea8a9dbb18bb8b09fb3c34991bd15",
     "packages": [
         {
             "name": "blade-ui-kit/blade-heroicons",
@@ -1256,68 +1256,6 @@
                 }
             ],
             "time": "2025-08-22T14:27:06+00:00"
-        },
-        {
-            "name": "hasnayeen/blade-eva-icons",
-            "version": "v2.1.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/Hasnayeen/blade-eva-icons.git",
-                "reference": "e771444b908964ab47506e3e6012ff12ad4234a4"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/Hasnayeen/blade-eva-icons/zipball/e771444b908964ab47506e3e6012ff12ad4234a4",
-                "reference": "e771444b908964ab47506e3e6012ff12ad4234a4",
-                "shasum": ""
-            },
-            "require": {
-                "blade-ui-kit/blade-icons": "^1.1",
-                "illuminate/support": "^10.0|^11.0|^12.0",
-                "php": "^8.1"
-            },
-            "require-dev": {
-                "friendsofphp/php-cs-fixer": "^3.0",
-                "orchestra/testbench": "^8.0|^9.0",
-                "phpunit/phpunit": "^10.5|^11.0"
-            },
-            "type": "library",
-            "extra": {
-                "laravel": {
-                    "providers": [
-                        "Hasnayeen\\Evaicons\\BladeEvaiconsServiceProvider"
-                    ]
-                }
-            },
-            "autoload": {
-                "psr-4": {
-                    "Hasnayeen\\Evaicons\\": "src"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Nehal Hasnayeen",
-                    "email": "hasnayeen@pm.me",
-                    "homepage": "https://hasnayeen.dev",
-                    "role": "Developer"
-                }
-            ],
-            "description": "A package to easily make use of Eva Icons in your Laravel Blade views.",
-            "homepage": "https://github.com/Hasnayeen/blade-eva-icons",
-            "keywords": [
-                "Eva icons",
-                "blade",
-                "laravel"
-            ],
-            "support": {
-                "issues": "https://github.com/Hasnayeen/blade-eva-icons/issues",
-                "source": "https://github.com/Hasnayeen/blade-eva-icons/tree/v2.1.0"
-            },
-            "time": "2025-03-10T05:01:50+00:00"
         },
         {
             "name": "jfcherng/php-color-output",

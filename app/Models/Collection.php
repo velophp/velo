@@ -57,7 +57,7 @@ class Collection extends Model
         ];
     }
 
-    public static function getDefaultOptions()
+    public static function getDefaultAuthOptions()
     {
         return [
             'auth_methods' => [
@@ -131,7 +131,7 @@ class Collection extends Model
             }
 
             if ($collection->options == null) {
-                $collection->options = static::getDefaultOptions();
+                $collection->options = static::getDefaultAuthOptions();
             }
         });
     }
