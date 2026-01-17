@@ -1,4 +1,5 @@
 BUG:
+- creating users from admin panel still wouldn't encrypt the password, only after updating it would encrypt
 
 IMPROVEMENT:
 - add 2fa, mfa, oauth, reset password

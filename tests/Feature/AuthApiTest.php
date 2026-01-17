@@ -10,6 +10,7 @@ use App\Models\CollectionField;
 use App\Models\Project;
 use App\Models\Record;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class AuthApiTest extends TestCase
@@ -65,7 +66,7 @@ class AuthApiTest extends TestCase
             ],
         ]);
 
-        $response = $this->postJson('/api/collections/users/auth/with-password', [
+        $response = $this->postJson('/api/collections/users/auth/authenticate-with-password', [
             'identifier' => 'test@example.com',
             'password' => 'password123',
         ]);
@@ -181,7 +182,7 @@ class AuthApiTest extends TestCase
             ],
         ]);
 
-        $response = $this->postJson('/api/collections/users/auth/with-password', [
+        $response = $this->postJson('/api/collections/users/auth/authenticate-with-password', [
             'identifier' => 'unverified@example.com',
             'password' => 'password123',
         ]);
@@ -199,11 +200,84 @@ class AuthApiTest extends TestCase
             ],
         ]);
 
-        $response = $this->postJson('/api/collections/users/auth/with-password', [
+        $response = $this->postJson('/api/collections/users/auth/authenticate-with-password', [
             'identifier' => 'verified@example.com',
             'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
+    }
+
+    public function test_can_request_password_reset()
+    {
+        $record = Record::create([
+            'collection_id' => $this->collection->id,
+            'data' => [
+                'email' => 'test@example.com',
+                'password' => \Hash::make('password123'),
+                'verified' => true,
+            ],
+        ]);
+
+        \Mail::fake();
+
+        $response = $this->postJson('/api/collections/users/auth/forgot-password', [
+            'email' => 'test@example.com',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure(['message']);
+
+        $this->assertDatabaseHas('auth_password_resets', [
+            'record_id' => $record->id,
+            'email' => 'test@example.com',
+        ]);
+    }
+
+    public function test_can_confirm_password_reset()
+    {
+        $record = Record::create([
+            'collection_id' => $this->collection->id,
+            'data' => [
+                'email' => 'test@example.com',
+                'password' => \Hash::make('password123'),
+                'verified' => true,
+            ],
+        ]);
+        \Mail::fake();
+
+        // Let's use the endpoint to generate the token first to keep it simple and test integration
+        $response = $this->postJson('/api/collections/users/auth/forgot-password', [
+            'email' => 'test@example.com',
+        ]);
+
+        \Mail::assertSent(\App\Mail\PasswordReset::class, function ($mail) {
+            return $mail->hasTo('test@example.com');
+        });
+
+        // Token is not returned in response anymore, fetch from DB
+        $reset = \App\Models\AuthPasswordReset::where('email', 'test@example.com')->first();
+        $token = $reset->token;
+
+        $response = $this->postJson('/api/collections/users/auth/confirm-password-reset', [
+            'token' => $token,
+            'password' => 'newpassword123',
+            'password_confirmation' => 'newpassword123',
+            'invalidate_sessions' => true,
+        ]);
+
+        $response->assertStatus(200);
+
+        // Verify password changed
+        $record->refresh();
+        $this->assertTrue(Hash::check('newpassword123', $record->data->get('password')));
+
+        // Verify token marked used
+        $this->assertDatabaseHas('auth_password_resets', [
+            'token' => $token,
+        ]);
+
+        $reset->refresh();
+        $this->assertNotNull($reset->used_at);
     }
 }

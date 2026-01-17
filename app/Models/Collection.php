@@ -80,7 +80,16 @@ class Collection extends Model
             ],
             'mail_templates' => [
                 'verification' => ['subject' => '', 'body' => ''],
-                'password_reset' => ['subject' => '', 'body' => ''],
+                'password_reset' => [
+                    'subject' => 'Reset your password',
+                    'body' => '
+<p>Hello,</p>
+<p>You are receiving this email because we received a password reset request for your account.</p>
+<p>Action URL: <a href="{{action_url}}">{{action_url}}</a></p>
+<p>If you did not request a password reset, no further action is required.</p>
+<p>Regards,<br>{{app_name}}</p>
+                    ',
+                ],
                 'confirm_email_change' => ['subject' => '', 'body' => ''],
                 'otp_email' => ['subject' => '', 'body' => ''],
                 'login_alert' => ['subject' => '', 'body' => ''],

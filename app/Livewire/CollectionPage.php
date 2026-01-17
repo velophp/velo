@@ -6,6 +6,7 @@ use App\Enums\CollectionType;
 use App\Enums\FieldType;
 use App\Exceptions\IndexOperationException;
 use App\Exceptions\InvalidRecordException;
+use App\Models\AuthPasswordReset;
 use App\Models\Collection;
 use App\Models\CollectionField;
 use App\Models\Record;
@@ -1101,12 +1102,24 @@ class CollectionPage extends Component
 
                 $oldField->update($toUpdateData);
             }
+            
+            if ($this->collectionForm['options']['other']['tokens_options']['password_reset_duration']['invalidate_previous_tokens']) {
+                $now = now();
+
+                AuthPasswordReset::whereNotNull('id')->update([
+                    'used_at' => $now
+                ]);
+
+                $this->collectionForm['options']['other']['tokens_options']['password_reset_duration']['invalidate_previous_tokens'] = false;
+            }
+
 
             $this->collection->update([
                 'name' => $this->collectionForm['name'],
                 'api_rules' => $this->collectionForm['api_rules'],
                 'options' => $this->collectionForm['options'],
             ]);
+
 
             \DB::commit();
         } catch (\Exception $e) {

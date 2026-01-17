@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Enums\CollectionType;
 use App\Http\Resources\RecordResource;
+use App\Mail\PasswordReset;
+use App\Models\AuthPasswordReset;
 use App\Models\AuthSession;
 use App\Models\Collection;
 use App\Models\Record;
@@ -12,9 +14,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
-use Response;
 use Illuminate\Validation\ValidationException;
-use Symfony\Component\Routing\Exception\RouteNotFoundException;
+use Mail;
+use Response;
 
 class AuthController extends Controller
 {
@@ -183,7 +185,7 @@ class AuthController extends Controller
             return Response::json(['message' => 'User not found.'], 404);
         }
 
-        if (!Hash::check($request->input('password'), $record->data->get('password'))) {
+        if (! Hash::check($request->input('password'), $record->data->get('password'))) {
             return Response::json(['message' => 'Invalid current password.'], 400);
         }
 
@@ -201,6 +203,98 @@ class AuthController extends Controller
 
     public function forgotPassword(Request $request, Collection $collection)
     {
+        if ($collection->type !== CollectionType::Auth) {
+            return Response::json(['message' => 'Collection is not auth enabled.'], 400);
+        }
 
+        if (! isset($collection->options['auth_methods']['standard']) || ! $collection->options['auth_methods']['standard']['enabled']) {
+            return Response::json(['message' => 'Collection is not setup for standard auth method.'], 400);
+        }
+
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $email = $request->input('email');
+
+        $filterString = "email = '{$email}'";
+        $record = $collection->records()->filterFromString($filterString)->first();
+
+        if (! $record) {
+            return Response::json([
+                'message' => 'If an account exists with this email, you will receive a password reset token.',
+            ]);
+        }
+
+        $token = \Str::random(64);
+        $expires = (int) $collection->options['other']['tokens_options']['password_reset_duration']['value'] ?? 1800;
+
+        AuthPasswordReset::create([
+            'project_id' => $collection->project_id,
+            'collection_id' => $collection->id,
+            'record_id' => $record->id,
+            'email' => $email,
+            'token' => $token,
+            'created_at' => now(),
+            'expires_at' => now()->addSeconds($expires),
+            'ip_address' => $request->ip(),
+            'device_name' => $request->input('device_name'),
+        ]);
+
+        // Mail::to($email)->send(new PasswordReset($token, $collection));
+
+        return Response::json([
+            'message' => 'If an account exists with this email, you will receive a password reset token.',
+        ]);
+    }
+
+    public function confirmPasswordReset(Request $request, Collection $collection)
+    {
+        if ($collection->type !== CollectionType::Auth) {
+            return Response::json(['message' => 'Collection is not auth enabled.'], 400);
+        }
+
+        $request->validate([
+            'token' => 'required|string',
+            'password' => ['required', 'string', Password::min(8)],
+            'password_confirmation' => 'required|same:password',
+            'invalidate_sessions' => 'boolean',
+        ]);
+
+        $reset = AuthPasswordReset::where('token', $request->input('token'))
+            ->where('collection_id', $collection->id)
+            ->first();
+
+        if (! $reset) {
+            return Response::json(['message' => 'Invalid token.'], 400);
+        }
+
+        if ($reset->used_at) {
+            return Response::json(['message' => 'Token already used.'], 400);
+        }
+
+        if ($reset->expires_at && $reset->expires_at->isPast()) {
+            return Response::json(['message' => 'Token expired.'], 400);
+        }
+
+        $record = Record::find($reset->record_id);
+
+        if (! $record) {
+            return Response::json(['message' => 'User associated with this token no longer exists.'], 404);
+        }
+
+        $record->data->put('password', Hash::make($request->input('password')));
+        $record->save();
+
+        $reset->used_at = now();
+        $reset->save();
+
+        if ($request->boolean('invalidate_sessions')) {
+            AuthSession::where('record_id', $record->id)
+                ->where('collection_id', $collection->id)
+                ->delete();
+        }
+
+        return Response::json(['message' => 'Password reset successful.']);
     }
 }
