@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Models\Project;
-use App\Models\Collection;
-use App\Models\CollectionField;
-use App\Models\Record;
 use App\Enums\CollectionType;
 use App\Enums\FieldType;
+use App\Models\Collection;
+use App\Models\CollectionField;
+use App\Models\Project;
+use App\Models\Record;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -16,7 +16,9 @@ class RecordApiTest extends TestCase
     use RefreshDatabase;
 
     protected $project;
+
     protected $collection;
+
     protected $userCollection;
 
     protected function setUp(): void
@@ -81,25 +83,25 @@ class RecordApiTest extends TestCase
         // Handlers usually handle fields.
     }
 
-    public function test_can_list_posts()
+    public function testCanListPosts()
     {
         Record::create([
             'collection_id' => $this->collection->id,
-            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1']
+            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
         ]);
 
-        $response = $this->getJson("/api/collections/posts/records");
+        $response = $this->getJson('/api/collections/posts/records');
 
         $response->assertStatus(200)
             ->assertJsonCount(1, 'data');
     }
 
-    public function test_can_create_post()
+    public function testCanCreatePost()
     {
-        $response = $this->postJson("/api/collections/posts/records", [
+        $response = $this->postJson('/api/collections/posts/records', [
             'title' => 'New Post',
             'content' => 'New Content',
-            'user_id' => 'user1'
+            'user_id' => 'user1',
         ]);
 
         $response->assertStatus(201);
@@ -108,11 +110,11 @@ class RecordApiTest extends TestCase
         ]);
     }
 
-    public function test_can_view_post()
+    public function testCanViewPost()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1']
+            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
         ]);
 
         $response = $this->getJson("/api/collections/posts/records/{$record->data->get('id')}");
@@ -121,26 +123,26 @@ class RecordApiTest extends TestCase
             ->assertJsonPath('data.title', 'Post 1');
     }
 
-    public function test_cannot_update_post_if_not_owner()
+    public function testCannotUpdatePostIfNotOwner()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1']
+            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
         ]);
 
         // No auth header = no owner
         $response = $this->putJson("/api/collections/posts/records/{$record->data->get('id')}", [
-            'title' => 'Updated Title'
+            'title' => 'Updated Title',
         ]);
 
         $response->assertStatus(403);
     }
 
-    public function test_cannot_delete_post_if_not_owner()
+    public function testCannotDeletePostIfNotOwner()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1']
+            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
         ]);
 
         $response = $this->deleteJson("/api/collections/posts/records/{$record->data->get('id')}");

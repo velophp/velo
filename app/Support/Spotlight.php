@@ -24,7 +24,6 @@ class Spotlight
 
     private function collections(string $search)
     {
-
         $collections = Collection::where('project_id', Project::first()->id)
             ->where('name', 'like', "%$search%")
             ->take(5)
@@ -38,7 +37,7 @@ class Spotlight
 
                 return [
                     'name' => $col->name,
-                    'description' => 'Collection | Updated ' . $col->updated_at->diffForHUmans(),
+                    'description' => 'Collection | Updated '.$col->updated_at->diffForHUmans(),
                     'link' => route('collections', ['collection' => $col]),
                     'icon' => Blade::render("<x-icon name='$icon' />"),
                 ];

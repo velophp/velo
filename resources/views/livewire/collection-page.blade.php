@@ -604,6 +604,7 @@
                 <x-tab name="api-rules-tab" label="API Rules">
                     <div class="space-y-4 px-0.5">
                         @foreach ($collectionForm['api_rules'] as $apiRule => $value)
+                            @continue($apiRule == 'authenticate')
                             <x-textarea wire:model="collectionForm.api_rules.{{ $apiRule }}" label="{{ ucfirst($apiRule) }} Rule" placeholder="{{ ucfirst($apiRule) }} Rule. Leave blank to grant everyone access." inline  />
                         @endforeach
 
@@ -628,40 +629,112 @@
                 @if ($this->collection->type === App\Enums\CollectionType::Auth)
                     <x-tab name="options-tab" label="Options">
                         <div class="space-y-4 px-0.5">
-                            <x-accordion wire:model="collapseGroup">
-                                @foreach ($collectionForm['options'] as $group => $items)
-                                    <x-collapse name="{{ $group }}">
-                                        <x-slot:heading>
-                                            {{ str($group)->replace('_', ' ')->title() }}
-                                        </x-slot:heading>
-                                        
-                                        <x-slot:content>
-                                            <div class="space-y-4">
-                                                @foreach ($items as $key => $value)
-                                                    @if(is_array($value))
-                                                        {{-- Nested section for multi-dimensional values --}}
-                                                        <div class="p-2 rounded shadow-sm">
-                                                            <h4 class="font-bold mb-2">{{ str($key)->replace('_', ' ')->title() }}</h4>
-                                                            @foreach($value as $subKey => $subValue)
-                                                                <div class="mb-2">
-                                                                    <label class="label text-xs">{{ $subKey }}</label>
-                                                                    <x-input wire:model="collectionForm.{{ $group }}.{{ $key }}.{{ $subKey }}" />
-                                                                </div>
-                                                            @endforeach
-                                                        </div>
-                                                    @else
-                                                        {{-- Direct key-value pairs --}}
-                                                        <div class="mb-2">
-                                                            <label class="label text-xs">{{ str($key)->replace('_', ' ')->title() }}</label>
-                                                            <x-input wire:model="collectionForm.{{ $group }}.{{ $key }}" />
-                                                        </div>
-                                                    @endif
-                                                @endforeach
+                            <x-accordion wire:model="optionOpen">
+                                {{-- Auth Methods --}}
+                                <x-collapse name="auth_methods">
+                                    <x-slot:heading>Auth Methods</x-slot:heading>
+                                    <x-slot:content>
+                                        <div class="space-y-4">
+                                            {{-- Standard --}}
+                                            <div class="p-4 rounded-lg bg-base-100">
+                                                <div class="flex items-center justify-between mb-4">
+                                                    <div class="font-bold text-lg">Standard (Email/Password)</div>
+                                                    <x-toggle wire:model="collectionForm.options.auth_methods.standard.enabled" />
+                                                </div>
+                                                <div class="ml-2">
+                                                    <x-choices-offline 
+                                                        label="Fields" 
+                                                        wire:model="collectionForm.options.auth_methods.standard.fields" 
+                                                        :options="$this->fields->map(fn($f) => ['id' => $f->name, 'name' => $f->name])->toArray()" 
+                                                        hint="Email is required" 
+                                                        searchable 
+                                                        multiple 
+                                                    />
+                                                </div>
                                             </div>
-                                        </x-slot:content>
-                                    </x-collapse>
-                                    
-                                @endforeach
+                                            
+                                            {{-- OAuth2 --}}
+                                            <div class="p-4 rounded-lg bg-base-100">
+                                                <div class="flex items-center justify-between mb-4">
+                                                    <div class="font-bold text-lg">OAuth2</div>
+                                                    <x-toggle wire:model="collectionForm.options.auth_methods.oauth2.enabled" />
+                                                </div>
+                                                
+                                                <div class="space-y-4">
+                                                    <div>
+                                                        <label class="label">Providers</label>
+                                                        {{-- @TODO: Implement OAuth2 Providers UI --}}
+                                                        <div class="alert alert-warning text-sm">
+                                                            OAuth2 providers configuration is coming soon.
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {{-- OTP --}}
+                                            <div class="p-4 rounded-lg bg-base-100">
+                                                <div class="flex items-center justify-between mb-4">
+                                                    <div class="font-bold text-lg">OTP (One-Time Password)</div>
+                                                    <x-toggle wire:model="collectionForm.options.auth_methods.otp.enabled" />
+                                                </div>
+                                                
+                                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <x-input label="Duration (seconds)" type="number" wire:model="collectionForm.options.auth_methods.otp.config.duration_s" />
+                                                    <x-input label="Length" type="number" wire:model="collectionForm.options.auth_methods.otp.config.generate_password_length" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </x-slot:content>
+                                </x-collapse>
+
+                                {{-- Mail Templates --}}
+                                <x-collapse name="mail_templates">
+                                    <x-slot:heading>Mail Templates</x-slot:heading>
+                                    <x-slot:content>
+                                        <div class="space-y-4">
+                                            @foreach ([
+                                                'verification' => 'Verification Email',
+                                                'password_reset' => 'Password Reset Email',
+                                                'confirm_email_change' => 'Confirm Email Change',
+                                                'otp_email' => 'OTP Email',
+                                                'login_alert' => 'Login Alert'
+                                            ] as $key => $label)
+                                                <div class="p-4 rounded-lg bg-base-100">
+                                                    <div class="font-bold mb-4">{{ $label }}</div>
+                                                    <div class="space-y-4">
+                                                        <x-input label="Subject" wire:model="collectionForm.options.mail_templates.{{ $key }}.subject" />
+                                                        {{-- <x-editor label="Body" wire:model="collectionForm.options.mail_templates.{{ $key }}.body" :config="$tinyMceConfig" /> --}}
+                                                        <x-textarea label="Body (HTML supported)" wire:model="collectionForm.options.mail_templates.{{ $key }}.body" rows="4" />
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </x-slot:content>
+                                </x-collapse>
+
+                                {{-- Token Options --}}
+                                <x-collapse name="token_options">
+                                    <x-slot:heading>Token Options</x-slot:heading>
+                                    <x-slot:content>
+                                        <div class="space-y-4">
+                                            @foreach ([
+                                                'auth_duration' => 'Auth Token Duration',
+                                                'email_verification' => 'Email Verification Token Duration',
+                                                'password_reset_duration' => 'Password Reset Token Duration',
+                                                'email_change_duration' => 'Email Change Token Duration',
+                                                'protected_file_access_duration' => 'Protected File Access Token Duration'
+                                            ] as $key => $label)
+                                                <div class="p-4 rounded-lg bg-base-100">
+                                                    <div class="font-bold mb-4">{{ $label }}</div>
+                                                    <div class="grid grid-cols-1 gap-4">
+                                                        <x-input label="Duration (seconds)" type="number" wire:model="collectionForm.options.other.tokens_options.{{ $key }}.value" />
+                                                        <x-toggle label="Invalidate Previous Tokens" wire:model="collectionForm.options.other.tokens_options.{{ $key }}.invalidate_previous_tokens" />
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </x-slot:content>
+                                </x-collapse>
                             </x-accordion>
                         </div>
                     </x-tab>

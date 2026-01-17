@@ -24,7 +24,7 @@
         </x-slot:actions>
     </x-nav>
 
-    <x-main :fullWidth="true">
+    <x-custom-main :fullWidth="true">
         <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-100 lg:bg-inherit">
 
             <x-app-brand class="px-5 pt-4" />
@@ -35,12 +35,12 @@
         <x-slot:content>
             {{ $slot }}
         </x-slot:content>
-    </x-main>
+    </x-custom-main>
 
     <livewire:create-collection />
 
     <x-toast />
-    <x-spotlight />  
+    <x-spotlight />
 </body>
 
 </html>

@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     // Used in realtion picker to automatically get fields for the display, used the first one found in the list
     'relation_display_fields' => [
         'name',
@@ -71,16 +70,16 @@ return [
         'max_height' => 500,
         'statusbar' => false,
 
-        'toolbar' => 'undo redo blocks fontfamily fontsize | '.
-            'bold italic underline strikethrough | '.
-            'forecolor backcolor | '.
-            'alignleft aligncenter alignright alignjustify | '.
-            'bullist numlist outdent indent | '.
-            'link image table | '.
-            'removeformat | '.
-            'code |',
+        'toolbar' => 'undo redo blocks fontfamily fontsize | '
+            .'bold italic underline strikethrough | '
+            .'forecolor backcolor | '
+            .'alignleft aligncenter alignright alignjustify | '
+            .'bullist numlist outdent indent | '
+            .'link image table | '
+            .'removeformat | '
+            .'code |',
 
         'quickbars_selection_toolbar' => 'bold italic underline | link',
         'quickbars_insert_toolbar' => 'quickimage quicktable',
-    ]
+    ],
 ];

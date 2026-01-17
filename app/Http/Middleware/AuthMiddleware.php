@@ -4,7 +4,6 @@ namespace App\Http\Middleware;
 
 use App\Models\AuthSession;
 use App\Models\Record;
-use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -13,9 +12,9 @@ class AuthMiddleware
     /**
      * Inject user record for authentication.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param \Closure(Request): (Response) $next
      */
-    public function handle(Request $request, Closure $next): Response
+    public function handle(Request $request, \Closure $next): Response
     {
         $token = $this->extractToken($request);
         $hash = hash('sha256', $token);

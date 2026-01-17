@@ -33,8 +33,7 @@ function getIcon($type)
         <x-menu-separator />
     @endif
 
-    <x-menu-item title="Search..." icon="o-magnifying-glass" class="text-gray-500"
-        x-on:click.stop="$dispatch('mary-search-open')" />
+    <x-menu-item title="Search..." icon="o-magnifying-glass" class="text-gray-500" x-on:click.stop="$dispatch('mary-search-open')" />
 
     <x-menu-separator />
 

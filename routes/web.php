@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::prefix('_')->group(function () {
-
     Route::middleware(['throttle:60,1'])->group(function () {
         Volt::route('login', 'login')->name('login');
         Volt::route('register', 'register')->name('register');
@@ -25,7 +24,6 @@ Route::prefix('_')->group(function () {
         // Volt::route('collections/{collection:name}', 'collection')->name('collection');
         Route::get('collections/{collection:name}', CollectionPage::class)->name('collections');
 
-
         Route::get('logout', function () {
             Auth::logout();
             session()->regenerate(destroy: true);
@@ -33,5 +31,4 @@ Route::prefix('_')->group(function () {
             return redirect(route('login'));
         })->name('logout');
     });
-
 });

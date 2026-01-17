@@ -10,7 +10,7 @@ class Collection extends Model
 {
     protected $table = 'collections';
 
-    protected $fillable = ['project_id', 'name', 'type', 'api_rules', 'option'];
+    protected $fillable = ['project_id', 'name', 'type', 'api_rules', 'options'];
 
     protected function casts(): array
     {
@@ -115,11 +115,11 @@ class Collection extends Model
     protected static function booted()
     {
         static::saving(function (Collection $collection) {
-            if ($collection->api_rules == null && $collection->type === CollectionType::Base) {
+            if (null == $collection->api_rules && CollectionType::Base === $collection->type) {
                 $collection->api_rules = static::getDefaultApiRules();
             }
 
-            if ($collection->api_rules == null && $collection->type === CollectionType::Auth) {
+            if (null == $collection->api_rules && CollectionType::Auth === $collection->type) {
                 $collection->api_rules = [
                     'authenticate' => '',
                     'manage' => 'SUPERUSER_ONLY',
@@ -131,7 +131,7 @@ class Collection extends Model
                 ];
             }
 
-            if ($collection->options == null) {
+            if (null == $collection->options) {
                 $collection->options = static::getDefaultAuthOptions();
             }
         });

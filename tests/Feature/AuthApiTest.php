@@ -2,22 +2,22 @@
 
 namespace Tests\Feature;
 
-use App\Models\Project;
-use App\Models\Collection;
-use App\Models\CollectionField;
-use App\Models\Record;
-use App\Models\AuthSession;
 use App\Enums\CollectionType;
 use App\Enums\FieldType;
+use App\Models\AuthSession;
+use App\Models\Collection;
+use App\Models\CollectionField;
+use App\Models\Project;
+use App\Models\Record;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use Hash;
 
 class AuthApiTest extends TestCase
 {
     use RefreshDatabase;
 
     protected $project;
+
     protected $collection;
 
     protected function setUp(): void
@@ -43,9 +43,9 @@ class AuthApiTest extends TestCase
                     'standard' => [
                         'enabled' => true,
                         'fields' => ['email'],
-                    ]
-                ]
-            ]
+                    ],
+                ],
+            ],
         ]);
 
         // Add fields
@@ -54,35 +54,35 @@ class AuthApiTest extends TestCase
         CollectionField::create(['collection_id' => $this->collection->id, 'name' => 'verified', 'type' => FieldType::Bool, 'options' => []]);
     }
 
-    public function test_can_authenticate_with_password()
+    public function testCanAuthenticateWithPassword()
     {
         Record::create([
             'collection_id' => $this->collection->id,
             'data' => [
                 'email' => 'test@example.com',
                 'password' => 'password123',
-                'verified' => true
-            ]
+                'verified' => true,
+            ],
         ]);
 
-        $response = $this->postJson("/api/collections/users/auth/with-password", [
+        $response = $this->postJson('/api/collections/users/auth/with-password', [
             'identifier' => 'test@example.com',
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(200)
             ->assertJsonStructure(['message', 'data']);
     }
 
-    public function test_can_get_me()
+    public function testCanGetMe()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
             'data' => [
                 'email' => 'test@example.com',
                 'password' => 'password123',
-                'verified' => true
-            ]
+                'verified' => true,
+            ],
         ]);
 
         [$token, $hashed] = AuthSession::generateToken();
@@ -95,21 +95,21 @@ class AuthApiTest extends TestCase
         ]);
 
         $response = $this->withHeader('Authorization', "Bearer $token")
-            ->getJson("/api/collections/users/auth/me");
+            ->getJson('/api/collections/users/auth/me');
 
         $response->assertStatus(200)
             ->assertJsonPath('data.email', 'test@example.com');
     }
 
-    public function test_can_logout()
+    public function testCanLogout()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
             'data' => [
                 'email' => 'test@example.com',
                 'password' => 'password123',
-                'verified' => true
-            ]
+                'verified' => true,
+            ],
         ]);
 
         [$token, $hashed] = AuthSession::generateToken();
@@ -122,21 +122,21 @@ class AuthApiTest extends TestCase
         ]);
 
         $response = $this->withHeader('Authorization', "Bearer $token")
-            ->postJson("/api/collections/users/auth/logout");
+            ->postJson('/api/collections/users/auth/logout');
 
         $response->assertStatus(200);
         $this->assertDatabaseMissing('auth_sessions', ['token_hash' => $hashed]);
     }
 
-    public function test_can_logout_all()
+    public function testCanLogoutAll()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
             'data' => [
                 'email' => 'test@example.com',
                 'password' => 'password123',
-                'verified' => true
-            ]
+                'verified' => true,
+            ],
         ]);
 
         [$token1, $hashed1] = AuthSession::generateToken();
@@ -158,17 +158,17 @@ class AuthApiTest extends TestCase
         ]);
 
         $response = $this->withHeader('Authorization', "Bearer $token1")
-            ->postJson("/api/collections/users/auth/logout-all");
+            ->postJson('/api/collections/users/auth/logout-all');
 
         $response->assertStatus(200);
         $this->assertDatabaseMissing('auth_sessions', ['record_id' => $record->id]);
     }
 
-    public function test_authenticate_rule_verified_only()
+    public function testAuthenticateRuleVerifiedOnly()
     {
         // Set authenticate rule to verified = true
         $this->collection->update([
-            'api_rules' => array_merge($this->collection->api_rules, ['authenticate' => 'verified = true'])
+            'api_rules' => array_merge($this->collection->api_rules, ['authenticate' => 'verified = true']),
         ]);
 
         // Non-verified user
@@ -177,13 +177,13 @@ class AuthApiTest extends TestCase
             'data' => [
                 'email' => 'unverified@example.com',
                 'password' => 'password123',
-                'verified' => false
-            ]
+                'verified' => false,
+            ],
         ]);
 
-        $response = $this->postJson("/api/collections/users/auth/with-password", [
+        $response = $this->postJson('/api/collections/users/auth/with-password', [
             'identifier' => 'unverified@example.com',
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(422)
@@ -195,13 +195,13 @@ class AuthApiTest extends TestCase
             'data' => [
                 'email' => 'verified@example.com',
                 'password' => 'password123',
-                'verified' => true
-            ]
+                'verified' => true,
+            ],
         ]);
 
-        $response = $this->postJson("/api/collections/users/auth/with-password", [
+        $response = $this->postJson('/api/collections/users/auth/with-password', [
             'identifier' => 'verified@example.com',
-            'password' => 'password123'
+            'password' => 'password123',
         ]);
 
         $response->assertStatus(200);
