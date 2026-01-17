@@ -371,9 +371,19 @@
                     x-on:click="$wire.showConfigureCollectionDrawer = false" />
                 <p class="text-sm">Configure <span class="font-bold">{{ $collection->name }} collection</span></p>
             </div>
-        </div>
+            <x-dropdown top left>
+                <x-slot:trigger>
+                    <x-button icon="o-bars-3" class="btn-circle btn-ghost" />
+                </x-slot:trigger>
 
-        <div class="my-4"></div>
+                <x-menu-item title="Truncate" icon="o-archive-box-x-mark"
+                    class="text-error"
+                    x-on:click="$wire.showConfirmTruncateCollection = true" />
+                <x-menu-item title="Drop" icon="o-trash"
+                    class="text-error"
+                    x-on:click="$wire.showConfirmDeleteCollection = true" />
+            </x-dropdown>
+        </div>
 
         <x-form wire:submit.prevent="saveCollection">
             <x-input label="Name" wire:model="collectionForm.name" suffix="Type: {{ $collection->type }}"
@@ -639,7 +649,7 @@
                                             <div class="p-4 rounded-lg bg-base-100">
                                                 <div class="flex items-center justify-between mb-4">
                                                     <div class="font-bold text-lg">Standard (Email/Password)</div>
-                                                    <x-toggle wire:model="collectionForm.options.auth_methods.standard.enabled" />
+                                                    <x-toggle id="auth-methods-standard-enabled" wire:model="collectionForm.options.auth_methods.standard.enabled" />
                                                 </div>
                                                 <div class="ml-2">
                                                     <x-choices-offline 
@@ -657,7 +667,7 @@
                                             <div class="p-4 rounded-lg bg-base-100">
                                                 <div class="flex items-center justify-between mb-4">
                                                     <div class="font-bold text-lg">OAuth2</div>
-                                                    <x-toggle wire:model="collectionForm.options.auth_methods.oauth2.enabled" />
+                                                    <x-toggle id="auth-methods-oauth2-enabled" wire:model="collectionForm.options.auth_methods.oauth2.enabled" />
                                                 </div>
                                                 
                                                 <div class="space-y-4">
@@ -675,7 +685,7 @@
                                             <div class="p-4 rounded-lg bg-base-100">
                                                 <div class="flex items-center justify-between mb-4">
                                                     <div class="font-bold text-lg">OTP (One-Time Password)</div>
-                                                    <x-toggle wire:model="collectionForm.options.auth_methods.otp.enabled" />
+                                                    <x-toggle id="auth-methods-otp-enabled" wire:model="collectionForm.options.auth_methods.otp.enabled" />
                                                 </div>
                                                 
                                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -728,7 +738,7 @@
                                                     <div class="font-bold mb-4">{{ $label }}</div>
                                                     <div class="grid grid-cols-1 gap-4">
                                                         <x-input label="Duration (seconds)" type="number" wire:model="collectionForm.options.other.tokens_options.{{ $key }}.value" />
-                                                        <x-toggle label="Invalidate Previous Tokens" wire:model="collectionForm.options.other.tokens_options.{{ $key }}.invalidate_previous_tokens" />
+                                                        <x-toggle id="collectionForm-options-other-tokens_options-{{ $key }}-invalidate_previous_tokens" label="Invalidate Previous Tokens" wire:model="collectionForm.options.other.tokens_options.{{ $key }}.invalidate_previous_tokens" />
                                                     </div>
                                                 </div>
                                             @endforeach
@@ -750,6 +760,26 @@
         </x-form>
 
     </x-drawer>
+
+    <x-modal wire:model="showConfirmTruncateCollection" title="Truncate Collection?">
+        <div class="mb-5">
+            Are you sure you want to delete ALL records in <strong>{{ $collection->name }}</strong>? This action cannot be undone.
+        </div>
+        <x-slot:actions>
+            <x-button label="Cancel" x-on:click="$wire.showConfirmTruncateCollection = false" />
+            <x-button label="Truncate" class="btn-error" wire:click="truncateCollection" />
+        </x-slot:actions>
+    </x-modal>
+
+    <x-modal wire:model="showConfirmDeleteCollection" title="Delete Collection?">
+        <div class="mb-5">
+            Are you sure you want to delete the collection <strong>{{ $collection->name }}</strong>? ALL data will be lost.
+        </div>
+        <x-slot:actions>
+            <x-button label="Cancel" x-on:click="$wire.showConfirmDeleteCollection = false" />
+            <x-button label="Delete" class="btn-error" wire:click="deleteCollection" />
+        </x-slot:actions>
+    </x-modal>
 
     <x-modal wire:model="showFieldIndexModal" title="Update Index">
         <div class="space-y-2">

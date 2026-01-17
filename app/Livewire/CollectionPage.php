@@ -50,8 +50,10 @@ class CollectionPage extends Component
 
     public array $form = [];
 
-    // Collection Form State
     public bool $showConfigureCollectionDrawer = false;
+
+    public bool $showConfirmTruncateCollection = false;
+    public bool $showConfirmDeleteCollection = false;
 
     public $collectionForm = ['fields' => []];
 
@@ -1158,6 +1160,20 @@ class CollectionPage extends Component
             css: 'alert-success',
             timeout: 2000,
         );
+    }
+
+    public function truncateCollection()
+    {
+        $this->collection->records()->buildQuery()->delete();
+        $this->showConfirmTruncateCollection = false;
+        $this->showToast('Collection truncated successfully.');
+    }
+
+    public function deleteCollection()
+    {
+        $this->collection->delete();
+        $this->showConfirmDeleteCollection = false;
+        $this->redirectRoute('home', navigate: true);
     }
 
     /* === END COLLECTION CONFIGURATION === */

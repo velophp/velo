@@ -8,8 +8,8 @@ use App\Models\AuthSession;
 use App\Models\Collection;
 use App\Models\Record;
 use App\Services\RecordQuery;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
+use Response;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
@@ -18,15 +18,15 @@ class AuthController extends Controller
     public function authenticateWithPassword(Request $request, Collection $collection)
     {
         if ($collection->type !== CollectionType::Auth) {
-            throw new RouteNotFoundException('Collection is not auth enabled.');
+            return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
         if (! isset($collection->options['auth_methods']['standard'])) {
-            throw new RouteNotFoundException('Collection is not setup for standard auth method.');
+            return Response::json(['message' => 'Collection is not setup for standard auth method.'], 400);
         }
 
         if (! $collection->options['auth_methods']['standard']['enabled']) {
-            throw new RouteNotFoundException('Collection is not auth enabled.');
+            return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
         $identifiers = $collection->options['auth_methods']['standard']['fields'];
@@ -40,7 +40,7 @@ class AuthController extends Controller
         $identifiers = array_filter($identifiers, fn ($field) => in_array($field, $validFields));
 
         if (empty($identifiers)) {
-            throw new ModelNotFoundException('Collection is not setup for standard auth method.');
+            return Response::json(['message' => 'Collection is not setup for standard auth method.'], 400);
         }
 
         $identifierValue = $request->input('identifier');
@@ -91,7 +91,7 @@ class AuthController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        return \Response::json([
+        return Response::json([
             'message' => 'Authenticated.',
             'data' => $token,
         ]);
@@ -105,12 +105,12 @@ class AuthController extends Controller
 
         $session = $request->auth;
         if (! $session || ! $session->get('meta')?->get('_id')) {
-            return \Response::json(['message' => 'Unauthorized.'], 401);
+            return Response::json(['message' => 'Unauthorized.'], 401);
         }
 
         $record = Record::find($session->get('meta')?->get('_id'));
         if (! $record) {
-            return \Response::json(['message' => 'User not found.'], 404);
+            return Response::json(['message' => 'User not found.'], 404);
         }
 
         $resource = new RecordResource($record);
@@ -126,7 +126,7 @@ class AuthController extends Controller
 
         $session = $request->auth;
         if (! $session || ! $session->get('meta')?->get('_id')) {
-            return \Response::json(['message' => 'Unauthorized.'], 401);
+            return Response::json(['message' => 'Unauthorized.'], 401);
         }
 
         $token = $request->bearerToken();
@@ -137,7 +137,7 @@ class AuthController extends Controller
             ->where('token_hash', $hashedToken)
             ->delete();
 
-        return \Response::json(['message' => 'Logged out.']);
+        return Response::json(['message' => 'Logged out.']);
     }
 
     public function logoutAll(Request $request, Collection $collection)
@@ -148,13 +148,13 @@ class AuthController extends Controller
 
         $session = $request->auth;
         if (! $session || ! $session->get('meta')?->get('_id')) {
-            return \Response::json(['message' => 'Unauthorized.'], 401);
+            return Response::json(['message' => 'Unauthorized.'], 401);
         }
 
         AuthSession::where('record_id', $session->get('meta')->get('_id'))
             ->where('collection_id', $collection->id)
             ->delete();
 
-        return \Response::json(['message' => 'Logged out from all sessions.']);
+        return Response::json(['message' => 'Logged out from all sessions.']);
     }
 }
