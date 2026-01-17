@@ -9,6 +9,5 @@ IMPROVEMENT:
 - upgrade livewire 4 to use island feature
 - make all min n max options accept int|float|string|null
 - ignore all collection validation if _deleted exists
-- add change password api endpoint
 - add realtime database feature
 - add js n dart sdk

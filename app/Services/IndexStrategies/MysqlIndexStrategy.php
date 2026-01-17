@@ -21,7 +21,7 @@ class MysqlIndexStrategy implements IndexStrategy
 
             if (! $exists) {
                 $alterParts[] = "ADD COLUMN `{$vCol}` VARCHAR(50) 
-                    GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(data, '$.\"{$name}\"'))) STORED";
+                    GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(data, '$.\"{$name}\"'))) " . (config('larabase.sql_generated_column_strategy') === 'STORED' ? 'STORED' : 'VIRTUAL');
             }
         }
 

@@ -1,7 +1,20 @@
 <?php
 
 return [
-    // Used in realtion picker to automatically get fields for the display, used the first one found in the list
+
+    /**
+     * SQL generated column strategy, can be STORED or VIRTUAL
+     * Virtual will recalculate every read on database
+     * STORED will recalculate once every write on database
+     * use STORED when you need read performance
+     * use VIRTUAL when you need write performance
+     * see https://gemini.google.com/share/3438ef7444c8
+     */
+    'sql_generated_column_strategy' => 'VIRTUAL',
+
+    /**
+     * Used in realtion picker to automatically get fields for the display, used the first one found in the list
+     */
     'relation_display_fields' => [
         'name',
         'title',
@@ -13,6 +26,9 @@ return [
         'firstName',
     ],
 
+    /**
+     * Used in collection configuration to display the available mime types
+     */
     'available_mime_types' => [
         ['id' => 'application/pdf', 'name' => 'application/pdf', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/337/337946.png'],
         ['id' => 'application/json', 'name' => 'application/json', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/136/136525.png'],
@@ -36,6 +52,9 @@ return [
         ['id' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'name' => '.xlsx', 'avatar' => 'https://cdn-icons-png.flaticon.com/512/888/888850.png'],
     ],
 
+    /**
+     * Used in collection configuration to quickly set mime types for a field
+     */
     'mime_types_presets' => [
         'image' => [
             'image/gif',
@@ -64,6 +83,10 @@ return [
         ],
     ],
 
+    /**
+     * Used in collection configuration to configure the tinymce editor
+     * see tinymce documentation for more options
+     */
     'tinymce_config' => [
         'plugins' => 'autoresize lists link image table code quickbars',
         'min_height' => 250,

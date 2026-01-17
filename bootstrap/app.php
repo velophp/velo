@@ -52,4 +52,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 401);
             }
         });
+    })
+    ->booting(function () {
+        $strat = strtoupper(config('larabase.sql_generated_column_strategy'));
+        if (!in_array($strat, ['STORED', 'VIRTUAL'])) {
+            throw new \Exception('Invalid SQL generated column strategy: '.$strat);
+        }
     })->create();

@@ -12,7 +12,7 @@ use Illuminate\Support\Collection;
 
 class BaseCollectionHandler implements CollectionTypeHandler
 {
-    public function beforeSave(Record $record): void
+    public function beforeSave(Record &$record): void
     {
         $fields = $record->collection->fields->keyBy('name');
         $data = $record->data;
@@ -117,7 +117,7 @@ class BaseCollectionHandler implements CollectionTypeHandler
         return $indexData;
     }
 
-    public function beforeDelete(Record $record): void
+    public function beforeDelete(Record &$record): void
     {
         $collection = $record->collection;
         $data = $record->data;

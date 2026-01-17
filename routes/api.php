@@ -10,10 +10,11 @@ use Illuminate\Support\Facades\Route;
  */
 Route::prefix('collections/{collection:name}')->group(function () {
     Route::prefix('/auth')->middleware(['throttle:60,1'])->name('auth.')->group(function () {
-        Route::post('/with-password', [AuthController::class, 'authenticateWithPassword'])->name('with-password');
+        Route::post('/authenticate-with-password', [AuthController::class, 'authenticateWithPassword'])->name('authenticate-with-password');
         Route::get('/me', [AuthController::class, 'me'])->name('me');
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         Route::post('/logout-all', [AuthController::class, 'logoutAll'])->name('logout-all');
+        Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('reset-password');
     });
 
     Route::prefix('/records')->name('records.')->group(function () {

@@ -51,13 +51,6 @@ class Record extends Model
                 $record->data->put('id', Str::random($length));
             }
 
-            app(\App\Collections\Handlers\BaseCollectionHandler::class)->beforeSave($record);
-
-            $handler = CollectionTypeHandlerResolver::resolve($record->collection->type);
-            if ($handler) {
-                $handler->beforeSave($record);
-            }
-
             // Prevent data loss on update
             if ($record->exists) {
                 $originalData = $record->getOriginal('data');
@@ -73,17 +66,19 @@ class Record extends Model
                 }
             }
 
-            // Clean unwanted keys - use current data state (after handler modifications)
-            // Convert to array to avoid AsCollection cast issues
-            $currentData = $record->data->only($fieldNames)->toArray();
-            $record->setRawAttributes(array_merge($record->getAttributes(), ['data' => $currentData]), true);
-
             // Validate structure
             $dataKeys = $record->data->keys()->sort()->values()->toArray();
             $missingFields = array_diff($fieldNames, $dataKeys);
 
             foreach ($missingFields as $field) {
                 $record->data->put($field, self::defaultValueFor($fields[$field]->type));
+            }
+
+            app(\App\Collections\Handlers\BaseCollectionHandler::class)->beforeSave($record);
+
+            $handler = CollectionTypeHandlerResolver::resolve($record->collection->type);
+            if ($handler) {
+                $handler->beforeSave($record);
             }
 
             $dataKeys = $record->data->keys()->sort()->values()->toArray();

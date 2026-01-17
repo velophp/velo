@@ -366,12 +366,6 @@ class CollectionPage extends Component
 
         $this->form = $data;
         foreach ($this->fields as $field) {
-            if ($field->name == 'password' && $this->collection->type === CollectionType::Auth) {
-                $this->form['password'] = Str::repeat('*', 12);
-
-                continue;
-            }
-
             if ($field->type === FieldType::File) {
                 $this->files[$field->name] = [];
 
@@ -1215,7 +1209,7 @@ class CollectionPage extends Component
     public function indexToggleField($field)
     {
         if ($this->fields->firstWhere('name', $field)?->type === FieldType::Relation) {
-            return $this->showToast('Indexing relationships is not supported yet.', timeout: 4500);
+            return $this->showToast('Relation fields are indexed automatically.', timeout: 4500);
         }
 
         if (! \in_array($field, $this->fieldsToBeIndexed)) {

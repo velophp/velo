@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthCollectionHandler implements CollectionTypeHandler
 {
-    public function beforeSave(Record $record): void
+    public function beforeSave(Record &$record): void
     {
         $data = $record->data;
 
@@ -20,5 +20,5 @@ class AuthCollectionHandler implements CollectionTypeHandler
         $record->data = $data;
     }
 
-    public function beforeDelete(Record $record): void {}
+    public function beforeDelete(Record &$record): void {}
 }

@@ -793,6 +793,16 @@
                 </div>
             </div>
 
+            <div class="bg-info/10 border border-info/20 rounded-lg p-4">
+                <div class="flex gap-2">
+                    <x-icon name="o-information-circle" class="w-5 h-5 text-info shrink-0" />
+                    <div class="text-sm">
+                        <p class="font-semibold text-info mb-1">Missing Fields?</p>
+                        <p class="opacity-80">Save the collection first. All the fields will be available once it is saved.</p>
+                    </div>
+                </div>
+            </div>
+
             <div class="my-4"></div>
 
             <x-tags label="Selected Fields"  wire:model="fieldsToBeIndexed" disabled />

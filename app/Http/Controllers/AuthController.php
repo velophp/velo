@@ -9,6 +9,9 @@ use App\Models\Collection;
 use App\Models\Record;
 use App\Services\RecordQuery;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Response;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -100,7 +103,7 @@ class AuthController extends Controller
     public function me(Request $request, Collection $collection)
     {
         if ($collection->type !== CollectionType::Auth) {
-            throw new RouteNotFoundException('Collection is not auth enabled.');
+            return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
         $session = $request->auth;
@@ -121,7 +124,7 @@ class AuthController extends Controller
     public function logout(Request $request, Collection $collection)
     {
         if ($collection->type !== CollectionType::Auth) {
-            throw new RouteNotFoundException('Collection is not auth enabled.');
+            return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
         $session = $request->auth;
@@ -143,7 +146,7 @@ class AuthController extends Controller
     public function logoutAll(Request $request, Collection $collection)
     {
         if ($collection->type !== CollectionType::Auth) {
-            throw new RouteNotFoundException('Collection is not auth enabled.');
+            return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
         $session = $request->auth;
@@ -156,5 +159,43 @@ class AuthController extends Controller
             ->delete();
 
         return Response::json(['message' => 'Logged out from all sessions.']);
+    }
+
+    public function resetPassword(Request $request, Collection $collection)
+    {
+        if ($collection->type !== CollectionType::Auth) {
+            return Response::json(['message' => 'Collection is not auth enabled.'], 400);
+        }
+
+        $session = $request->auth;
+        if (! $session || ! $session->get('meta')?->get('_id')) {
+            return Response::json(['message' => 'Unauthorized.'], 401);
+        }
+
+        $request->validate([
+            'password' => 'required|string',
+            'new_password' => ['required', 'string', Password::min(8)],
+            'invalidate_sessions' => 'boolean',
+        ]);
+
+        $record = Record::find($session->get('meta')->get('_id'));
+        if (! $record) {
+            return Response::json(['message' => 'User not found.'], 404);
+        }
+
+        if (!Hash::check($request->input('password'), $record->data->get('password'))) {
+            return Response::json(['message' => 'Invalid current password.'], 400);
+        }
+
+        $record->data->put('password', Hash::make($request->input('new_password')));
+        $record->save();
+
+        if ($request->input('invalidate_sessions')) {
+            AuthSession::where('record_id', $session->get('meta')->get('_id'))
+                ->where('collection_id', $collection->id)
+                ->delete();
+        }
+
+        return Response::json(['message' => 'Password has been reset.']);
     }
 }
