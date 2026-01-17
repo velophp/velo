@@ -12,7 +12,7 @@ class AuthMiddleware
     /**
      * Inject user record for authentication.
      *
-     * @param \Closure(Request): (Response) $next
+     * @param  \Closure(Request): (Response)  $next
      */
     public function handle(Request $request, \Closure $next): Response
     {
@@ -21,7 +21,7 @@ class AuthMiddleware
 
         $session = AuthSession::where('token_hash', $hash)->where('expires_at', '>', now())->first();
 
-        if (!$token || !$session) {
+        if (! $token || ! $session) {
             $request->attributes->set('auth', collect([
                 'id' => null,
                 'name' => null,
@@ -38,7 +38,7 @@ class AuthMiddleware
 
         $record = Record::find($session->record_id);
 
-        if (!$record) {
+        if (! $record) {
             $session->delete();
             $request->attributes->set('auth', collect([
                 'id' => null,

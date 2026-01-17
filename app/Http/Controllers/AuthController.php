@@ -17,15 +17,15 @@ class AuthController extends Controller
 {
     public function authenticateWithPassword(Request $request, Collection $collection)
     {
-        if (CollectionType::Auth !== $collection->type) {
+        if ($collection->type !== CollectionType::Auth) {
             throw new RouteNotFoundException('Collection is not auth enabled.');
         }
 
-        if (!isset($collection->options['auth_methods']['standard'])) {
+        if (! isset($collection->options['auth_methods']['standard'])) {
             throw new RouteNotFoundException('Collection is not setup for standard auth method.');
         }
 
-        if (!$collection->options['auth_methods']['standard']['enabled']) {
+        if (! $collection->options['auth_methods']['standard']['enabled']) {
             throw new RouteNotFoundException('Collection is not auth enabled.');
         }
 
@@ -48,17 +48,17 @@ class AuthController extends Controller
         $filterString = RecordQuery::buildFilterString($conditions, 'OR');
         $record = $collection->records()->filterFromString($filterString)->first();
 
-        if (!$record) {
+        if (! $record) {
             throw ValidationException::withMessages(['identifier' => 'Invalid credentials.']);
         }
 
-        if (!\Hash::check($request->input('password'), $record->data->get('password'))) {
+        if (! \Hash::check($request->input('password'), $record->data->get('password'))) {
             throw ValidationException::withMessages(['identifier' => 'Invalid credentials.']);
         }
 
         // Apply authenticate API rule
         $authenticateRule = $collection->api_rules['authenticate'] ?? '';
-        if ('' !== $authenticateRule) {
+        if ($authenticateRule !== '') {
             $context = [
                 'sys_request' => \App\Helper::toObject([
                     'auth' => null, // Not authenticated yet
@@ -73,7 +73,7 @@ class AuthController extends Controller
                 ->forExpression($authenticateRule)
                 ->withContext($context);
 
-            if (!$rule->evaluate()) {
+            if (! $rule->evaluate()) {
                 throw ValidationException::withMessages(['identifier' => 'Authentication failed due to collection rules.']);
             }
         }
@@ -99,17 +99,17 @@ class AuthController extends Controller
 
     public function me(Request $request, Collection $collection)
     {
-        if (CollectionType::Auth !== $collection->type) {
+        if ($collection->type !== CollectionType::Auth) {
             throw new RouteNotFoundException('Collection is not auth enabled.');
         }
 
         $session = $request->auth;
-        if (!$session || !$session->get('meta')?->get('_id')) {
+        if (! $session || ! $session->get('meta')?->get('_id')) {
             return \Response::json(['message' => 'Unauthorized.'], 401);
         }
 
         $record = Record::find($session->get('meta')?->get('_id'));
-        if (!$record) {
+        if (! $record) {
             return \Response::json(['message' => 'User not found.'], 404);
         }
 
@@ -120,12 +120,12 @@ class AuthController extends Controller
 
     public function logout(Request $request, Collection $collection)
     {
-        if (CollectionType::Auth !== $collection->type) {
+        if ($collection->type !== CollectionType::Auth) {
             throw new RouteNotFoundException('Collection is not auth enabled.');
         }
 
         $session = $request->auth;
-        if (!$session || !$session->get('meta')?->get('_id')) {
+        if (! $session || ! $session->get('meta')?->get('_id')) {
             return \Response::json(['message' => 'Unauthorized.'], 401);
         }
 
@@ -142,12 +142,12 @@ class AuthController extends Controller
 
     public function logoutAll(Request $request, Collection $collection)
     {
-        if (CollectionType::Auth !== $collection->type) {
+        if ($collection->type !== CollectionType::Auth) {
             throw new RouteNotFoundException('Collection is not auth enabled.');
         }
 
         $session = $request->auth;
-        if (!$session || !$session->get('meta')?->get('_id')) {
+        if (! $session || ! $session->get('meta')?->get('_id')) {
             return \Response::json(['message' => 'Unauthorized.'], 401);
         }
 

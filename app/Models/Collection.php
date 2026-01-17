@@ -115,11 +115,11 @@ class Collection extends Model
     protected static function booted()
     {
         static::saving(function (Collection $collection) {
-            if (null == $collection->api_rules && CollectionType::Base === $collection->type) {
+            if ($collection->api_rules == null && $collection->type === CollectionType::Base) {
                 $collection->api_rules = static::getDefaultApiRules();
             }
 
-            if (null == $collection->api_rules && CollectionType::Auth === $collection->type) {
+            if ($collection->api_rules == null && $collection->type === CollectionType::Auth) {
                 $collection->api_rules = [
                     'authenticate' => '',
                     'manage' => 'SUPERUSER_ONLY',
@@ -131,7 +131,7 @@ class Collection extends Model
                 ];
             }
 
-            if (null == $collection->options) {
+            if ($collection->options == null) {
                 $collection->options = static::getDefaultAuthOptions();
             }
         });

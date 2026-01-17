@@ -5,7 +5,6 @@ namespace App\Models;
 use App\Collections\Handlers\CollectionTypeHandlerResolver;
 use App\Enums\FieldType;
 use App\Exceptions\InvalidRecordException;
-use DB;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -97,11 +96,11 @@ class Record extends Model
 
         static::deleting(function (Record $record) {
             try {
-                DB::beginTransaction();
+                \DB::beginTransaction();
                 app(\App\Collections\Handlers\BaseCollectionHandler::class)->beforeDelete($record);
-                DB::commit();
+                \DB::commit();
             } catch (\Exception $e) {
-                DB::rollBack();
+                \DB::rollBack();
                 throw $e;
             }
         });

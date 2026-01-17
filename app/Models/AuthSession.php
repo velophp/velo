@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Str;
 
 class AuthSession extends Model
 {
@@ -11,7 +10,7 @@ class AuthSession extends Model
 
     public static function generateToken()
     {
-        $plainToken = Str::random(64);
+        $plainToken = \Str::random(64);
         $hashed = hash('sha256', $plainToken);
 
         return [$plainToken, $hashed];

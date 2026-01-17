@@ -12,7 +12,7 @@ class EvaluateRuleExpression
     protected $context = [];
 
     public function __construct(
-        protected ExpressionLanguage $expressionLanguage
+        protected ExpressionLanguage $expressionLanguage,
     ) {}
 
     public function forExpression(string $expression)
@@ -102,7 +102,7 @@ class EvaluateRuleExpression
 
     /**
      * Returns the evaluated result of an expression
-     * If the expression is '' an empty string the evaluating result will always be true
+     * If the expression is '' an empty string the evaluating result will always be true.
      *
      * @throws InvalidRuleException
      */

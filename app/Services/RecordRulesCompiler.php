@@ -17,7 +17,6 @@ use App\Rules\AllowedEmailDomains;
 use App\Rules\BlockedEmailDomains;
 use App\Rules\RecordExists;
 use Illuminate\Validation\Rule;
-use LogicException;
 
 class RecordRulesCompiler
 {
@@ -72,11 +71,11 @@ class RecordRulesCompiler
     protected function assertReady(): void
     {
         if (! isset($this->collection)) {
-            throw new LogicException('Collection not set');
+            throw new \LogicException('Collection not set');
         }
 
         if (! isset($this->indexStrategy)) {
-            throw new LogicException('Index strategy not set');
+            throw new \LogicException('Index strategy not set');
         }
     }
 

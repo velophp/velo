@@ -54,7 +54,7 @@ class AuthApiTest extends TestCase
         CollectionField::create(['collection_id' => $this->collection->id, 'name' => 'verified', 'type' => FieldType::Bool, 'options' => []]);
     }
 
-    public function testCanAuthenticateWithPassword()
+    public function test_can_authenticate_with_password()
     {
         Record::create([
             'collection_id' => $this->collection->id,
@@ -74,7 +74,7 @@ class AuthApiTest extends TestCase
             ->assertJsonStructure(['message', 'data']);
     }
 
-    public function testCanGetMe()
+    public function test_can_get_me()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
@@ -101,7 +101,7 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('data.email', 'test@example.com');
     }
 
-    public function testCanLogout()
+    public function test_can_logout()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
@@ -128,7 +128,7 @@ class AuthApiTest extends TestCase
         $this->assertDatabaseMissing('auth_sessions', ['token_hash' => $hashed]);
     }
 
-    public function testCanLogoutAll()
+    public function test_can_logout_all()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
@@ -164,7 +164,7 @@ class AuthApiTest extends TestCase
         $this->assertDatabaseMissing('auth_sessions', ['record_id' => $record->id]);
     }
 
-    public function testAuthenticateRuleVerifiedOnly()
+    public function test_authenticate_rule_verified_only()
     {
         // Set authenticate rule to verified = true
         $this->collection->update([

@@ -2,8 +2,6 @@
 
 namespace App\Rules;
 
-use Closure;
-use Exception;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 use Symfony\Component\ExpressionLanguage\SyntaxError;
@@ -25,7 +23,7 @@ class RuleExpression implements ValidationRule
      *
      * @param  \Closure(string, ?string=): \Illuminate\Translation\PotentiallyTranslatedString  $fail
      */
-    public function validate(string $attribute, mixed $value, Closure $fail): void
+    public function validate(string $attribute, mixed $value, \Closure $fail): void
     {
         try {
             if (! \is_string($value)) {
@@ -73,7 +71,7 @@ class RuleExpression implements ValidationRule
         } catch (SyntaxError $e) {
             $msg = str_replace(['sys_', '=='], ['@', '='], $e->getMessage());
             $fail($msg);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $fail('Something went wrong when parsing rule. Try again later.');
         }
     }

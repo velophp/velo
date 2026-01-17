@@ -7,7 +7,6 @@ use App\Services\EvaluateRuleExpression;
 use App\Services\IndexStrategies\MysqlIndexStrategy;
 use App\Services\RecordRulesCompiler;
 use Illuminate\Foundation\Http\FormRequest;
-use Str;
 
 class RecordRequest extends FormRequest
 {
@@ -87,7 +86,7 @@ class RecordRequest extends FormRequest
 
         foreach ($rules as $ruleName => $rule) {
             if (str_ends_with($ruleName, '.*')) {
-                $index = Str::between($ruleName, 'fields.', '.options');
+                $index = \Str::between($ruleName, 'fields.', '.options');
                 $attributes[$ruleName] = "value on [{$index}]";
 
                 continue;
@@ -95,7 +94,7 @@ class RecordRequest extends FormRequest
 
             $newName = explode('.', $ruleName);
             $newName = end($newName);
-            $attributes[$ruleName] = Str::lower(Str::headline($newName));
+            $attributes[$ruleName] = \Str::lower(\Str::headline($newName));
         }
 
         return $attributes;

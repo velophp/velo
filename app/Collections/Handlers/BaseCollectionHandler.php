@@ -7,7 +7,7 @@ use App\Exceptions\InvalidRecordException;
 use App\Models\CollectionField;
 use App\Models\Record;
 use App\Models\RecordIndex;
-use DB;
+
 use Illuminate\Support\Collection;
 
 class BaseCollectionHandler implements CollectionTypeHandler
@@ -54,7 +54,7 @@ class BaseCollectionHandler implements CollectionTypeHandler
 
     private function syncIndexes(Record $record): void
     {
-        DB::beginTransaction();
+        \DB::beginTransaction();
 
         $relationFields = $record->collection->fields()->where('type', FieldType::Relation)->get();
         $data = $record->data;
@@ -68,7 +68,6 @@ class BaseCollectionHandler implements CollectionTypeHandler
         $indexToInsert = [];
 
         foreach ($relationFields as $field) {
-
             $value = $data->get($field->name);
 
             if ($value === null || $value === '') {
@@ -94,7 +93,7 @@ class BaseCollectionHandler implements CollectionTypeHandler
 
         RecordIndex::insert($indexToInsert);
 
-        DB::commit();
+        \DB::commit();
     }
 
     private function makeRecordIndexData(Record $record, CollectionField $field, mixed $value): array
@@ -147,9 +146,7 @@ class BaseCollectionHandler implements CollectionTypeHandler
 
             // If cascadeDelete is false, throw an exception
             if (! $field->options?->cascadeDelete) {
-                throw new InvalidRecordException(
-                    "Cannot delete record: it is referenced by {$indexes->count()} record(s) in field '{$field->name}' of collection '{$field->collection->name}'."
-                );
+                throw new InvalidRecordException("Cannot delete record: it is referenced by {$indexes->count()} record(s) in field '{$field->name}' of collection '{$field->collection->name}'.");
             }
 
             // cascadeDelete is true - delete referencing records

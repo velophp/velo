@@ -83,7 +83,7 @@ class RecordApiTest extends TestCase
         // Handlers usually handle fields.
     }
 
-    public function testCanListPosts()
+    public function test_can_list_posts()
     {
         Record::create([
             'collection_id' => $this->collection->id,
@@ -96,7 +96,7 @@ class RecordApiTest extends TestCase
             ->assertJsonCount(1, 'data');
     }
 
-    public function testCanCreatePost()
+    public function test_can_create_post()
     {
         $response = $this->postJson('/api/collections/posts/records', [
             'title' => 'New Post',
@@ -110,7 +110,7 @@ class RecordApiTest extends TestCase
         ]);
     }
 
-    public function testCanViewPost()
+    public function test_can_view_post()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
@@ -123,7 +123,7 @@ class RecordApiTest extends TestCase
             ->assertJsonPath('data.title', 'Post 1');
     }
 
-    public function testCannotUpdatePostIfNotOwner()
+    public function test_cannot_update_post_if_not_owner()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
@@ -138,7 +138,7 @@ class RecordApiTest extends TestCase
         $response->assertStatus(403);
     }
 
-    public function testCannotDeletePostIfNotOwner()
+    public function test_cannot_delete_post_if_not_owner()
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,

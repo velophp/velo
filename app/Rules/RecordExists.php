@@ -4,8 +4,6 @@ namespace App\Rules;
 
 use App\Helper;
 use App\Models\Collection;
-use Closure;
-use DB;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 class RecordExists implements ValidationRule
@@ -30,7 +28,7 @@ class RecordExists implements ValidationRule
      *
      * @param  \Closure(string, ?string=): \Illuminate\Translation\PotentiallyTranslatedString  $fail
      */
-    public function validate(string $attribute, mixed $value, Closure $fail): void
+    public function validate(string $attribute, mixed $value, \Closure $fail): void
     {
         if (! $this->collection) {
             $fail("The {$attribute} collection does not exist.");
@@ -57,13 +55,13 @@ class RecordExists implements ValidationRule
             // Use the fast indexed query
             $virtualCol = Helper::generateVirtualColumnName($this->collection, 'id');
 
-            return DB::table('records')
+            return \DB::table('records')
                 ->where('collection_id', $this->collection->id)
                 ->where($virtualCol, $recordId)
                 ->exists();
         } else {
             // Use the slower JSON query
-            return DB::table('records')
+            return \DB::table('records')
                 ->where('collection_id', $this->collection->id)
                 ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(data, '$.id')) = ?", [$recordId])
                 ->exists();

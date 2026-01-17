@@ -17,11 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(append: [
-            \App\Http\Middleware\AuthMiddleware::class,
+            App\Http\Middleware\AuthMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-
         $exceptions->shouldRenderJsonWhen(function (Request $request, Throwable $e) {
             if ($request->is('api/*')) {
                 return true;
@@ -53,5 +52,4 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 401);
             }
         });
-
     })->create();

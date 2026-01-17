@@ -12,7 +12,7 @@ class Spotlight
 {
     public function search(Request $request)
     {
-        if (!auth()->user()) {
+        if (! auth()->user()) {
             return [];
         }
 

@@ -1,5 +1,5 @@
 {
-    "preset": "symfony",
+    "preset": "laravel",
     "array_indentation": true,
     "new_with_parentheses": {
         "anonymous_class": true,

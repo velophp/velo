@@ -4,12 +4,11 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RecordController;
 use Illuminate\Support\Facades\Route;
 
-/**
+/*
  * API Routes
  * !IMPORTANT: Request MUST send Accept headers of application/json when using laravel validation else laravel will throw a web 404 response.
  */
 Route::prefix('collections/{collection:name}')->group(function () {
-
     Route::prefix('/auth')->middleware(['throttle:60,1'])->name('auth.')->group(function () {
         Route::post('/with-password', [AuthController::class, 'authenticateWithPassword'])->name('with-password');
         Route::get('/me', [AuthController::class, 'me'])->name('me');
@@ -24,5 +23,4 @@ Route::prefix('collections/{collection:name}')->group(function () {
         Route::put('/{recordId}', [RecordController::class, 'update'])->name('update');
         Route::delete('/{recordId}', [RecordController::class, 'delete'])->name('delete');
     });
-
 });
