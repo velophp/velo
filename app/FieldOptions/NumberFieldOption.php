@@ -7,8 +7,8 @@ use App\Contracts\CollectionFieldOption;
 class NumberFieldOption implements CollectionFieldOption
 {
     public function __construct(
-        public ?float $min = null,
-        public ?float $max = null,
+        public string|int|float|null $min = null,
+        public string|int|float|null $max = null,
         public bool $allowDecimals = false,
     ) {}
 

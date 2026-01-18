@@ -7,8 +7,8 @@ use App\Contracts\CollectionFieldOption;
 class TextFieldOption implements CollectionFieldOption
 {
     public function __construct(
-        public ?int $minLength = null,
-        public ?int $maxLength = null,
+        public string|int|float|null $minLength = null,
+        public string|int|float|null $maxLength = null,
         public ?string $pattern = null,
         public ?string $autoGeneratePattern = null,
     ) {}

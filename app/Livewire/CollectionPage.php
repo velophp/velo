@@ -894,6 +894,10 @@ class CollectionPage extends Component
 
         // Stitch all rules together
         foreach ($incomingFields as $index => $field) {
+            if (isset($field['_deleted'])) {
+                continue;
+            }
+
             $rules["collectionForm.fields.{$index}.name"] = ['required', 'regex:/^[a-zA-Z0-9_]+$/', \Illuminate\Validation\Rule::unique('collection_fields', 'name')->where('collection_id', $this->collection->id)->ignore($field['id'], 'collection_fields.id')];
             $messages["collectionForm.fields.{$index}.name.regex"] = 'Field name can only contain letters, numbers, and underscores.';
             $messages["collectionForm.fields.{$index}.name.unique"] = 'Field with the same name already exists.';
