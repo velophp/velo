@@ -39,14 +39,14 @@ class AuthApiTest extends TestCase
                 'update' => '@request.auth.id = id',
                 'delete' => '@request.auth.id = id',
             ],
-            'options' => [
+            'options' => array_merge(Collection::getDefaultAuthOptions(), [
                 'auth_methods' => [
                     'standard' => [
                         'enabled' => true,
                         'fields' => ['email'],
                     ],
                 ],
-            ],
+            ]),
         ]);
 
         // Add fields
@@ -279,5 +279,78 @@ class AuthApiTest extends TestCase
 
         $reset->refresh();
         $this->assertNotNull($reset->used_at);
+    }
+    public function test_sends_login_alert_email()
+    {
+        $this->collection->update([
+            'options' => array_merge($this->collection->options, [
+                'mail_templates' => array_merge($this->collection->options['mail_templates'] ?? [], [
+                   'login_alert' => [
+                       'subject' => 'Login Alert',
+                       'body' => 'Login from {{ip_address}}',
+                   ],
+                ]),
+            ]),
+        ]);
+
+        $record = Record::create([
+            'collection_id' => $this->collection->id,
+            'data' => [
+                'email' => 'test@example.com',
+                'password' => 'password123',
+                'verified' => true,
+            ],
+        ]);
+
+        \Mail::fake();
+
+        // First login (New IP)
+        $response = $this->postJson('/api/collections/users/auth/authenticate-with-password', [
+            'identifier' => 'test@example.com',
+            'password' => 'password123',
+            'device_name' => 'Device 1',
+        ]);
+
+        $response->assertStatus(200);
+
+        \Mail::assertQueued(\App\Mail\LoginAlert::class, function ($mail) use ($record) {
+             return $mail->hasTo('test@example.com') &&
+                    $mail->record->id === $record->id;
+        });
+
+        // Second login (Same IP) - Should NOT send email
+        \Mail::fake(); // Reset fake
+
+        $response = $this->postJson('/api/collections/users/auth/authenticate-with-password', [
+            'identifier' => 'test@example.com',
+            'password' => 'password123',
+            'device_name' => 'Device 1',
+        ]);
+
+        $response->assertStatus(200);
+
+        \Mail::assertNothingQueued();
+
+        // Third login (Different IP) - Should send email
+        \Mail::fake();
+
+        $this->serverVariables = ['REMOTE_ADDR' => '1.2.3.4'];
+        
+        // Note: In tests, changing IP directly might be tricky depending on how the request is constructed.
+        // We can pass server vars to postJson usually or simulate it.
+        // But base TestCase postJson wrapper might not support it directly without `withServerVariables` or similar.
+        // Let's rely on standard `call` underlying mechanism if possible, or just mock `request->ip()`.
+        // Simplest way in standard Laravel test is using `server` parameter in parameters or `withServerVariables`.
+        // Let's try passing it in server array.
+        
+        $response = $this->call('POST', '/api/collections/users/auth/authenticate-with-password', [
+            'identifier' => 'test@example.com',
+            'password' => 'password123',
+            'device_name' => 'Device 2',
+        ], [], [], ['REMOTE_ADDR' => '10.0.0.2']);
+
+        $response->assertStatus(200);
+
+        \Mail::assertQueued(\App\Mail\LoginAlert::class);
     }
 }

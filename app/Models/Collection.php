@@ -92,7 +92,21 @@ class Collection extends Model
                 ],
                 'confirm_email_change' => ['subject' => '', 'body' => ''],
                 'otp_email' => ['subject' => '', 'body' => ''],
-                'login_alert' => ['subject' => '', 'body' => ''],
+                'login_alert' => [
+                    'subject' => 'Login Alert',
+                    'body' => '
+<p>Hello,</p>
+<p>We noticed a new login to your account.</p>
+<p>
+    <b>Device:</b> {{device_name}}<br>
+    <b>IP Address:</b> {{ip_address}}<br>
+    <b>Time:</b> {{date}}
+</p>
+<p>If this was you, you can ignore this email.</p>
+<p>If you do not recognize this activity, please change your password immediately.</p>
+<p>Regards,<br>{{app_name}}</p>
+                    ',
+                ],
             ],
             'other' => [
                 'tokens_options' => [

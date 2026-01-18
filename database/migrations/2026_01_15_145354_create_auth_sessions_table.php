@@ -24,7 +24,7 @@ return new class extends Migration
             $table->timestamp('last_used_at')->nullable();
 
             $table->string('device_name')->nullable();
-            $table->string('ip_address')->nullable();
+            $table->string('ip_address')->nullable()->index();
 
             $table->timestamps();
 

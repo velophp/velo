@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\CollectionType;
 use App\Http\Resources\RecordResource;
+use App\Mail\LoginAlert;
 use App\Mail\PasswordReset;
 use App\Models\AuthPasswordReset;
 use App\Models\AuthSession;
@@ -85,6 +86,11 @@ class AuthController extends Controller
 
         [$token, $hashed] = AuthSession::generateToken();
 
+        $isNewIp = ! AuthSession::where('record_id', $record->id)
+            ->where('collection_id', $collection->id)
+            ->where('ip_address', $request->ip())
+            ->exists();
+
         AuthSession::create([
             'project_id' => $collection->project_id,
             'collection_id' => $collection->id,
@@ -95,6 +101,18 @@ class AuthController extends Controller
             'device_name' => $request->input('device_name'),
             'ip_address' => $request->ip(),
         ]);
+
+        if ($isNewIp && isset($collection->options['mail_templates']['login_alert']['body']) && ! empty($collection->options['mail_templates']['login_alert']['body'])) {
+            $email = $record->data->get('email');
+            if ($email) {
+                Mail::to($email)->queue(new LoginAlert(
+                    $collection,
+                    $record,
+                    $request->input('device_name'),
+                    $request->ip()
+                ));
+            }
+        }
 
         return Response::json([
             'message' => 'Authenticated.',
