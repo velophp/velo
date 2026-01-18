@@ -44,6 +44,12 @@ class Spotlight
                 'icon' => Blade::render("<x-icon name='o-archive-box' />"),
             ],
             [
+                'name' => 'otps',
+                'description' => 'System Collection',
+                'link' => route('system.otps'),
+                'icon' => Blade::render("<x-icon name='o-archive-box' />"),
+            ],
+            [
                 'name' => 'Logs',
                 'description' => 'System Page',
                 'link' => url(route('system.logs')),

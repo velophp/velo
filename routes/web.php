@@ -23,6 +23,7 @@ Route::prefix('_')->group(function () {
 
         Volt::route('system/superusers', 'manage-superusers')->name('system.superusers');
         Volt::route('system/sessions', 'manage-auth-sessions')->name('system.sessions');
+        Volt::route('system/otps', 'manage-otps')->name('system.otps');
         Volt::route('system/password-resets', 'manage-password-resets')->name('system.password.resets');
         Route::redirect('system/logs', '/_/pulse')->name('system.logs');
 

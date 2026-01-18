@@ -6,6 +6,7 @@ use App\Enums\CollectionType;
 use App\Http\Resources\RecordResource;
 use App\Mail\LoginAlert;
 use App\Mail\PasswordReset;
+use App\Models\AuthOtp;
 use App\Models\AuthPasswordReset;
 use App\Models\AuthSession;
 use App\Models\Collection;
@@ -27,11 +28,11 @@ class AuthController extends Controller
             return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
-        if (! isset($collection->options['auth_methods']['standard'])) {
+        if (!isset($collection->options['auth_methods']['standard'])) {
             return Response::json(['message' => 'Collection is not setup for standard auth method.'], 400);
         }
 
-        if (! $collection->options['auth_methods']['standard']['enabled']) {
+        if (!$collection->options['auth_methods']['standard']['enabled']) {
             return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
@@ -43,22 +44,22 @@ class AuthController extends Controller
         ]);
 
         $validFields = $collection->fields()->pluck('name')->toArray();
-        $identifiers = array_filter($identifiers, fn ($field) => in_array($field, $validFields));
+        $identifiers = array_filter($identifiers, fn($field) => in_array($field, $validFields));
 
         if (empty($identifiers)) {
             return Response::json(['message' => 'Collection is not setup for standard auth method.'], 400);
         }
 
         $identifierValue = $request->input('identifier');
-        $conditions = array_map(fn ($field) => ['field' => $field, 'value' => $identifierValue], $identifiers);
+        $conditions = array_map(fn($field) => ['field' => $field, 'value' => $identifierValue], $identifiers);
         $filterString = RecordQuery::buildFilterString($conditions, 'OR');
         $record = $collection->records()->filterFromString($filterString)->first();
 
-        if (! $record) {
+        if (!$record) {
             throw ValidationException::withMessages(['identifier' => 'Invalid credentials.']);
         }
 
-        if (! \Hash::check($request->input('password'), $record->data->get('password'))) {
+        if (!\Hash::check($request->input('password'), $record->data->get('password'))) {
             throw ValidationException::withMessages(['identifier' => 'Invalid credentials.']);
         }
 
@@ -79,14 +80,14 @@ class AuthController extends Controller
                 ->forExpression($authenticateRule)
                 ->withContext($context);
 
-            if (! $rule->evaluate()) {
+            if (!$rule->evaluate()) {
                 throw ValidationException::withMessages(['identifier' => 'Authentication failed due to collection rules.']);
             }
         }
 
         [$token, $hashed] = AuthSession::generateToken();
 
-        $isNewIp = ! AuthSession::where('record_id', $record->id)
+        $isNewIp = !AuthSession::where('record_id', $record->id)
             ->where('collection_id', $collection->id)
             ->where('ip_address', $request->ip())
             ->exists();
@@ -103,7 +104,7 @@ class AuthController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        if ($isNewIp && isset($collection->options['mail_templates']['login_alert']['body']) && ! empty($collection->options['mail_templates']['login_alert']['body'])) {
+        if ($isNewIp && isset($collection->options['mail_templates']['login_alert']['body']) && !empty($collection->options['mail_templates']['login_alert']['body'])) {
             $email = $record->data->get('email');
             if ($email) {
                 Mail::to($email)->queue(new LoginAlert(
@@ -128,12 +129,12 @@ class AuthController extends Controller
         }
 
         $session = $request->auth;
-        if (! $session || ! $session->get('meta')?->get('_id')) {
+        if (!$session || !$session->get('meta')?->get('_id')) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }
 
         $record = Record::find($session->get('meta')?->get('_id'));
-        if (! $record) {
+        if (!$record) {
             return Response::json(['message' => 'User not found.'], 404);
         }
 
@@ -149,7 +150,7 @@ class AuthController extends Controller
         }
 
         $session = $request->auth;
-        if (! $session || ! $session->get('meta')?->get('_id')) {
+        if (!$session || !$session->get('meta')?->get('_id')) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }
 
@@ -171,7 +172,7 @@ class AuthController extends Controller
         }
 
         $session = $request->auth;
-        if (! $session || ! $session->get('meta')?->get('_id')) {
+        if (!$session || !$session->get('meta')?->get('_id')) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }
 
@@ -189,7 +190,7 @@ class AuthController extends Controller
         }
 
         $session = $request->auth;
-        if (! $session || ! $session->get('meta')?->get('_id')) {
+        if (!$session || !$session->get('meta')?->get('_id')) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }
 
@@ -200,11 +201,11 @@ class AuthController extends Controller
         ]);
 
         $record = Record::find($session->get('meta')->get('_id'));
-        if (! $record) {
+        if (!$record) {
             return Response::json(['message' => 'User not found.'], 404);
         }
 
-        if (! Hash::check($request->input('password'), $record->data->get('password'))) {
+        if (!Hash::check($request->input('password'), $record->data->get('password'))) {
             return Response::json(['message' => 'Invalid current password.'], 400);
         }
 
@@ -226,7 +227,7 @@ class AuthController extends Controller
             return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
-        if (! isset($collection->options['auth_methods']['standard']) || ! $collection->options['auth_methods']['standard']['enabled']) {
+        if (!isset($collection->options['auth_methods']['standard']) || !$collection->options['auth_methods']['standard']['enabled']) {
             return Response::json(['message' => 'Collection is not setup for standard auth method.'], 400);
         }
 
@@ -239,7 +240,7 @@ class AuthController extends Controller
         $filterString = "email = '{$email}'";
         $record = $collection->records()->filterFromString($filterString)->first();
 
-        if (! $record) {
+        if (!$record) {
             return Response::json([
                 'message' => 'If an account exists with this email, you will receive a password reset token.',
             ]);
@@ -260,7 +261,7 @@ class AuthController extends Controller
             'device_name' => $request->input('device_name'),
         ]);
 
-//        Mail::to($email)->queue(new PasswordReset($token, $collection));
+        //        Mail::to($email)->queue(new PasswordReset($token, $collection));
         Mail::to($email)->send(new PasswordReset($token, $collection));
 
         return Response::json([
@@ -284,7 +285,7 @@ class AuthController extends Controller
             ->where('collection_id', $collection->id)
             ->first();
 
-        if (! $reset) {
+        if (!$reset) {
             return Response::json(['message' => 'Invalid token.'], 400);
         }
 
@@ -298,7 +299,7 @@ class AuthController extends Controller
 
         $record = Record::find($reset->record_id);
 
-        if (! $record) {
+        if (!$record) {
             return Response::json(['message' => 'User associated with this token no longer exists.'], 404);
         }
 
@@ -315,5 +316,123 @@ class AuthController extends Controller
         }
 
         return Response::json(['message' => 'Password reset successful.']);
+        return Response::json(['message' => 'Password reset successful.']);
+    }
+
+    public function requestAuthOtp(Request $request, Collection $collection)
+    {
+        if ($collection->type !== CollectionType::Auth) {
+            return Response::json(['message' => 'Collection is not auth enabled.'], 400);
+        }
+
+        if (!isset($collection->options['auth_methods']['otp']) || !$collection->options['auth_methods']['otp']['enabled']) {
+            return Response::json(['message' => 'OTP authentication is not enabled.'], 400);
+        }
+
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $email = $request->input('email');
+        $record = $collection->records()->filter('email', '=', $email)->first();
+
+        if (!$record) {
+            return Response::json(['message' => 'If an account exists with this email, you will receive a login code.']);
+        }
+
+        $otpLength = (int) ($collection->options['auth_methods']['otp']['config']['generate_password_length'] ?? 6);
+        $nums = '0123456789';
+        $otp = '';
+        for ($i = 0; $i < $otpLength; $i++) {
+            $otp .= $nums[random_int(0, 9)];
+        }
+
+        $duration = (int) ($collection->options['auth_methods']['otp']['config']['duration_s'] ?? 180);
+        $expiresAt = now()->addSeconds($duration);
+
+        AuthOtp::create([
+            'project_id' => $collection->project_id,
+            'collection_id' => $collection->id,
+            'record_id' => $record->id,
+            'email' => $email,
+            'token_hash' => Hash::make($otp),
+            'expires_at' => $expiresAt,
+        ]);
+
+        Mail::to($email)->queue(new \App\Mail\Otp($otp, $collection, $collection->project->name));
+
+        return Response::json(['message' => 'If an account exists with this email, you will receive a login code.']);
+    }
+
+    public function authenticateWithOtp(Request $request, Collection $collection)
+    {
+        if ($collection->type !== CollectionType::Auth) {
+            return Response::json(['message' => 'Collection is not auth enabled.'], 400);
+        }
+
+        $request->validate([
+            'email' => 'required|email',
+            'otp' => 'required|string',
+            'device_name' => 'nullable|string',
+        ]);
+
+        $email = $request->input('email');
+        $otp = $request->input('otp');
+
+        $authOtp = AuthOtp::where('collection_id', $collection->id)
+            ->where('email', $email)
+            ->where('expires_at', '>', now())
+            ->whereNull('used_at')
+            ->latest()
+            ->first();
+
+        if (!$authOtp || !Hash::check($otp, $authOtp->token_hash)) {
+            return Response::json(['message' => 'Invalid or expired OTP.'], 400);
+        }
+
+        $record = Record::find($authOtp->record_id);
+        if (!$record) {
+            return Response::json(['message' => 'User not found.'], 404);
+        }
+
+        $authOtp->used_at = now();
+        $authOtp->save();
+
+        [$token, $hashed] = AuthSession::generateToken();
+
+        $authTokenExpires = (int)($collection->options['other']['tokens_options']['auth_duration']['value'] ?? 604800);
+
+        $session = AuthSession::create([
+            'project_id' => $collection->project_id,
+            'collection_id' => $collection->id,
+            'record_id' => $record->id,
+            'token_hash' => $hashed,
+            'expires_at' => now()->addSeconds($authTokenExpires),
+            'last_used_at' => now(),
+            'device_name' => $request->input('device_name'),
+            'ip_address' => $request->ip(),
+        ]);
+
+        $isNewIp = !AuthSession::where('record_id', $record->id)
+            ->where('collection_id', $collection->id)
+            ->where('ip_address', $request->ip())
+            ->where('id', '!=', $session->id)
+            ->exists();
+
+        if ($isNewIp && isset($collection->options['mail_templates']['login_alert']['body']) && !empty($collection->options['mail_templates']['login_alert']['body'])) {
+            if ($email) {
+                Mail::to($email)->queue(new LoginAlert(
+                    $collection,
+                    $record,
+                    $request->input('device_name'),
+                    $request->ip()
+                ));
+            }
+        }
+
+        return Response::json([
+            'message' => 'Authenticated.',
+            'data' => $token,
+        ]);
     }
 }

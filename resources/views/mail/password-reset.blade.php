@@ -7,6 +7,4 @@
 Reset Password
 </x-mail::button>
 
-Thanks,<br>
-{{ config('app.name') }}
 </x-mail::message>

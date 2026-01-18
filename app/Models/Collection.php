@@ -21,6 +21,11 @@ class Collection extends Model
         ];
     }
 
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+
     public function fields()
     {
         return $this->hasMany(CollectionField::class)->orderBy('order');
@@ -87,11 +92,19 @@ class Collection extends Model
 <p>You are receiving this email because we received a password reset request for your account.</p>
 <p>Action URL: <a href="{{action_url}}">{{action_url}}</a></p>
 <p>If you did not request a password reset, no further action is required.</p>
-<p>Regards,<br>{{app_name}}</p>
+<p>Regards,<br><strong>{{app_name}}</strong></p>
                     ',
                 ],
                 'confirm_email_change' => ['subject' => '', 'body' => ''],
-                'otp_email' => ['subject' => '', 'body' => ''],
+                'otp_email' => [
+                    'subject' => 'Your OTP Code',
+                    'body' => '
+<p>Hello,</p>
+<p>Your OTP code is: <strong>{{otp}}</strong></p>
+<p>If you did not request an OTP code, no further action is required.</p>
+<p>Regards,<br><strong>{{app_name}}</strong></p>
+                    ',
+                ],
                 'login_alert' => [
                     'subject' => 'Login Alert',
                     'body' => '
@@ -104,7 +117,7 @@ class Collection extends Model
 </p>
 <p>If this was you, you can ignore this email.</p>
 <p>If you do not recognize this activity, please change your password immediately.</p>
-<p>Regards,<br>{{app_name}}</p>
+<p>Regards,<br><strong>{{app_name}}</strong></p>
                     ',
                 ],
             ],

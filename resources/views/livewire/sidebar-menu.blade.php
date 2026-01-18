@@ -49,6 +49,7 @@ function getIcon($type)
         <x-menu-item title="superusers" icon="o-archive-box" link="{{ route('system.superusers') }}" />
         <x-menu-item title="authSessions" icon="o-archive-box" link="{{ route('system.sessions') }}" />
         <x-menu-item title="passwordResets" icon="o-archive-box" link="{{ route('system.password.resets') }}" />
+        <x-menu-item title="otps" icon="o-archive-box" link="{{ route('system.otps') }}" />
     </x-menu-sub>
 
     <x-menu-separator />
