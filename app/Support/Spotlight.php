@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Blade;
 
 class Spotlight
 {
-    public function search(Request $request)
+    public function search(Request $request): array|\Illuminate\Support\Collection
     {
         if (! auth()->user()) {
             return [];
@@ -22,8 +22,36 @@ class Spotlight
             ->merge($this->collections($param));
     }
 
-    private function collections(string $search)
+    private function collections(string $search): \Illuminate\Support\Collection
     {
+        $systemCollections = collect([
+            [
+                'name' => 'superusers',
+                'description' => 'System Collection',
+                'link' => route('system.superusers'),
+                'icon' => Blade::render("<x-icon name='o-users' />"),
+            ],
+            [
+                'name' => 'authSessions',
+                'description' => 'System Collection',
+                'link' => route('system.sessions'),
+                'icon' => Blade::render("<x-icon name='o-archive-box' />"),
+            ],
+            [
+                'name' => 'passwordResets',
+                'description' => 'System Collection',
+                'link' => route('system.password.resets'),
+                'icon' => Blade::render("<x-icon name='o-archive-box' />"),
+            ],
+            [
+                'name' => 'Logs',
+                'description' => 'System Page',
+                'link' => url(route('system.logs')),
+
+                'icon' => Blade::render("<x-icon name='lucide.chart-line' />"),
+            ],
+        ])->filter(fn ($row) => str_contains(strtolower($row['name']), strtolower($search)))->values();
+
         $collections = Collection::where('project_id', Project::first()->id)
             ->where('name', 'like', "%$search%")
             ->take(5)
@@ -41,13 +69,8 @@ class Spotlight
                     'link' => route('collections', ['collection' => $col]),
                     'icon' => Blade::render("<x-icon name='$icon' />"),
                 ];
-            })->push([
-                'name' => 'superusers',
-                'description' => 'System Collection',
-                'link' => route('collections', ['collection' => 'superusers']),
-                'icon' => Blade::render("<x-icon name='o-users' />"),
-            ]);
+            });
 
-        return $collections;
+        return collect()->merge($collections)->merge($systemCollections);
     }
 }
