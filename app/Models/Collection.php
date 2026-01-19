@@ -12,6 +12,15 @@ class Collection extends Model
 
     protected $fillable = ['project_id', 'name', 'type', 'api_rules', 'options'];
 
+    public function getIconAttribute(): string
+    {
+        return match ($this->type) {
+            CollectionType::Auth => 'o-users',
+            CollectionType::View => 'o-table-cells',
+            default => 'o-archive-box',
+        };
+    }
+
     protected function casts(): array
     {
         return [

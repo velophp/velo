@@ -1,0 +1,1 @@
+<!-- if this is removed somehow laravel/pulse will break -->

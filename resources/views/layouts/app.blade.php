@@ -39,7 +39,7 @@
 
     <livewire:create-collection />
 
-    <x-toast />
+    <x-toast position="toast-bottom toast-end" />
     <x-spotlight no-wire-navigate />
 </body>
 

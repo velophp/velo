@@ -1,20 +1,17 @@
 <?php
 
-use function Livewire\Volt\{state, mount};
-use App\Enums\CollectionType;
+use Livewire\Component;
 
-state(['projects' => []]);
-
-mount(fn() => $this->projects = \App\Models\Project::get());
-
-function getIcon($type)
+new class extends Component
 {
-    return match ($type) {
-        CollectionType::Auth => 'o-users',
-        CollectionType::View => 'o-table-cells',
-        default => 'o-archive-box',
-    };
-}
+    public $projects;
+
+    public function mount()
+    {
+        $this->projects = App\Models\Project::take(67)->get();
+    }
+
+};
 
 ?>
 
@@ -40,7 +37,7 @@ function getIcon($type)
     @foreach ($projects as $project)
         <x-menu-sub :title="$project->name" icon="o-circle-stack" active-by-route>
             @foreach ($project->collections()->oldest()->get() as $c)
-                <x-menu-item :title="$c->name" :icon="getIcon($c->type)" link="{{ route('collections', ['collection' => $c]) }}" />
+                <x-menu-item :title="$c->name" :icon="$c->icon" link="{{ route('collections', ['collection' => $c]) }}" />
             @endforeach
         </x-menu-sub>
     @endforeach

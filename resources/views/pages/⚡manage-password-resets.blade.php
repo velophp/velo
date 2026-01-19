@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\AuthPasswordReset;
 use App\Models\AuthSession;
 use App\Models\User;
 use Illuminate\Support\Collection;
@@ -8,7 +9,7 @@ use Illuminate\Validation\Rules\Password;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Validate;
-use Livewire\Volt\Component;
+use Livewire\Component;
 use Livewire\WithPagination;
 use Mary\Traits\Toast;
 
@@ -22,17 +23,18 @@ new class extends Component {
     // Table State
     public int $perPage = 15;
     public string $filter = '';
-    public array $sortBy = ['column' => 'last_used_at', 'direction' => 'desc'];
+    public array $sortBy = ['column' => 'created_at', 'direction' => 'desc'];
     public array $selected = [];
     public array $fieldsVisibility = [
         'id' => true,
         'project.name' => false,
         'collection.name' => true,
         'record_id' => true,
-        'token_hash' => true,
+        'email' => true,
+        'token' => true,
         'device_name' => true,
         'ip_address' => true,
-        'last_used_at' => true,
+        'used' => true,
         'created_at' => true,
         'updated_at' => true,
     ];
@@ -46,7 +48,7 @@ new class extends Component {
         $this->breadcrumbs = [
             ['link' => route('home'), 'icon' => 's-home'],
             ['label' => 'System'],
-            ['label' => 'authSessions'],
+            ['label' => 'passwordResets'],
         ];
     }
 
@@ -91,8 +93,9 @@ new class extends Component {
             'project.name' => 'Project',
             'collection.name' => 'Collection',
             'record_id' => 'Record',
-            'token_hash' => 'Token',
-            'last_used_at' => 'Last Used',
+            'email' => 'Email',
+            'token' => 'Token',
+            'used_at' => 'Used',
             'device_name' => 'Device',
             'ip_address' => 'IP',
             'created_at' => 'Created',
@@ -115,13 +118,14 @@ new class extends Component {
     #[Computed]
     public function tableRows()
     {
-        $query = AuthSession::query();
+        $query = AuthPasswordReset::query();
 
         if (!empty($this->filter)) {
             $query->where(function ($q) {
                 $q->where('record_id', 'like', "%{$this->filter}%")
                     ->orWhere('collection_id', 'like', "%{$this->filter}%")
-                    ->orWhere('token_hash', 'like', "%{$this->filter}%");
+                    ->orWhere('token', 'like', "%{$this->filter}%")
+                    ->orWhere('email', 'like', "%{$this->filter}%");
             });
         }
 
@@ -143,7 +147,7 @@ new class extends Component {
     public function confirmDeleteRecord(): void
     {
         $count = count($this->recordToDelete);
-        AuthSession::destroy($this->recordToDelete);
+        AuthPasswordReset::destroy($this->recordToDelete);
 
         $this->showRecordDrawer = false;
         $this->showConfirmDeleteDialog = false;
@@ -266,7 +270,7 @@ new class extends Component {
         </div>
         @endscope
 
-        @scope('cell_token_hash', $row)
+        @scope('cell_token', $row)
         <span class="text-gray-400">********</span>
         @endscope
 

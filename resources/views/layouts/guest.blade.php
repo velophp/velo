@@ -14,7 +14,7 @@
     
     {{ $slot }}
 
-    <x-toast />
+    <x-toast position="toast-bottom toast-end" />
 </body>
 
 </html>

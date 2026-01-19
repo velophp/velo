@@ -37,7 +37,7 @@ return [
     |
     */
 
-    'layout' => 'components.layouts.app',
+    'component_layout' => 'layouts::app',
 
     /*
     |---------------------------------------------------------------------------
@@ -49,7 +49,7 @@ return [
     |
     */
 
-    'lazy_placeholder' => null,
+    'component_placeholder' => 'livewire.placeholder',
 
     /*
     |---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ return [
     |
     */
 
-    'smart_wire_keys' => false,
+    'smart_wire_keys' => true,
 
     /*
     |---------------------------------------------------------------------------
@@ -186,4 +186,25 @@ return [
     */
 
     'release_token' => 'a',
+
+    /**
+     * Livewire v4 new configs.
+     */
+    'component_locations' => [
+        resource_path('views/components'),
+        resource_path('views/livewire'),
+    ],
+
+    'component_namespaces' => [
+        'layouts' => resource_path('views/layouts'),
+        'pages' => resource_path('views/pages'),
+    ],
+
+    'make_command' => [
+        'type' => 'sfc',  // Options: 'sfc', 'mfc', or 'class'
+        'emoji' => true,   // Whether to use ⚡ emoji prefix
+    ],
+
+    'csp_safe' => false,
+
 ];

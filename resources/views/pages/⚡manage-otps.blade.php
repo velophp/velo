@@ -3,7 +3,7 @@
 use App\Models\AuthOtp;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
-use Livewire\Volt\Component;
+use Livewire\Component;
 use Livewire\WithPagination;
 use Mary\Traits\Toast;
 

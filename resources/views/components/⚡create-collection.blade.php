@@ -1,12 +1,11 @@
 <?php
 
-use Livewire\Volt\Component;
+use Livewire\Component;
 use Illuminate\Validation\Rules\Enum;
 use App\Enums\CollectionType;
 use App\Models\Collection;
 use App\Models\Project;
 use App\Models\CollectionField;
-use Livewire\Attributes\Modelable;
 use Livewire\Attributes\On;
 
 new class extends Component {
