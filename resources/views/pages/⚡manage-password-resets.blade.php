@@ -262,12 +262,16 @@ new class extends Component {
         @endscope
 
         @scope('cell_record_id', $row)
-        <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
-            <p>{{ $row->record->data['name'] ?? $row->record->data['email'] ?? $row->record->data['id'] ?? $row->record_id }}</p>
-            <x-button class="btn-xs btn-ghost btn-circle" link="{{ route('collections', ['collection' => $row->collection->name, 'recordId' => $row->record->data['id']]) }}" external>
-                <x-icon name="lucide.external-link" class="w-5 h-5" />
-            </x-button>
-        </div>
+        @if ($row->record)
+            <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
+                <p>{{ $row->record->data['name'] ?? $row->record->data['email'] ?? $row->record->data['id'] ?? '-' }}</p>
+                <x-button class="btn-xs btn-ghost btn-circle" link="{{ route('collections', ['collection' => $row->collection->name, 'recordId' => $row->record?->data['id']]) }}" external>
+                    <x-icon name="lucide.external-link" class="w-5 h-5" />
+                </x-button>
+            </div>
+        @else
+            <p>-</p>
+        @endif
         @endscope
 
         @scope('cell_token', $row)
