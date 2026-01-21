@@ -150,7 +150,11 @@ new class extends Component {
                 return;
             }
 
-            $this->collection->records()->filter('id', '=', $this->recordId)->buildQuery()->delete();
+            $record = $this->collection->records()->filter('id', '=', $this->recordId)->buildQuery()->first();
+
+            if ($record) {
+                $record->delete();
+            }
 
             $this->dispatch('update-table');
 
@@ -241,10 +245,10 @@ new class extends Component {
             ]);
         } else {
             unset($this->form['id_old']);
-            $record = Record::create([
+            $recordData = [
                 'collection_id' => $this->collection->id,
                 'data' => $this->form,
-            ]);
+            ];
 
             // Sync file fields to storage and update form
             foreach ($this->fields as $field) {
@@ -262,10 +266,10 @@ new class extends Component {
 
             // Update record with file URLs if any were uploaded
             if (collect($this->fields)->where('type', FieldType::File)->isNotEmpty()) {
-                $record->update([
-                    'data' => $this->form,
-                ]);
+                $recordData['data'] = $this->form;
             }
+
+            Record::create($recordData);
         }
 
         $this->showRecordDrawer = false;

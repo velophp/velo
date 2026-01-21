@@ -637,7 +637,7 @@ new class extends Component {
 
     public function deleteCollection(): void
     {
-        if (Collection::where('project_id', $this->collection->project_id)->count() == 1) {
+        if (\App\Models\Collection::where('project_id', $this->collection->project_id)->count() == 1) {
             $this->error('Cannot delete the only collection in the project.');
             return;
         }

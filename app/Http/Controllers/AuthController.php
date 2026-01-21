@@ -128,7 +128,7 @@ class AuthController extends Controller
             return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
-        $session = $request->auth;
+        $session = $request->user();
         if (!$session || !$session->get('meta')?->get('_id')) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }
@@ -149,7 +149,7 @@ class AuthController extends Controller
             return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
-        $session = $request->auth;
+        $session = $request->user();
         if (!$session || !$session->get('meta')?->get('_id')) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }
@@ -171,7 +171,7 @@ class AuthController extends Controller
             return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
-        $session = $request->auth;
+        $session = $request->user();
         if (!$session || !$session->get('meta')?->get('_id')) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }
@@ -189,7 +189,7 @@ class AuthController extends Controller
             return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
-        $session = $request->auth;
+        $session = $request->user();
         if (!$session || !$session->get('meta')?->get('_id')) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }

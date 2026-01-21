@@ -433,6 +433,116 @@ class RecordQuery
         return implode(" $logical ", $parts);
     }
 
+    /**
+     * Check if a filter string is valid (can be parsed without errors).
+     */
+    public static function isValidFilterString(?string $filterString): bool
+    {
+        if ($filterString === null || empty(trim($filterString))) {
+            return true; // Empty/null is considered valid (no filter)
+        }
+
+        $segments = preg_split('/\s+(AND|OR)\s+/i', $filterString, -1, PREG_SPLIT_DELIM_CAPTURE);
+
+        for ($i = 0; $i < count($segments); $i += 2) {
+            $segment = trim($segments[$i]);
+
+            if (empty($segment)) {
+                continue;
+            }
+
+            $parsed = self::parseFilterSegmentStatic($segment);
+
+            if ($parsed === null) {
+                return false; // Invalid segment
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Parse a filter string into an array of conditions.
+     * Returns an array of ['field' => '...', 'operator' => '...', 'value' => '...', 'logical' => 'AND|OR']
+     * @TODO refactor to its own service later
+     */
+    public static function parseFilterString(string $filterString): array
+    {
+        if (empty(trim($filterString))) {
+            return [];
+        }
+
+        $filters = [];
+        $segments = preg_split('/\s+(AND|OR)\s+/i', $filterString, -1, PREG_SPLIT_DELIM_CAPTURE);
+
+        for ($i = 0; $i < count($segments); $i += 2) {
+            $segment = trim($segments[$i]);
+
+            if (empty($segment)) {
+                continue;
+            }
+
+            $parsed = self::parseFilterSegmentStatic($segment);
+
+            if ($parsed) {
+                $logical = ($i > 0 && isset($segments[$i - 1]))
+                    ? strtoupper($segments[$i - 1])
+                    : 'AND';
+
+                $filters[] = array_merge($parsed, ['logical' => $logical]);
+            }
+        }
+
+        return $filters;
+    }
+
+    /**
+     * Static version of parseFilterSegment for use outside instance context.
+     */
+    protected static function parseFilterSegmentStatic(string $segment): ?array
+    {
+        $allowedOperators = ['>=', '<=', '!=', '<>', '=', '>', '<', 'LIKE'];
+
+        foreach ($allowedOperators as $op) {
+            $pattern = ($op === 'LIKE')
+                ? '/\s+'.preg_quote($op, '/').'\s+/i'
+                : '/'.preg_quote($op, '/').'/';
+
+            if (preg_match($pattern, $segment, $matches, PREG_OFFSET_CAPTURE)) {
+                $operatorPosition = $matches[0][1];
+                $operatorLength = strlen($matches[0][0]);
+
+                $field = trim(substr($segment, 0, $operatorPosition));
+                $value = trim(substr($segment, $operatorPosition + $operatorLength));
+
+                $field = preg_replace('/[^a-zA-Z0-9_]/', '', $field);
+
+                if (empty($field)) {
+                    return null;
+                }
+
+                // Remove quotes
+                if (
+                    (str_starts_with($value, '"') && str_ends_with($value, '"'))
+                    || (str_starts_with($value, "'") && str_ends_with($value, "'"))
+                ) {
+                    $value = substr($value, 1, -1);
+                }
+
+                // Sanitize
+                $value = str_replace(chr(0), '', $value);
+
+                return [
+                    'field' => $field,
+                    'operator' => strtoupper($op),
+                    'value' => $value,
+                ];
+            }
+        }
+
+        return null;
+    }
+
     // ========== INTERNAL METHODS ==========
 
     /**

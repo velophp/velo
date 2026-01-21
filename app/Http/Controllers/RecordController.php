@@ -24,7 +24,7 @@ class RecordController extends Controller
         if (! empty($listRule)) {
             $context = [
                 'sys_request' => (object) [
-                    'auth' => $request->auth,
+                    'auth' => $request->user(),
                 ],
             ];
             $interpolatedRule = app(EvaluateRuleExpression::class)

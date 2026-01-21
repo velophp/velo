@@ -1,0 +1,96 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\FieldType;
+use App\Events\RealtimeMessage;
+use App\Models\Collection;
+use App\Models\CollectionField;
+use App\Models\Project;
+use App\Models\RealtimeConnection;
+use App\Models\Record;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Event;
+use Tests\TestCase;
+
+class RealtimeBroadcastingTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_dispatches_event_to_subscriber_with_matching_filter()
+    {
+        Event::fake([RealtimeMessage::class]);
+
+        $project = Project::create(['name' => 'Test Project']);
+        $collection = Collection::create([
+            'project_id' => $project->id,
+            'name' => 'posts',
+            'type' => \App\Enums\CollectionType::Base
+        ]);
+
+        $collection->fields()->createMany(CollectionField::createBaseFrom([
+            [
+                'name' => 'title',
+                'type' => FieldType::Text,
+                'options' => [],
+            ],
+            [
+                'name' => 'status',
+                'type' => FieldType::Text,
+                'options' => [],
+            ]
+        ]));
+
+        // 1. Subscribe to 'status=active'
+        $connection = RealtimeConnection::create([
+            'project_id' => $project->id,
+            'collection_id' => $collection->id,
+            'channel_name' => 'uuid-active-sub',
+            'filters' => ['status' => 'active'],
+            'last_seen_at' => now(),
+        ]);
+
+        // 2. Create a matching record
+        $record = new Record();
+        $record->collection_id = $collection->id;
+        $record->data = collect(['status' => 'active', 'title' => 'Hello World']);
+        $record->save();
+
+        // 3. Assert Event Dispatched
+        Event::assertDispatched(RealtimeMessage::class, function ($event) use ($connection) {
+            return $event->channelName === $connection->channel_name
+                && $event->payload['action'] === 'create'
+                && $event->payload['record']['status'] === 'active';
+        });
+    }
+
+    public function test_does_not_dispatch_event_if_filter_mismatch()
+    {
+        Event::fake([RealtimeMessage::class]);
+
+        $project = Project::create(['name' => 'Test Project']);
+        $collection = Collection::create([
+            'project_id' => $project->id,
+            'name' => 'posts',
+            'type' => \App\Enums\CollectionType::Base
+        ]);
+
+        // 1. Subscribe to 'status=active'
+        $connection = RealtimeConnection::create([
+            'project_id' => $project->id,
+            'collection_id' => $collection->id,
+            'channel_name' => 'uuid-active-sub',
+            'filters' => ['status' => 'active'],
+            'last_seen_at' => now(),
+        ]);
+
+        // 2. Create a NON-matching record (status=draft)
+        $record = new Record();
+        $record->collection_id = $collection->id;
+        $record->data = collect(['status' => 'draft', 'title' => 'WIP']);
+        $record->save();
+
+        // 3. Assert Event NOT Dispatched
+        Event::assertNotDispatched(RealtimeMessage::class);
+    }
+}

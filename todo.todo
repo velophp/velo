@@ -1,6 +1,7 @@
 BUG:
 
 IMPROVEMENT:
+- apply list rule to realtime filtering and apply logic for authorize realtime connection
 - add 2fa, mfa, oauth
 - request reauthentication when changing identifiers or password for auth type collection
 - fix file type validation

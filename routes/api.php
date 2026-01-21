@@ -1,8 +1,9 @@
 <?php
 
+use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RecordController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\RealtimeController;
 
 /*
  * API Routes
@@ -28,4 +29,9 @@ Route::prefix('collections/{collection:name}')->group(function () {
         Route::put('/{recordId}', [RecordController::class, 'update'])->name('update');
         Route::delete('/{recordId}', [RecordController::class, 'delete'])->name('delete');
     });
+});
+
+Route::prefix('realtime')->name('realtime.')->group(function () {
+    Route::post('/subscribe', [RealtimeController::class, 'subscribe'])->name('subscribe');
+    Route::post('/ping', [RealtimeController::class, 'ping'])->name('ping');
 });

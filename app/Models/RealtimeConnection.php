@@ -1,0 +1,46 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class RealtimeConnection extends Model
+{
+    protected $fillable = [
+        'project_id',
+        'collection_id',
+        'record_id',
+        'socket_id',
+        'channel_name',
+        'filter',
+        'last_seen_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'last_seen_at' => 'datetime',
+        ];
+    }
+
+    public function project()
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    public function collection()
+    {
+        return $this->belongsTo(Collection::class);
+    }
+
+    public function record()
+    {
+        return $this->belongsTo(Record::class);
+    }
+
+    public static function pruneStale()
+    {
+        $threshold = config('larabase.realtime_connection_threshold') ?? 5;
+        static::where('last_seen_at', '<', now()->subMinutes($threshold))->delete();
+    }
+}

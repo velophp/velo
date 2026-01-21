@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
-use App\Collections\Handlers\CollectionTypeHandlerResolver;
 use App\Enums\FieldType;
-use App\Exceptions\InvalidRecordException;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use App\Events\CollectionUpdated;
+use App\Services\RealtimeService;
+use Illuminate\Database\Eloquent\Model;
+use App\Exceptions\InvalidRecordException;
+use App\Collections\Handlers\CollectionTypeHandlerResolver;
 
 class Record extends Model
 {
@@ -98,6 +100,15 @@ class Record extends Model
                 \DB::rollBack();
                 throw $e;
             }
+        });
+
+        static::saved(function (Record $record) {
+            $action = $record->wasRecentlyCreated ? 'create' : 'update';
+            app(RealtimeService::class)->dispatchUpdates($record, $action);
+        });
+
+        static::deleted(function (Record $record) {
+            app(RealtimeService::class)->dispatchUpdates($record, 'delete');
         });
     }
 }

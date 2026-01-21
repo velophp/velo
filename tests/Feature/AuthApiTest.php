@@ -261,8 +261,8 @@ class AuthApiTest extends TestCase
 
         $response = $this->postJson('/api/collections/users/auth/confirm-password-reset', [
             'token' => $token,
-            'password' => 'newpassword123',
-            'password_confirmation' => 'newpassword123',
+            'new_password' => 'newpassword123',
+            'new_password_confirmation' => 'newpassword123',
             'invalidate_sessions' => true,
         ]);
 

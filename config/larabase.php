@@ -3,11 +3,29 @@
 return [
 
     /**
+     * Prefix for realtime channels
+     */
+    'realtime_channel_prefix' => 'larabase.realtime.',
+
+    /**
+     * How long a realtime connection is considered stale
+     * default: 5 minutes
+     */
+    'realtime_connection_threshold' => 5,
+
+    /**
      * Session defer threshold
      * How long a session is updated on every request
      * default: 150 Seconds
      */
     'session_defer_threshold' => 150,
+
+    /**
+     * Session sliding expiration
+     * How long a session is extended on every request
+     * default: 0 Second
+     */
+    'session_sliding_expiration' => 0,
 
     /**
      * SQL generated column strategy, can be STORED or VIRTUAL

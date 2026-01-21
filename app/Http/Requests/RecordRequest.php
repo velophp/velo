@@ -44,7 +44,7 @@ class RecordRequest extends FormRequest
 
         $context = [
             'sys_request' => Helper::toObject([
-                'auth' => $this->auth,
+                'auth' => $this->user(),
                 'body' => $this->post(),
                 'param' => $this->route()->parameters(),
                 'query' => $this->query(),
