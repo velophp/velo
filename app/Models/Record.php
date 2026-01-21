@@ -103,7 +103,6 @@ class Record extends Model
         });
 
         static::saved(function (Record $record) {
-            dump(now()->timestamp);
             $action = $record->wasRecentlyCreated ? 'created' : 'updated';
             app(RealtimeService::class)->dispatchUpdates($record, $action);
         });
