@@ -4,7 +4,6 @@ namespace App\Mail;
 
 use App\Models\Collection;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -29,7 +28,7 @@ class Otp extends Mailable
     public function envelope(): Envelope
     {
         $subject = $this->collection->options['mail_templates']['otp_email']['subject'] ?? 'Your OTP Code';
-        
+
         return new Envelope(
             subject: $subject ?: 'Your OTP Code',
         );
@@ -50,7 +49,7 @@ class Otp extends Mailable
             [$this->otp, $this->appName],
             $body
         );
-        
+
         $body = preg_replace('/^[ \t]+/m', '', $body);
 
         return new Content(

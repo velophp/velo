@@ -18,4 +18,9 @@ class SafeCollection extends Collection
 
         return $value;
     }
+
+    public function toArray()
+    {
+        return parent::toArray();
+    }
 }

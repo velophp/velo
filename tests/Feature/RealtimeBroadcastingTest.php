@@ -25,7 +25,7 @@ class RealtimeBroadcastingTest extends TestCase
         $collection = Collection::create([
             'project_id' => $project->id,
             'name' => 'posts',
-            'type' => \App\Enums\CollectionType::Base
+            'type' => \App\Enums\CollectionType::Base,
         ]);
 
         $collection->fields()->createMany(CollectionField::createBaseFrom([
@@ -38,7 +38,7 @@ class RealtimeBroadcastingTest extends TestCase
                 'name' => 'status',
                 'type' => FieldType::Text,
                 'options' => [],
-            ]
+            ],
         ]));
 
         // 1. Subscribe to 'status=active'
@@ -51,7 +51,7 @@ class RealtimeBroadcastingTest extends TestCase
         ]);
 
         // 2. Create a matching record
-        $record = new Record();
+        $record = new Record;
         $record->collection_id = $collection->id;
         $record->data = collect(['status' => 'active', 'title' => 'Hello World']);
         $record->save();
@@ -72,7 +72,7 @@ class RealtimeBroadcastingTest extends TestCase
         $collection = Collection::create([
             'project_id' => $project->id,
             'name' => 'posts',
-            'type' => \App\Enums\CollectionType::Base
+            'type' => \App\Enums\CollectionType::Base,
         ]);
 
         // 1. Subscribe to 'status=active'
@@ -85,7 +85,7 @@ class RealtimeBroadcastingTest extends TestCase
         ]);
 
         // 2. Create a NON-matching record (status=draft)
-        $record = new Record();
+        $record = new Record;
         $record->collection_id = $collection->id;
         $record->data = collect(['status' => 'draft', 'title' => 'WIP']);
         $record->save();

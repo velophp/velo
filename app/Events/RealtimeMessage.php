@@ -23,6 +23,7 @@ class RealtimeMessage implements ShouldBroadcastNow
     {
         $prefix = config('larabase.realtime_channel_prefix');
         $channelName = $prefix.$this->channelName;
+
         return [
             $this->isPublic ? new Channel($channelName) : new PrivateChannel($channelName),
         ];

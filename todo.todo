@@ -1,7 +1,6 @@
 BUG:
 
 TODO:
-- add realtime subscribe for singular record
 - store project settings in database, use settings page rn (single tenant)
 - request reauthentication when changing identifiers or password for auth type collection
 - fix file type validation

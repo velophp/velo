@@ -28,11 +28,11 @@ class AuthController extends Controller
             return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
-        if (!isset($collection->options['auth_methods']['standard'])) {
+        if (! isset($collection->options['auth_methods']['standard'])) {
             return Response::json(['message' => 'Collection is not setup for standard auth method.'], 400);
         }
 
-        if (!$collection->options['auth_methods']['standard']['enabled']) {
+        if (! $collection->options['auth_methods']['standard']['enabled']) {
             return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
@@ -44,22 +44,22 @@ class AuthController extends Controller
         ]);
 
         $validFields = $collection->fields()->pluck('name')->toArray();
-        $identifiers = array_filter($identifiers, fn($field) => in_array($field, $validFields));
+        $identifiers = array_filter($identifiers, fn ($field) => in_array($field, $validFields));
 
         if (empty($identifiers)) {
             return Response::json(['message' => 'Collection is not setup for standard auth method.'], 400);
         }
 
         $identifierValue = $request->input('identifier');
-        $conditions = array_map(fn($field) => ['field' => $field, 'value' => $identifierValue], $identifiers);
+        $conditions = array_map(fn ($field) => ['field' => $field, 'value' => $identifierValue], $identifiers);
         $filterString = RecordQuery::buildFilterString($conditions, 'OR');
         $record = $collection->records()->filterFromString($filterString)->first();
 
-        if (!$record) {
+        if (! $record) {
             throw ValidationException::withMessages(['identifier' => 'Invalid credentials.']);
         }
 
-        if (!\Hash::check($request->input('password'), $record->data->password)) {
+        if (! \Hash::check($request->input('password'), $record->data->password)) {
             throw ValidationException::withMessages(['identifier' => 'Invalid credentials.']);
         }
 
@@ -80,14 +80,14 @@ class AuthController extends Controller
                 ->forExpression($authenticateRule)
                 ->withContext($context);
 
-            if (!$rule->evaluate()) {
+            if (! $rule->evaluate()) {
                 throw ValidationException::withMessages(['identifier' => 'Authentication failed due to collection rules.']);
             }
         }
 
         [$token, $hashed] = AuthSession::generateToken();
 
-        $isNewIp = !AuthSession::where('record_id', $record->id)
+        $isNewIp = ! AuthSession::where('record_id', $record->id)
             ->where('collection_id', $collection->id)
             ->where('ip_address', $request->ip())
             ->exists();
@@ -104,7 +104,7 @@ class AuthController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        if ($isNewIp && isset($collection->options['mail_templates']['login_alert']['body']) && !empty($collection->options['mail_templates']['login_alert']['body'])) {
+        if ($isNewIp && isset($collection->options['mail_templates']['login_alert']['body']) && ! empty($collection->options['mail_templates']['login_alert']['body'])) {
             $email = $record->data->email;
             if ($email) {
                 Mail::to($email)->queue(new LoginAlert(
@@ -129,12 +129,12 @@ class AuthController extends Controller
         }
 
         $session = $request->user();
-        if (!$session || !$session->meta?->_id) {
+        if (! $session || ! $session->meta?->_id) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }
 
         $record = Record::find($session->meta?->_id);
-        if (!$record) {
+        if (! $record) {
             return Response::json(['message' => 'User not found.'], 404);
         }
 
@@ -150,7 +150,7 @@ class AuthController extends Controller
         }
 
         $session = $request->user();
-        if (!$session || !$session->meta?->_id) {
+        if (! $session || ! $session->meta?->_id) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }
 
@@ -172,7 +172,7 @@ class AuthController extends Controller
         }
 
         $session = $request->user();
-        if (!$session || !$session->meta?->_id) {
+        if (! $session || ! $session->meta?->_id) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }
 
@@ -190,7 +190,7 @@ class AuthController extends Controller
         }
 
         $session = $request->user();
-        if (!$session || !$session->meta?->_id) {
+        if (! $session || ! $session->meta?->_id) {
             return Response::json(['message' => 'Unauthorized.'], 401);
         }
 
@@ -201,11 +201,11 @@ class AuthController extends Controller
         ]);
 
         $record = Record::find($session->meta->_id);
-        if (!$record) {
+        if (! $record) {
             return Response::json(['message' => 'User not found.'], 404);
         }
 
-        if (!Hash::check($request->input('password'), $record->data->password)) {
+        if (! Hash::check($request->input('password'), $record->data->password)) {
             return Response::json(['message' => 'Invalid current password.'], 400);
         }
 
@@ -227,7 +227,7 @@ class AuthController extends Controller
             return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
-        if (!isset($collection->options['auth_methods']['standard']) || !$collection->options['auth_methods']['standard']['enabled']) {
+        if (! isset($collection->options['auth_methods']['standard']) || ! $collection->options['auth_methods']['standard']['enabled']) {
             return Response::json(['message' => 'Collection is not setup for standard auth method.'], 400);
         }
 
@@ -240,7 +240,7 @@ class AuthController extends Controller
         $filterString = "email = '{$email}'";
         $record = $collection->records()->filterFromString($filterString)->first();
 
-        if (!$record) {
+        if (! $record) {
             return Response::json([
                 'message' => 'If an account exists with this email, you will receive a password reset token.',
             ]);
@@ -285,7 +285,7 @@ class AuthController extends Controller
             ->where('collection_id', $collection->id)
             ->first();
 
-        if (!$reset) {
+        if (! $reset) {
             return Response::json(['message' => 'Invalid token.'], 400);
         }
 
@@ -299,7 +299,7 @@ class AuthController extends Controller
 
         $record = Record::find($reset->record_id);
 
-        if (!$record) {
+        if (! $record) {
             return Response::json(['message' => 'User associated with this token no longer exists.'], 404);
         }
 
@@ -316,6 +316,7 @@ class AuthController extends Controller
         }
 
         return Response::json(['message' => 'Password reset successful.']);
+
         return Response::json(['message' => 'Password reset successful.']);
     }
 
@@ -325,7 +326,7 @@ class AuthController extends Controller
             return Response::json(['message' => 'Collection is not auth enabled.'], 400);
         }
 
-        if (!isset($collection->options['auth_methods']['otp']) || !$collection->options['auth_methods']['otp']['enabled']) {
+        if (! isset($collection->options['auth_methods']['otp']) || ! $collection->options['auth_methods']['otp']['enabled']) {
             return Response::json(['message' => 'OTP authentication is not enabled.'], 400);
         }
 
@@ -336,7 +337,7 @@ class AuthController extends Controller
         $email = $request->input('email');
         $record = $collection->records()->filter('email', '=', $email)->first();
 
-        if (!$record) {
+        if (! $record) {
             return Response::json(['message' => 'If an account exists with this email, you will receive a login code.']);
         }
 
@@ -386,12 +387,12 @@ class AuthController extends Controller
             ->latest()
             ->first();
 
-        if (!$authOtp || !Hash::check($otp, $authOtp->token_hash)) {
+        if (! $authOtp || ! Hash::check($otp, $authOtp->token_hash)) {
             return Response::json(['message' => 'Invalid or expired OTP.'], 400);
         }
 
         $record = Record::find($authOtp->record_id);
-        if (!$record) {
+        if (! $record) {
             return Response::json(['message' => 'User not found.'], 404);
         }
 
@@ -400,7 +401,7 @@ class AuthController extends Controller
 
         [$token, $hashed] = AuthSession::generateToken();
 
-        $authTokenExpires = (int)($collection->options['other']['tokens_options']['auth_duration']['value'] ?? 604800);
+        $authTokenExpires = (int) ($collection->options['other']['tokens_options']['auth_duration']['value'] ?? 604800);
 
         $session = AuthSession::create([
             'project_id' => $collection->project_id,
@@ -413,13 +414,13 @@ class AuthController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        $isNewIp = !AuthSession::where('record_id', $record->id)
+        $isNewIp = ! AuthSession::where('record_id', $record->id)
             ->where('collection_id', $collection->id)
             ->where('ip_address', $request->ip())
             ->where('id', '!=', $session->id)
             ->exists();
 
-        if ($isNewIp && isset($collection->options['mail_templates']['login_alert']['body']) && !empty($collection->options['mail_templates']['login_alert']['body'])) {
+        if ($isNewIp && isset($collection->options['mail_templates']['login_alert']['body']) && ! empty($collection->options['mail_templates']['login_alert']['body'])) {
             if ($email) {
                 Mail::to($email)->queue(new LoginAlert(
                     $collection,

@@ -3,13 +3,13 @@
 namespace App\Models;
 
 use App\Casts\AsSafeCollection;
-use App\Enums\FieldType;
-use Illuminate\Support\Str;
-use App\Services\RealtimeService;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Casts\Attribute;
-use App\Exceptions\InvalidRecordException;
 use App\Collections\Handlers\CollectionTypeHandlerResolver;
+use App\Enums\FieldType;
+use App\Exceptions\InvalidRecordException;
+use App\Services\RealtimeService;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 class Record extends Model
 {
@@ -18,7 +18,7 @@ class Record extends Model
     protected function casts(): array
     {
         return [
-            'data' => AsSafeCollection::class
+            'data' => AsSafeCollection::class,
         ];
     }
 
@@ -29,6 +29,7 @@ class Record extends Model
             set: function ($value) {
                 $data = $this->data;
                 $data->put('id', $value);
+
                 return ['data' => $data];
             }
         );

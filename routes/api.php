@@ -1,9 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\RecordController;
 use App\Http\Controllers\RealtimeController;
+use App\Http\Controllers\RecordController;
+use Illuminate\Support\Facades\Route;
 
 /*
  * API Routes

@@ -464,6 +464,7 @@ class RecordQuery
     /**
      * Parse a filter string into an array of conditions.
      * Returns an array of ['field' => '...', 'operator' => '...', 'value' => '...', 'logical' => 'AND|OR']
+     *
      * @TODO refactor to its own service later
      */
     public static function parseFilterString(string $filterString): array

@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Collection;
 use App\Models\RealtimeConnection;
+use App\Services\EvaluateRuleExpression;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
-use App\Services\EvaluateRuleExpression;
 
 class RealtimeController extends Controller
 {
@@ -20,18 +20,20 @@ class RealtimeController extends Controller
         ]);
 
         $collection = Collection::where('name', $validated['collection'])->orWhere('id', $validated['collection'])->first();
-        if (!$collection) throw ValidationException::withMessages([
-            'collection' => 'Collection not found',
-        ]);
+        if (! $collection) {
+            throw ValidationException::withMessages([
+                'collection' => 'Collection not found',
+            ]);
+        }
 
         $listRule = $collection->api_rules['list'] ?? 'SUPERUSER_ONLY';
         $allowPublic = app(EvaluateRuleExpression::class)
             ->forExpression($listRule)
             ->allowsGuest();
 
-        if (!$allowPublic && !$request->user()) {
+        if (! $allowPublic && ! $request->user()) {
             return response()->json([
-                'message' => 'Unauthenticated.'
+                'message' => 'Unauthenticated.',
             ], 401);
         }
 
@@ -52,6 +54,7 @@ class RealtimeController extends Controller
 
         $prefix = config('larabase.realtime_channel_prefix');
         $channelName = $prefix.$channelName;
+
         return response()->json([
             'channel_name' => $channelName,
             'is_public' => $allowPublic,

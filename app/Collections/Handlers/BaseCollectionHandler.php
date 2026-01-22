@@ -7,7 +7,6 @@ use App\Exceptions\InvalidRecordException;
 use App\Models\CollectionField;
 use App\Models\Record;
 use App\Models\RecordIndex;
-
 use Illuminate\Support\Collection;
 
 class BaseCollectionHandler implements CollectionTypeHandler

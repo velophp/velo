@@ -16,9 +16,9 @@ class RealtimeSubscriptionTest extends TestCase
     {
         $project = Project::create(['name' => 'Test Project']);
         $collection = Collection::create([
-            'project_id' => $project->id, 
-            'name' => 'posts', 
-            'type' => \App\Enums\CollectionType::Base
+            'project_id' => $project->id,
+            'name' => 'posts',
+            'type' => \App\Enums\CollectionType::Base,
         ]);
 
         $response = $this->postJson(route('realtime.subscribe'), [
@@ -42,11 +42,11 @@ class RealtimeSubscriptionTest extends TestCase
     {
         $project = Project::create(['name' => 'Test Project']);
         $collection = Collection::create([
-            'project_id' => $project->id, 
-            'name' => 'posts', 
-            'type' => \App\Enums\CollectionType::Base
+            'project_id' => $project->id,
+            'name' => 'posts',
+            'type' => \App\Enums\CollectionType::Base,
         ]);
-        
+
         // Seed connection
         $connection = RealtimeConnection::create([
             'project_id' => $project->id,
@@ -65,7 +65,7 @@ class RealtimeSubscriptionTest extends TestCase
             'id' => $connection->id,
             'last_seen_at' => now(), // Should be approximately now
         ]);
-        
+
         $connection->refresh();
         $this->assertTrue($connection->last_seen_at->gt(now()->subMinute()));
     }

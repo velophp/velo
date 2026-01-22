@@ -6,19 +6,18 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Validation\UnauthorizedException;
-use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         channels: __DIR__.'/../routes/channels.php',
-        web: __DIR__ . '/../routes/web.php',
-        api: __DIR__ . '/../routes/api.php',
-        commands: __DIR__ . '/../routes/console.php',
+        web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php',
+        commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
     ->withBroadcasting(
-        __DIR__ . '/../routes/channels.php',
+        __DIR__.'/../routes/channels.php',
         ['prefix' => 'api', 'middleware' => ['api', \App\Http\Middleware\AuthMiddleware::class]]
     )
     ->withMiddleware(function (Middleware $middleware): void {
@@ -61,7 +60,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->booting(function () {
         $strat = strtoupper(config('larabase.sql_generated_column_strategy'));
-        if (!in_array($strat, ['STORED', 'VIRTUAL'])) {
-            throw new \Exception('Invalid SQL generated column strategy: ' . $strat);
+        if (! in_array($strat, ['STORED', 'VIRTUAL'])) {
+            throw new \Exception('Invalid SQL generated column strategy: '.$strat);
         }
     })->create();

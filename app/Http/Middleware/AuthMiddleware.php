@@ -15,8 +15,9 @@ class AuthMiddleware
     {
         $token = $request->bearerToken();
 
-        if (!$token) {
+        if (! $token) {
             $this->handleGuest($request);
+
             return $next($request);
         }
 
@@ -40,14 +41,15 @@ class AuthMiddleware
             ])
             ->first();
 
-        if (!$this->session) {
+        if (! $this->session) {
             $this->handleGuest($request);
+
             return $next($request);
         }
 
         $recordData = json_decode($this->session->user, true);
 
-        $request->setUserResolver(fn() => new SafeCollection([
+        $request->setUserResolver(fn () => new SafeCollection([
             ...$recordData,
             'meta' => [
                 '_id' => $this->session->record_id,
@@ -61,7 +63,7 @@ class AuthMiddleware
 
     public function terminate(Request $request, Response $response): void
     {
-        if (!$this->session) {
+        if (! $this->session) {
             return;
         }
 
@@ -69,7 +71,7 @@ class AuthMiddleware
 
         if ($this->session->last_used_at->diffInSeconds(now()) > $threshold) {
             $sliding = config('larabase.session_sliding_expiration') ?? 0;
-            
+
             $newLastUsed = now();
             $newExpires = now()->addSeconds($sliding);
 
@@ -85,6 +87,6 @@ class AuthMiddleware
 
     private function handleGuest($request): void
     {
-        $request->setUserResolver(fn() => null);
+        $request->setUserResolver(fn () => null);
     }
 }

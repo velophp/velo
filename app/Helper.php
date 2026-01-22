@@ -57,14 +57,14 @@ class Helper
             'password' => $superuserPassword,
         ]);
 
-        foreach(range(1, 10) as $i) {
+        foreach (range(1, 10) as $i) {
             Record::create([
                 'collection_id' => $userCollection->id,
                 'data' => [
                     'name' => fake()->name(),
                     'email' => fake()->email(),
                     'password' => 'password',
-                ]
+                ],
             ]);
         }
 

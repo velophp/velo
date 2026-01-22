@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Record;
-use App\Services\RecordQuery;
 use Illuminate\Support\Arr;
 
 class FilterMatchingService
@@ -15,32 +14,32 @@ class FilterMatchingService
      */
     public function match(Record $record, ?string $filter): bool
     {
-        if (!$filter) {
+        if (! $filter) {
             return true;
         }
 
         $recordData = $record->data->toArray();
         $conditions = RecordQuery::parseFilterString($filter);
-        
+
         $orGroupMatched = false;
         $hasOrConditions = false;
-        
+
         foreach ($conditions as $condition) {
             $actualValue = Arr::get($recordData, $condition['field']);
             $matches = $this->compare($actualValue, $condition['operator'], $condition['value']);
-            
+
             if ($condition['logical'] === 'OR') {
                 $hasOrConditions = true;
                 if ($matches) {
                     $orGroupMatched = true;
                 }
             } else {
-                if (!$matches) {
+                if (! $matches) {
                     return false;
                 }
             }
         }
-        
+
         return $hasOrConditions ? $orGroupMatched : true;
     }
 

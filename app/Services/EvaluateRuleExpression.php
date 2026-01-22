@@ -61,7 +61,7 @@ class EvaluateRuleExpression
             $parts = explode('.', $path);
 
             // Navigate through context using dot notation
-            $value = $this->context['sys_' . $parts[0]] ?? null;
+            $value = $this->context['sys_'.$parts[0]] ?? null;
             for ($i = 1; $i < count($parts); $i++) {
                 if ($value === null) {
                     break;
@@ -80,7 +80,7 @@ class EvaluateRuleExpression
                 return '""';
             }
 
-            return '"' . str_replace('"', '\\"', (string) $value) . '"';
+            return '"'.str_replace('"', '\\"', (string) $value).'"';
         }, $result);
 
         // Flip expressions where quoted value is on the left side (e.g., "val" = field -> field = "val")
@@ -132,7 +132,7 @@ class EvaluateRuleExpression
     {
         $expression = $this->expression ?? '';
 
-        if (!str_contains($expression, '@request.auth')) {
+        if (! str_contains($expression, '@request.auth')) {
             return true;
         }
 

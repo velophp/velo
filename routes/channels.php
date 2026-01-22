@@ -2,7 +2,6 @@
 
 use App\Models\RealtimeConnection;
 use Illuminate\Support\Facades\Broadcast;
-use Illuminate\Support\Facades\Log;
 
 $prefix = config('larabase.realtime_channel_prefix');
 Broadcast::channel($prefix.'{channelName}', function ($user, $channelName) {
@@ -10,6 +9,7 @@ Broadcast::channel($prefix.'{channelName}', function ($user, $channelName) {
         'user' => $user,
         'channelName' => $channelName,
     ]);
+
     return RealtimeConnection::where('channel_name', $channelName)
         ->where('record_id', $user->meta?->_id)
         ->exists();

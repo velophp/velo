@@ -1,6 +1,5 @@
 <?php
 
-use App\Livewire\CollectionPage;
 use App\Models\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
