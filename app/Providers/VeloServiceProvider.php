@@ -2,9 +2,7 @@
 
 namespace App\Providers;
 
-use App\Models\AppConfig;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\ServiceProvider;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
@@ -25,7 +23,7 @@ class VeloServiceProvider extends ServiceProvider
     {
         // For now, hardcode project_id to 1. In a real multi-tenant app, this would come from the request/domain.
         $project_id = 1;
-        
+
         /** @var \App\Services\TenantConfigService $service */
         $service = app(\App\Services\TenantConfigService::class);
         $config = $service->load($project_id);
@@ -82,7 +80,7 @@ class VeloServiceProvider extends ServiceProvider
     private function applyRateLimiter(?int $rateLimit): void
     {
         $limit = $rateLimit ?: 120;
-        
+
         \Illuminate\Support\Facades\RateLimiter::for('dynamic-api', function (Request $request) use ($limit) {
             return \Illuminate\Cache\RateLimiting\Limit::perMinute($limit)->by($request->user()?->id ?: $request->ip());
         });

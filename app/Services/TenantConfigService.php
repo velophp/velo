@@ -9,7 +9,7 @@ class TenantConfigService
 {
     public function load(int $projectId): ?AppConfig
     {
-        $cacheKey = 'tenant_config_' . $projectId;
+        $cacheKey = 'tenant_config_'.$projectId;
         $ttl = config('larabase.cache_ttl', 60);
 
         try {

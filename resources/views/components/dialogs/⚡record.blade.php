@@ -1,21 +1,22 @@
 <?php
 
-use App\Enums\CollectionType;
-use App\Enums\FieldType;
-use App\Exceptions\InvalidRecordException;
 use App\Models\Record;
-use App\Services\IndexStrategies\MysqlIndexStrategy;
-use App\Services\RecordRulesCompiler;
+use Mary\Traits\Toast;
+use Livewire\Component;
+use App\Enums\FieldType;
+use Livewire\Attributes\On;
+use App\Enums\CollectionType;
+use Livewire\Attributes\Rule;
+use Livewire\WithFileUploads;
 use App\Traits\FileLibrarySync;
 use Illuminate\Support\Collection;
-use Livewire\Attributes\On;
-use Livewire\Attributes\Rule;
-use Livewire\Component;
-use Mary\Traits\Toast;
+use App\Services\RecordRulesCompiler;
+use App\Exceptions\InvalidRecordException;
+use App\Services\IndexStrategies\MysqlIndexStrategy;
 
 new class extends Component {
 
-    use Toast, FileLibrarySync;
+    use WithFileUploads, Toast, FileLibrarySync;
 
     public \App\Models\Collection $collection;
     public \App\Models\Collection $originalCollection;

@@ -18,7 +18,7 @@ class ConfigLoadingTest extends TestCase
         // Clear cache to ensure fresh config loading
         \Illuminate\Support\Facades\Cache::flush();
         \Illuminate\Database\Eloquent\Model::unguard();
-        
+
         if (class_exists(\App\Models\Project::class)) {
             \App\Models\Project::create(['id' => 1, 'name' => 'Test Project']);
         } else {
@@ -83,12 +83,14 @@ class ConfigLoadingTest extends TestCase
 
         $limiter = RateLimiter::limiter('dynamic-api');
         $this->assertNotNull($limiter);
-        
+
         $request = \Illuminate\Http\Request::create('/api/test', 'GET');
-        $request->setUserResolver(function () { return null; });
-        
+        $request->setUserResolver(function () {
+            return null;
+        });
+
         $limitObject = $limiter($request);
-        
+
         $this->assertEquals(120, $limitObject->maxAttempts);
     }
 
@@ -97,16 +99,15 @@ class ConfigLoadingTest extends TestCase
         AppConfig::create([
             'project_id' => 1,
             'app_name' => 'Test',
-            'rate_limits' => 200, 
+            'rate_limits' => 200,
         ]);
-        
-        
+
         $provider = new \App\Providers\VeloServiceProvider($this->app);
         $provider->boot();
 
         $limiter = RateLimiter::limiter('dynamic-api');
         $request = \Illuminate\Http\Request::create('/api/test', 'GET');
-        
+
         $limitObject = $limiter($request);
         $this->assertEquals(200, $limitObject->maxAttempts);
     }
