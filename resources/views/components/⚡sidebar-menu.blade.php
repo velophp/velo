@@ -15,7 +15,6 @@ new class extends Component {
 
 <x-menu activate-by-route>
     
-    @persist('sidebar')
     @if ($user = auth()->user())
         <x-menu-separator />
 
@@ -56,11 +55,12 @@ new class extends Component {
     
     <x-menu-separator />
     
-    <x-menu-item icon="lucide.chart-line" title="Logs" link="{{ route('system.logs') }}" no-wire-navigate />
-    <x-menu-item icon="lucide.settings-2" title="Settings" link="{{ route('system.settings') }}" />
+    <x-menu-item icon="lucide.chart-line" title="Logs" link="{{ route('system.logs') }}" activate-by-route />
+    <x-menu-item icon="lucide.settings-2" title="Settings" link="{{ route('system.settings') }}" activate-by-route />
     
     <x-menu-separator />
 
+    @persist('sidebar')
     <div class="px-4 py-2">
         <x-theme-toggle darkTheme="dark" lightTheme="light" />
     </div>
