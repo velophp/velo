@@ -24,7 +24,7 @@
         </x-slot:actions>
     </x-nav>
 
-    <x-custom-main :fullWidth="true">
+    <x-sidebar-layout :fullWidth="true">
         <x-slot:sidebar drawer="main-drawer" collapsible class="bg-base-100 lg:bg-inherit">
 
             <x-app-brand class="px-5 pt-4" />
@@ -35,8 +35,8 @@
         <x-slot:content>
             {{ $slot }}
         </x-slot:content>
-    </x-custom-main>
-
+    </x-sidebar-layout>
+    
     <livewire:create-collection />
 
     <x-toast position="toast-bottom toast-end" />

@@ -13,28 +13,34 @@ class VeloServiceProvider extends ServiceProvider
     /**
      * Bootstrap services.
      */
+    /**
+     * Bootstrap services.
+     */
     public function boot(): void
     {
-        if (app()->runningInConsole()) return;
-
-        $this->registerTrustProxies();
-        $this->registerEmailConfig();
-        $this->registerStorageConfig();
-        $this->registerRateLimiter();
+        $this->bootTenantConfig();
     }
 
-    private function registerTrustProxies(): void
+    private function bootTenantConfig(): void
     {
+        // For now, hardcode project_id to 1. In a real multi-tenant app, this would come from the request/domain.
         $project_id = 1;
+        
+        /** @var \App\Services\TenantConfigService $service */
+        $service = app(\App\Services\TenantConfigService::class);
+        $config = $service->load($project_id);
 
-        $ttl = config('larabase.cache_ttl');
-        $proxies = Cache::remember('app_config.trusted_proxies.' . $project_id, $ttl, function () use ($project_id) {
-            return AppConfig::firstWhere('project_id', $project_id)?->get('trusted_proxies');
-        });
+        $this->applyTrustProxies($config?->trusted_proxies);
+        $this->applyEmailConfig($config?->email_settings);
+        $this->applyStorageConfig($config?->storage_settings);
+        $this->applyRateLimiter($config?->rate_limits);
+    }
 
+    private function applyTrustProxies(?array $proxies): void
+    {
         if ($proxies) {
             Request::setTrustedProxies(
-                proxies: $proxies->toArray(),
+                proxies: $proxies,
                 trustedHeaderSet: SymfonyRequest::HEADER_X_FORWARDED_FOR |
                     SymfonyRequest::HEADER_X_FORWARDED_HOST |
                     SymfonyRequest::HEADER_X_FORWARDED_PORT |
@@ -44,63 +50,41 @@ class VeloServiceProvider extends ServiceProvider
         }
     }
 
-    private function registerEmailConfig(): void
+    private function applyEmailConfig(?array $settings): void
     {
-        $project_id = 1;
-        $ttl = config('larabase.cache_ttl', 60);
-
-        $config = Cache::remember('email_config.' . $project_id, $ttl, function () use ($project_id) {
-            return \App\Models\EmailConfig::firstWhere('project_id', $project_id);
-        });
-
-        if ($config) {
+        if ($settings) {
             config([
-                'mail.mailers.smtp.host' => $config->host,
-                'mail.mailers.smtp.port' => $config->port,
-                'mail.mailers.smtp.username' => $config->username,
-                'mail.mailers.smtp.password' => $config->password,
-                'mail.mailers.smtp.encryption' => $config->encryption,
-                'mail.from.address' => $config->from_address,
-                'mail.from.name' => $config->from_name,
+                'mail.mailers.smtp.host' => $settings['host'] ?? null,
+                'mail.mailers.smtp.port' => $settings['port'] ?? null,
+                'mail.mailers.smtp.username' => $settings['username'] ?? null,
+                'mail.mailers.smtp.password' => $settings['password'] ?? null,
+                'mail.mailers.smtp.encryption' => $settings['encryption'] ?? null,
+                'mail.from.address' => $settings['from_address'] ?? null,
+                'mail.from.name' => $settings['from_name'] ?? null,
             ]);
         }
     }
 
-    private function registerStorageConfig(): void
+    private function applyStorageConfig(?array $settings): void
     {
-        $project_id = 1;
-        $ttl = config('larabase.cache_ttl', 60);
-
-        $config = Cache::remember('storage_config.' . $project_id, $ttl, function () use ($project_id) {
-            return \App\Models\StorageConfig::firstWhere('project_id', $project_id);
-        });
-
-        if ($config) {
-            if ($config->provider === 's3') {
-                config([
-                    'filesystems.disks.s3.endpoint' => $config->endpoint,
-                    'filesystems.disks.s3.bucket' => $config->bucket,
-                    'filesystems.disks.s3.region' => $config->region,
-                    'filesystems.disks.s3.key' => $config->access_key,
-                    'filesystems.disks.s3.secret' => $config->secret_key,
-                    'filesystems.disks.s3.use_path_style_endpoint' => $config->s3_force_path_styling,
-                ]);
-            }
+        if ($settings && ($settings['provider'] ?? 'local') === 's3') {
+            config([
+                'filesystems.disks.s3.endpoint' => $settings['endpoint'] ?? null,
+                'filesystems.disks.s3.bucket' => $settings['bucket'] ?? null,
+                'filesystems.disks.s3.region' => $settings['region'] ?? null,
+                'filesystems.disks.s3.key' => $settings['access_key'] ?? null,
+                'filesystems.disks.s3.secret' => $settings['secret_key'] ?? null,
+                'filesystems.disks.s3.use_path_style_endpoint' => $settings['s3_force_path_styling'] ?? false,
+            ]);
         }
     }
 
-    private function registerRateLimiter(): void
+    private function applyRateLimiter(?int $rateLimit): void
     {
-        $project_id = 1;
-        $ttl = config('larabase.cache_ttl', 60);
-
-        $rateLimit = Cache::remember('app_config.rate_limit.' . $project_id, $ttl, function () use ($project_id) {
-            $config = AppConfig::firstWhere('project_id', $project_id);
-            return $config && isset($config->rate_limits) ? $config->rate_limits : 120;
-        });
-
-        \Illuminate\Support\Facades\RateLimiter::for('dynamic-api', function (Request $request) use ($rateLimit) {
-            return \Illuminate\Cache\RateLimiting\Limit::perMinute($rateLimit)->by($request->user()?->id ?: $request->ip());
+        $limit = $rateLimit ?: 120;
+        
+        \Illuminate\Support\Facades\RateLimiter::for('dynamic-api', function (Request $request) use ($limit) {
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute($limit)->by($request->user()?->id ?: $request->ip());
         });
     }
 }

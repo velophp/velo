@@ -26,6 +26,13 @@ class RealtimeBroadcastingTest extends TestCase
             'project_id' => $project->id,
             'name' => 'posts',
             'type' => \App\Enums\CollectionType::Base,
+            'api_rules' => [
+                'list' => '',
+                'view' => '',
+                'create' => '',
+                'update' => '',
+                'delete' => '',
+            ],
         ]);
 
         $collection->fields()->createMany(CollectionField::createBaseFrom([
@@ -59,7 +66,7 @@ class RealtimeBroadcastingTest extends TestCase
         // 3. Assert Event Dispatched
         Event::assertDispatched(RealtimeMessage::class, function ($event) use ($connection) {
             return $event->channelName === $connection->channel_name
-                && $event->payload['action'] === 'create'
+                && $event->payload['action'] === 'created'
                 && $event->payload['record']['status'] === 'active';
         });
     }
@@ -73,13 +80,22 @@ class RealtimeBroadcastingTest extends TestCase
             'project_id' => $project->id,
             'name' => 'posts',
             'type' => \App\Enums\CollectionType::Base,
+            'api_rules' => [
+                'list' => '',
+                'view' => '',
+                'create' => '',
+                'update' => '',
+                'delete' => '',
+            ],
         ]);
 
         // 1. Subscribe to 'status=active'
+        // 1. Subscribe to 'status=active'
+        $uuid = \Illuminate\Support\Str::uuid()->toString();
         $connection = RealtimeConnection::create([
             'project_id' => $project->id,
             'collection_id' => $collection->id,
-            'channel_name' => 'uuid-active-sub',
+            'channel_name' => $uuid,
             'filter' => 'status = active',
             'last_seen_at' => now(),
         ]);

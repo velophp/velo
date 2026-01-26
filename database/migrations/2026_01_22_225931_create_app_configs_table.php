@@ -18,7 +18,11 @@ return new class extends Migration
             $table->string('app_url')->default('http://localhost');
             $table->json('trusted_proxies')->nullable();
             $table->integer('rate_limits')->nullable();
+            $table->json('email_settings')->nullable();
+            $table->json('storage_settings')->nullable();
             $table->timestamps();
+
+            $table->unique(['project_id']); // Ensure one config per project
         });
     }
 

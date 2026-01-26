@@ -1,9 +1,7 @@
 <?php
 
 use App\Models\AppConfig;
-use App\Models\EmailConfig;
 use App\Models\Project;
-use App\Models\StorageConfig;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -86,34 +84,35 @@ new class extends Component {
 
     protected function loadSettings(): void
     {
-
         // Load AppConfig
         $appConfig = AppConfig::where('project_id', $this->project->id)->first();
+        
+        // General
         $this->app_name = $appConfig->app_name ?? $this->project->name ?? '';
         $this->app_url = $appConfig->app_url ?? 'http://localhost';
         $this->trusted_proxies_input = $appConfig?->trusted_proxies ? implode(', ', $appConfig->trusted_proxies) : '';
         $this->rate_limits = $appConfig?->rate_limits;
 
-        // Load EmailConfig
-        $emailConfig = EmailConfig::where('project_id', $this->project->id)->first();
-        $this->mail_mailer = $emailConfig->mailer ?? 'smtp';
-        $this->mail_host = $emailConfig->host ?? '';
-        $this->mail_port = $emailConfig->port ?? '587';
-        $this->mail_username = $emailConfig->username ?? '';
-        $this->mail_password = $emailConfig->password ?? '';
-        $this->mail_encryption = $emailConfig->encryption ?? 'tls';
-        $this->mail_from_address = $emailConfig->from_address ?? '';
-        $this->mail_from_name = $emailConfig->from_name ?? '';
+        // Email
+        $emailSettings = $appConfig->email_settings ?? [];
+        $this->mail_mailer = $emailSettings['mailer'] ?? 'smtp';
+        $this->mail_host = $emailSettings['host'] ?? '';
+        $this->mail_port = $emailSettings['port'] ?? '587';
+        $this->mail_username = $emailSettings['username'] ?? '';
+        $this->mail_password = $emailSettings['password'] ?? '';
+        $this->mail_encryption = $emailSettings['encryption'] ?? 'tls';
+        $this->mail_from_address = $emailSettings['from_address'] ?? '';
+        $this->mail_from_name = $emailSettings['from_name'] ?? '';
 
-        // Load StorageConfig
-        $storageConfig = StorageConfig::where('project_id', $this->project->id)->first();
-        $this->storage_provider = $storageConfig->provider ?? 'local';
-        $this->storage_endpoint = $storageConfig->endpoint ?? '';
-        $this->storage_bucket = $storageConfig->bucket ?? '';
-        $this->storage_region = $storageConfig->region ?? '';
-        $this->storage_access_key = $storageConfig->access_key ?? '';
-        $this->storage_secret_key = $storageConfig->secret_key ?? '';
-        $this->s3_force_path_styling = $storageConfig->s3_force_path_styling ?? false;
+        // Storage
+        $storageSettings = $appConfig->storage_settings ?? [];
+        $this->storage_provider = $storageSettings['provider'] ?? 'local';
+        $this->storage_endpoint = $storageSettings['endpoint'] ?? '';
+        $this->storage_bucket = $storageSettings['bucket'] ?? '';
+        $this->storage_region = $storageSettings['region'] ?? '';
+        $this->storage_access_key = $storageSettings['access_key'] ?? '';
+        $this->storage_secret_key = $storageSettings['secret_key'] ?? '';
+        $this->s3_force_path_styling = $storageSettings['s3_force_path_styling'] ?? false;
     }
 
     public function saveGeneralSettings(): void
@@ -158,19 +157,25 @@ new class extends Component {
             'mail_from_name' => $this->rules()['mail_from_name'],
         ]);
 
-        EmailConfig::updateOrCreate(
-            ['project_id' => $this->project->id],
-            [
-                'mailer' => $this->mail_mailer,
-                'host' => $this->mail_host,
-                'port' => $this->mail_port,
-                'username' => $this->mail_username,
-                'password' => $this->mail_password,
-                'encryption' => $this->mail_encryption,
-                'from_address' => $this->mail_from_address,
-                'from_name' => $this->mail_from_name,
-            ]
-        );
+        $settings = [
+            'mailer' => $this->mail_mailer,
+            'host' => $this->mail_host,
+            'port' => $this->mail_port,
+            'username' => $this->mail_username,
+            'password' => $this->mail_password,
+            'encryption' => $this->mail_encryption,
+            'from_address' => $this->mail_from_address,
+            'from_name' => $this->mail_from_name,
+        ];
+
+        $appConfig = AppConfig::firstOrNew(['project_id' => $this->project->id]);
+        $appConfig->email_settings = $settings;
+        
+        if (!$appConfig->exists) {
+            $appConfig->app_name = $this->project->name;
+        }
+        
+        $appConfig->save();
 
         $this->success('Mail settings saved successfully.');
     }
@@ -187,18 +192,23 @@ new class extends Component {
             's3_force_path_styling' => $this->rules()['s3_force_path_styling'],
         ]);
 
-        StorageConfig::updateOrCreate(
-            ['project_id' => $this->project->id],
-            [
-                'provider' => $this->storage_provider,
-                'endpoint' => $this->storage_endpoint,
-                'bucket' => $this->storage_bucket,
-                'region' => $this->storage_region,
-                'access_key' => $this->storage_access_key,
-                'secret_key' => $this->storage_secret_key,
-                's3_force_path_styling' => $this->s3_force_path_styling,
-            ]
-        );
+        $settings = [
+            'provider' => $this->storage_provider,
+            'endpoint' => $this->storage_endpoint,
+            'bucket' => $this->storage_bucket,
+            'region' => $this->storage_region,
+            'access_key' => $this->storage_access_key,
+            'secret_key' => $this->storage_secret_key,
+            's3_force_path_styling' => $this->s3_force_path_styling,
+        ];
+
+        $appConfig = AppConfig::firstOrNew(['project_id' => $this->project->id]);
+        $appConfig->storage_settings = $settings;
+        
+        if (!$appConfig->exists) {
+            $appConfig->app_name = $this->project->name;
+        }
+        $appConfig->save();
 
         $this->success('Storage settings saved successfully.');
     }

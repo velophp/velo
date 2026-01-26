@@ -2,22 +2,21 @@
 
 use Livewire\Component;
 
-new class extends Component
-{
+new class extends Component {
     public $projects;
 
     public function mount()
     {
         $this->projects = App\Models\Project::take(67)->get();
     }
-
 };
 
 ?>
 
 <x-menu activate-by-route>
-
-    @if($user = auth()->user())
+    
+    @persist('sidebar')
+    @if ($user = auth()->user())
         <x-menu-separator />
 
         <x-list-item :item="$user" value="name" sub-value="email" no-separator no-hover class="-mx-2 -my-2! rounded">
@@ -30,14 +29,16 @@ new class extends Component
         <x-menu-separator />
     @endif
 
-    <x-menu-item title="Search..." icon="o-magnifying-glass" class="text-gray-500" x-on:click.stop="$dispatch('mary-search-open')" />
+    <x-menu-item title="Search..." icon="o-magnifying-glass" class="text-gray-500"
+        x-on:click.stop="$dispatch('mary-search-open')" />
 
     <x-menu-separator />
 
     @foreach ($projects as $project)
         <x-menu-sub :title="$project->name" icon="o-circle-stack" active-by-route>
             @foreach ($project->collections()->oldest()->get() as $c)
-                <x-menu-item :title="$c->name" :icon="$c->icon" link="{{ route('collections', ['collection' => $c]) }}" />
+                <x-menu-item :title="$c->name" :icon="$c->icon"
+                    link="{{ route('collections', ['collection' => $c]) }}" />
             @endforeach
         </x-menu-sub>
     @endforeach
@@ -52,5 +53,17 @@ new class extends Component
     <x-menu-separator />
 
     <x-menu-item title="Create Collection" icon="o-plus" x-on:click="$dispatch('create-collection')" />
+    
+    <x-menu-separator />
+    
+    <x-menu-item icon="lucide.chart-line" title="Logs" link="{{ route('system.logs') }}" no-wire-navigate />
+    <x-menu-item icon="lucide.settings-2" title="Settings" link="{{ route('system.settings') }}" />
+    
+    <x-menu-separator />
+
+    <div class="px-4 py-2">
+        <x-theme-toggle darkTheme="dark" lightTheme="light" />
+    </div>
+    @endpersist
 
 </x-menu>

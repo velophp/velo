@@ -3,8 +3,6 @@
 namespace Tests\Feature;
 
 use App\Models\AppConfig;
-use App\Models\EmailConfig;
-use App\Models\StorageConfig;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\RateLimiter;
@@ -21,10 +19,6 @@ class ConfigLoadingTest extends TestCase
         \Illuminate\Support\Facades\Cache::flush();
         \Illuminate\Database\Eloquent\Model::unguard();
         
-        // Create a project for foreign key constraints
-        // We assume Project model exists or we insert into DB directly if Model not found (unlikely)
-        // Let's check for Project model first. 
-        // Based on LaraBase, it likely exists.
         if (class_exists(\App\Models\Project::class)) {
             \App\Models\Project::create(['id' => 1, 'name' => 'Test Project']);
         } else {
@@ -35,16 +29,19 @@ class ConfigLoadingTest extends TestCase
 
     public function test_email_config_is_loaded_and_cached(): void
     {
-        $config = EmailConfig::create([
+        AppConfig::create([
             'project_id' => 1,
-            'mailer' => 'smtp',
-            'host' => 'smtp.example.com',
-            'port' => 587,
-            'username' => 'user',
-            'password' => 'pass',
-            'encryption' => 'tls',
-            'from_address' => 'test@example.com',
-            'from_name' => 'Test App',
+            'app_name' => 'Test App',
+            'email_settings' => [
+                'mailer' => 'smtp',
+                'host' => 'smtp.example.com',
+                'port' => 587,
+                'username' => 'user',
+                'password' => 'pass',
+                'encryption' => 'tls',
+                'from_address' => 'test@example.com',
+                'from_name' => 'Test App',
+            ],
         ]);
 
         $provider = new \App\Providers\VeloServiceProvider($this->app);
@@ -56,15 +53,18 @@ class ConfigLoadingTest extends TestCase
 
     public function test_storage_config_is_loaded_and_cached(): void
     {
-        StorageConfig::create([
+        AppConfig::create([
             'project_id' => 1,
-            'provider' => 's3',
-            'endpoint' => 'https://s3.example.com',
-            'bucket' => 'my-bucket',
-            'region' => 'us-east-1',
-            'access_key' => 'key',
-            'secret_key' => 'secret',
-            's3_force_path_styling' => true,
+            'app_name' => 'Test App',
+            'storage_settings' => [
+                'provider' => 's3',
+                'endpoint' => 'https://s3.example.com',
+                'bucket' => 'my-bucket',
+                'region' => 'us-east-1',
+                'access_key' => 'key',
+                'secret_key' => 'secret',
+                's3_force_path_styling' => true,
+            ],
         ]);
 
         $provider = new \App\Providers\VeloServiceProvider($this->app);
@@ -81,7 +81,7 @@ class ConfigLoadingTest extends TestCase
         $provider = new \App\Providers\VeloServiceProvider($this->app);
         $provider->boot();
 
-        $limiter = RateLimiter::limiter('api');
+        $limiter = RateLimiter::limiter('dynamic-api');
         $this->assertNotNull($limiter);
         
         $request = \Illuminate\Http\Request::create('/api/test', 'GET');
@@ -104,7 +104,7 @@ class ConfigLoadingTest extends TestCase
         $provider = new \App\Providers\VeloServiceProvider($this->app);
         $provider->boot();
 
-        $limiter = RateLimiter::limiter('api');
+        $limiter = RateLimiter::limiter('dynamic-api');
         $request = \Illuminate\Http\Request::create('/api/test', 'GET');
         
         $limitObject = $limiter($request);

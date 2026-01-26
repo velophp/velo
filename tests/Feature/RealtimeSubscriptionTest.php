@@ -19,22 +19,19 @@ class RealtimeSubscriptionTest extends TestCase
             'project_id' => $project->id,
             'name' => 'posts',
             'type' => \App\Enums\CollectionType::Base,
+            'api_rules' => ['list' => ''],
         ]);
 
         $response = $this->postJson(route('realtime.subscribe'), [
-            'collection_id' => $collection->id,
-            'filters' => ['status' => 'active'],
+            'collection' => $collection->name,
+            'filter' => 'status=active',
         ]);
 
-        $response->assertStatus(200)
-            ->assertJsonStructure(['channel_name']);
-
-        $channelName = $response->json('channel_name');
+        $response->assertStatus(200)->assertJsonStructure(['channel_name']);
 
         $this->assertDatabaseHas('realtime_connections', [
             'collection_id' => $collection->id,
-            'channel_name' => $channelName,
-            'filters' => json_encode(['status' => 'active']),
+            'filter' => 'status=active',
         ]);
     }
 
@@ -45,18 +42,21 @@ class RealtimeSubscriptionTest extends TestCase
             'project_id' => $project->id,
             'name' => 'posts',
             'type' => \App\Enums\CollectionType::Base,
+            'api_rules' => ['list' => ''],
         ]);
+
+        $uuid = \Illuminate\Support\Str::uuid()->toString();
 
         // Seed connection
         $connection = RealtimeConnection::create([
             'project_id' => $project->id,
             'collection_id' => $collection->id,
-            'channel_name' => 'test-uuid',
+            'channel_name' => $uuid,
             'last_seen_at' => now()->subMinutes(10),
         ]);
 
         $response = $this->postJson(route('realtime.ping'), [
-            'channel_name' => 'test-uuid',
+            'channel_name' => $connection->channel_name,
         ]);
 
         $response->assertOk();
