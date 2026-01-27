@@ -7,7 +7,6 @@ use App\Models\AuthPasswordReset;
 use App\Models\CollectionField;
 use App\Rules\RuleExpression;
 use App\Services\IndexStrategies\MysqlIndexStrategy;
-use App\Traits\FileLibrarySync;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\ValidationException;
@@ -18,7 +17,7 @@ use Mary\Traits\Toast;
 use Livewire\Attributes\On;
 
 new class extends Component {
-    use Toast, FileLibrarySync;
+    use Toast;
 
     public \App\Models\Collection $collection;
     public \Illuminate\Database\Eloquent\Collection $fields;

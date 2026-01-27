@@ -11,7 +11,6 @@ use Livewire\WithPagination;
 use Mary\Traits\Toast;
 
 new class extends Component {
-
     use WithPagination, Toast;
 
     public \App\Models\Collection $collection;
@@ -33,11 +32,7 @@ new class extends Component {
     public function mount(): void
     {
         $this->fields = $this->collection->fields->sortBy('order')->values();
-        $this->breadcrumbs = [
-            ['link' => route('home'), 'icon' => 's-home'],
-            ['label' => ucfirst(request()->route()->getName())],
-            ['label' => $this->collection->name],
-        ];
+        $this->breadcrumbs = [['link' => route('home'), 'icon' => 's-home'], ['label' => ucfirst(request()->route()->getName())], ['label' => $this->collection->name]];
     }
 
     public function updatedFilter(): void
@@ -76,7 +71,8 @@ new class extends Component {
                 }
 
                 return $headers;
-            })->toArray();
+            })
+            ->toArray();
     }
 
     #[Computed]
@@ -138,7 +134,9 @@ new class extends Component {
     #[On('delete-record')]
     public function promptDeleteRecord(): void
     {
-        if (empty($this->selected)) return;
+        if (empty($this->selected)) {
+            return;
+        }
         $this->showConfirmDeleteDialog = true;
     }
 
@@ -154,21 +152,21 @@ new class extends Component {
 
             unset($this->tableRows);
 
-            $this->success(
-                title: 'Success!',
-                description: "Deleted $count {$this->collection->name} " . str('record')->plural($count) . '.',
-                position: 'toast-bottom toast-end',
-                timeout: 2000,
-            );
+            $this->success(title: 'Success!', description: "Deleted $count {$this->collection->name} " . str('record')->plural($count) . '.', position: 'toast-bottom toast-end', timeout: 2000);
         } catch (InvalidRecordException $e) {
             $this->error($e->getMessage());
         } finally {
             $this->dispatch('close-record-drawer');
         }
     }
-
 };
 ?>
+
+@assets
+    <script src="https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/umd/photoswipe.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/umd/photoswipe-lightbox.umd.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/photoswipe@5.4.3/dist/photoswipe.min.css" rel="stylesheet">
+@endassets
 
 <div>
 
@@ -177,39 +175,38 @@ new class extends Component {
 
     <div class="flex justify-between flex-wrap">
         <div class="flex items-center gap-4">
-            <x-breadcrumbs :items="$breadcrumbs"/>
+            <x-breadcrumbs :items="$breadcrumbs" />
             <div class="flex items-center gap-2">
                 <x-button icon="o-cog-6-tooth" tooltip-bottom="Configure Collection" class="btn-circle btn-ghost"
-                          wire:click="$dispatch('show-collection', { id: '{{ $collection->id }}' })"/>
+                    wire:click="$dispatch('show-collection', { id: '{{ $collection->id }}' })" />
                 <x-button icon="o-arrow-path" tooltip-bottom="Refresh" class="btn-circle btn-ghost"
-                          wire:click="$refresh"/>
+                    wire:click="$refresh" />
             </div>
         </div>
         <div class="flex items-center gap-2">
             <x-button label="New Record" class="btn-primary" icon="o-plus"
-                      wire:click="$dispatch('open-record-drawer')"/>
+                wire:click="$dispatch('open-record-drawer')" />
         </div>
     </div>
 
     <div class="my-8"></div>
 
     <x-input wire:model.live.debounce.250ms="filter" placeholder="Search term or filter using rules..."
-             icon="o-magnifying-glass" clearable/>
+        icon="o-magnifying-glass" clearable />
 
     <div class="my-4"></div>
 
     <div class="flex justify-end">
         <x-dropdown>
             <x-slot:trigger>
-                <x-button icon="o-table-cells" class="btn-sm"/>
+                <x-button icon="o-table-cells" class="btn-sm" />
             </x-slot:trigger>
 
-            <x-menu-item title="Toggle Fields" disabled/>
+            <x-menu-item title="Toggle Fields" disabled />
 
             @foreach ($fields as $field)
                 <x-menu-item :wire:key="$field->name" x-on:click.stop="$wire.toggleField('{{ $field->name }}')">
-                    <x-toggle :label="$field->name"
-                              :checked="isset($fieldsVisibility[$field->name]) && $fieldsVisibility[$field->name] == true"/>
+                    <x-toggle :label="$field->name" :checked="isset($fieldsVisibility[$field->name]) && $fieldsVisibility[$field->name] == true" />
                 </x-menu-item>
             @endforeach
         </x-dropdown>
@@ -217,59 +214,58 @@ new class extends Component {
 
     <div class="my-4"></div>
 
-    <x-table :headers="$this->tableHeaders" :rows="$this->tableRows"
-             @row-click="$dispatch('show-record', { id: $event.detail.id })" wire:model.live.debounce.250ms="selected"
-             selectable striped with-pagination per-page="perPage" :per-page-values="[10, 15, 25, 50, 100, 250, 500]"
-             :sort-by="$sortBy">
+    <x-table :headers="$this->tableHeaders" :rows="$this->tableRows" @row-click="$dispatch('show-record', { id: $event.detail.id })"
+        wire:model.live.debounce.250ms="selected" selectable striped with-pagination per-page="perPage"
+        :per-page-values="[10, 15, 25, 50, 100, 250, 500]" :sort-by="$sortBy">
         <x-slot:empty>
             <div class="flex flex-col items-center my-4">
                 <p class="text-gray-500 text-center mb-4">No results found.</p>
                 <x-button label="New Record" class="btn-primary btn-soft btn-sm" icon="o-plus"
-                          x-on:click="$dispatch('open-record-drawer')"/>
+                    x-on:click="$dispatch('open-record-drawer')" />
             </div>
         </x-slot:empty>
 
         @foreach ($fields as $field)
             @cscope('header_' . $field->name, $header, $field)
-            <x-icon name="{{ $field->getIcon() }}" class="w-3 opacity-80"/> {{ $header['label'] }}
+                <x-icon name="{{ $field->getIcon() }}" class="w-3 opacity-80" /> {{ $header['label'] }}
             @endcscope
         @endforeach
 
         @scope('cell_id', $row)
-        <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5" x-on:click.stop="">
-            <p>{{ str($row->id)->limit(16) }}</p>
-            <x-copy-button :text="$row->id"/>
-        </div>
+            <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5" x-on:click.stop="">
+                <p>{{ str($row->id)->limit(16) }}</p>
+                <x-copy-button :text="$row->id" />
+            </div>
         @endscope
 
         @scope('cell_created', $row)
-        @if (isset($row->created) && $row->created)
-            <div class="flex flex-col w-20">
-                <p>{{ Carbon\Carbon::parse($row->created)->format('Y-m-d') }}</p>
-                <p class="text-xs opacity-80">{{ Carbon\Carbon::parse($row->created)->format('H:i:s') }}</p>
-            </div>
-        @else
-            <p>-</p>
-        @endif
+            @if (isset($row->created) && $row->created)
+                <div class="flex flex-col w-20">
+                    <p>{{ Carbon\Carbon::parse($row->created)->format('Y-m-d') }}</p>
+                    <p class="text-xs opacity-80">{{ Carbon\Carbon::parse($row->created)->format('H:i:s') }}</p>
+                </div>
+            @else
+                <p>-</p>
+            @endif
         @endscope
 
         @scope('cell_updated', $row)
-        @if (isset($row->updated) && $row->updated)
-            <div class="flex flex-col w-20">
-                <p>{{ Carbon\Carbon::parse($row->updated)->format('Y-m-d') }}</p>
-                <p class="text-xs opacity-80">{{ Carbon\Carbon::parse($row->updated)->format('H:i:s') }}</p>
-            </div>
-        @else
-            <p>-</p>
-        @endif
+            @if (isset($row->updated) && $row->updated)
+                <div class="flex flex-col w-20">
+                    <p>{{ Carbon\Carbon::parse($row->updated)->format('Y-m-d') }}</p>
+                    <p class="text-xs opacity-80">{{ Carbon\Carbon::parse($row->updated)->format('H:i:s') }}</p>
+                </div>
+            @else
+                <p>-</p>
+            @endif
         @endscope
 
         @foreach ($fields as $field)
 
             @if ($field->type === App\Enums\FieldType::Bool)
                 @cscope('cell_' . $field->name, $row, $field)
-                <x-badge :wire:key="$field->name . $row->id" :value="$row->{$field->name} ? 'True' : 'False'"
-                         class="{{ $row->{$field->name} ? 'badge-success' : '' }} badge-soft "/>
+                    <x-badge :wire:key="$field->name . $row->id" :value="$row->{$field->name} ? 'True' : 'False'"
+                        class="{{ $row->{$field->name} ? 'badge-success' : '' }} badge-soft " />
                 @endcscope
                 @continue
             @endif
@@ -277,74 +273,75 @@ new class extends Component {
 
             @if ($field->type === App\Enums\FieldType::Relation)
                 @cscope('cell_' . $field->name, $row, $field)
-                @php
-                    $relations = $row->{$field->name} ?? [];
-                    $relatedCollections = App\Models\Collection::find($field->options->collection);
-                @endphp
-                @if (!empty($relations))
-                    <div class="flex flex-wrap gap-2">
-                        @foreach (array_slice($relations, 0, 3) as $id)
-                            @php
-                                $record = !$relatedCollections ? null : $relatedCollections->records()->filter('id', '=', $id)->buildQuery()->first();
-                            @endphp
-                            <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
-                                <p>{{ str($record?->data['name'] ?? $record?->data['email'] ?? $id)->limit(16) }}</p>
-                                <x-button class="btn-xs btn-ghost btn-circle"
-                                          link="{{ route('collections', ['collection' => $relatedCollections?->name, 'recordId' => $id]) }}"
-                                          external>
-                                    <x-icon name="lucide.external-link" class="w-5 h-5"/>
-                                </x-button>
-                            </div>
-                        @endforeach
-                    </div>
-                @else
-                    -
-                @endif
+                    @php
+                        $relations = $row->{$field->name} ?? [];
+                        $relatedCollections = App\Models\Collection::find($field->options->collection);
+                    @endphp
+                    @if (!empty($relations))
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (array_slice($relations, 0, 3) as $id)
+                                @php
+                                    $record = !$relatedCollections
+                                        ? null
+                                        : $relatedCollections->records()->filter('id', '=', $id)->buildQuery()->first();
+                                @endphp
+                                <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
+                                    <p>{{ str($record?->data['name'] ?? ($record?->data['email'] ?? $id))->limit(16) }}</p>
+                                    <x-button class="btn-xs btn-ghost btn-circle"
+                                        link="{{ route('collections', ['collection' => $relatedCollections?->name, 'recordId' => $id]) }}"
+                                        external>
+                                        <x-icon name="lucide.external-link" class="w-5 h-5" />
+                                    </x-button>
+                                </div>
+                            @endforeach
+                        </div>
+                    @else
+                        -
+                    @endif
                 @endcscope
                 @continue
             @endif
 
             @if ($field->type === App\Enums\FieldType::File)
                 @cscope('cell_' . $field->name, $row, $field)
-                @php
-                    $files = $row->{$field->name} ?? [];
-                @endphp
-                @if (!empty($files))
-                    <div x-data="{
+                    @php
+                        $files = $row->{$field->name} ?? [];
+                    @endphp
+                    @if (!empty($files))
+                        <div x-on:click.stop="" x-data="{
                             init() {
                                 const lightbox = new PhotoSwipeLightbox({
                                     gallery: '#gallery-{{ str($row->id . '-' . $field->name)->slug() }}',
                                     children: 'a',
                                     pswpModule: PhotoSwipe
                                 });
-
+                        
                                 lightbox.init();
                             }
                         }">
-                        <div id="gallery-{{ str($row->id . '-' . $field->name)->slug() }}"
-                             class="pswp-gallery pswp-gallery--single-column carousel">
-                            @foreach (array_slice($files, 0, 3) as $file)
-                                <a wire:key="{{ $file->uuid }}" class="carousel-item" href="{{ $file->url }}"
-                                   @if (!$file->is_previewable) x-on:click.prevent="window.open('{{ $file->url }}')"
-                                   @endif
-                                   target="_blank">
-                                    @if ($file->is_previewable)
-                                        <img src="{{ $file->url }}" alt=""
-                                             class="object-cover hover:opacity-70 transition max-w-12 w-full aspect-square rounded me-2"
-                                             onload="this.parentNode.setAttribute('data-pswp-width', this.naturalWidth); this.parentNode.setAttribute('data-pswp-height', this.naturalHeight)"/>
-                                    @else
-                                        <div
-                                            class="w-12 h-12 rounded hover:opacity-70 me-2 border flex justify-center items-center">
-                                            <x-icon name="o-document"/>
-                                        </div>
-                                    @endif
-                                </a>
-                            @endforeach
+                            <div id="gallery-{{ str($row->id . '-' . $field->name)->slug() }}"
+                                class="pswp-gallery pswp-gallery--single-column carousel">
+                                @foreach (array_slice($files, 0, 3) as $file)
+                                    <a wire:key="{{ $file->uuid }}" class="carousel-item" href="{{ url($file->url) }}"
+                                        @if (!$file->is_previewable) x-on:click.stop.prevent="window.open('{{ url($file->url) }}')" @endif
+                                        target="_blank">
+                                        @if ($file->is_previewable)
+                                            <img src="{{ url($file->url) }}" alt=""
+                                                class="object-cover hover:opacity-70 transition max-w-12 w-full aspect-square rounded me-2"
+                                                onload="this.parentNode.setAttribute('data-pswp-width', this.naturalWidth); this.parentNode.setAttribute('data-pswp-height', this.naturalHeight)" />
+                                        @else
+                                            <div
+                                                class="w-12 h-12 rounded hover:opacity-70 me-2 border flex justify-center items-center">
+                                                <x-icon name="o-document" />
+                                            </div>
+                                        @endif
+                                    </a>
+                                @endforeach
+                            </div>
                         </div>
-                    </div>
-                @else
-                    -
-                @endif
+                    @else
+                        -
+                    @endif
                 @endcscope
                 @continue
             @endif
@@ -352,7 +349,8 @@ new class extends Component {
         @endforeach
 
         @scope('actions', $row)
-        <x-button icon="o-arrow-right" x-on:click="$dispatch('show-record', { id: '{{ $row->id }}' })" class="btn-sm"/>
+            <x-button icon="o-arrow-right" x-on:click="$dispatch('show-record', { id: '{{ $row->id }}' })"
+                class="btn-sm" />
         @endscope
     </x-table>
 
@@ -362,9 +360,8 @@ new class extends Component {
                 <div class="flex flex-row items-center gap-4">
                     <p>Selected <span class="font-bold">{{ count($this->selected) }}</span>
                         {{ str('record')->plural(count($this->selected)) }}</p>
-                    <x-button label="Reset" x-on:click="$wire.selected = []" class="btn-soft"/>
-                    <x-button label="Delete Selected" wire:click="promptDeleteRecord"
-                              class="btn-error btn-soft"/>
+                    <x-button label="Reset" x-on:click="$wire.selected = []" class="btn-soft" />
+                    <x-button label="Delete Selected" wire:click="promptDeleteRecord" class="btn-error btn-soft" />
                 </div>
             </x-card>
         </div>
@@ -375,8 +372,8 @@ new class extends Component {
         {{ str('record')->plural(count($selected)) }}? This action cannot be undone.
 
         <x-slot:actions>
-            <x-button label="Cancel" x-on:click="$wire.showConfirmDeleteDialog = false"/>
-            <x-button class="btn-error" label="Delete" wire:click="confirmDeleteRecord" spinner="confirmDeleteRecord"/>
+            <x-button label="Cancel" x-on:click="$wire.showConfirmDeleteDialog = false" />
+            <x-button class="btn-error" label="Delete" wire:click="confirmDeleteRecord" spinner="confirmDeleteRecord" />
         </x-slot:actions>
     </x-modal>
 

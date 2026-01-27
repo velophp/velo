@@ -4,6 +4,7 @@
   "workspaces": {
     "": {
       "dependencies": {
+        "filepond-plugin-image-preview": "^4.6.12",
         "sortablejs": "^1.15.6",
       },
       "devDependencies": {
@@ -226,6 +227,10 @@
     "escalade": ["escalade@3.2.0", "", {}, "sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA=="],
 
     "fdir": ["fdir@6.5.0", "", { "peerDependencies": { "picomatch": "^3 || ^4" } }, "sha512-tIbYtZbucOs0BRGqPJkshJUYdL+SDH7dVM8gjy+ERp3WAUjLEFJE+02kanyHtwjWOnwrKYBiwAmM0p4kLJAnXg=="],
+
+    "filepond": ["filepond@4.32.11", "", {}, "sha512-+uHkc/XNksMMy2S+x5MGxTuA97NqzBBwmoixn3tqGELa4BgqJ+PBiWL3YeRamqAoYguT7t/au3s7ams2jjMshA=="],
+
+    "filepond-plugin-image-preview": ["filepond-plugin-image-preview@4.6.12", "", { "peerDependencies": { "filepond": ">=4.x <5.x" } }, "sha512-Y8ETX5QVV0mbPB0586UH8AUmG9tZg8PuN5bdEAIlZVJFTct5ebViJ7+Am94/VhTPjLqZjBf1zmDq5JU6XRsZKw=="],
 
     "follow-redirects": ["follow-redirects@1.15.11", "", {}, "sha512-deG2P0JfjrTxl50XGCDyfI97ZGVCxIpfKYmfyrQ54n5FO/0gfIES8C/Psl6kWVDolizcaaxZJnTS0QSMxvnsBQ=="],
 

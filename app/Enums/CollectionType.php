@@ -6,7 +6,7 @@ enum CollectionType: string
 {
     case Base = 'Base';
     case Auth = 'Auth';
-    // case View = 'View';
+    case View = 'View';
 
     public static function toOptions(): array
     {

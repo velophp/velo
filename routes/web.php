@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\FileUploadController;
 use App\Models\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,10 @@ Route::prefix('_')->group(function () {
         Route::livewire('system/logs', 'pages::logs')->name('system.logs');
 
         Route::livewire('collections/{collection:name}', 'pages::collection')->name('collections');
+
+        Route::post('uploads/process', [FileUploadController::class, 'process'])->name('uploads.process');
+        Route::delete('uploads/revert', [FileUploadController::class, 'revert'])->name('uploads.revert');
+        Route::get('uploads/load', [FileUploadController::class, 'load'])->name('uploads.load');
 
         Route::get('logout', function () {
             Auth::logout();

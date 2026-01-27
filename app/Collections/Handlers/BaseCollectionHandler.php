@@ -46,6 +46,40 @@ class BaseCollectionHandler implements CollectionTypeHandler
             }
         }
 
+        // Handle File Uploads
+        $fileFields = $fields->filter(fn ($field) => $field->type === FieldType::File);
+        $fileUploadService = app(\App\Services\HandleFileUpload::class)->forCollection($record->collection);
+        
+        foreach ($fileFields as $field) {
+            $value = $data->get($field->name);
+            if (empty($value)) {
+                continue;
+            }
+
+            $files = is_array($value) ? $value : [$value];
+            $files = array_filter($files);
+            $processedFiles = [];
+
+            foreach ($files as $file) {
+                // Check if it's an existing file object (array with uuid)
+                if (is_array($file) && isset($file['uuid'])) {
+                    $processedFiles[] = $file;
+                    continue;
+                }
+
+                if ($file instanceof \Illuminate\Http\UploadedFile) {
+                    $fileUploadService->fromUpload($file);
+                } elseif (is_string($file)) {
+                    $fileUploadService->fromTmp($file);
+                }
+
+                $processed = $fileUploadService->save();
+                if ($processed) $processedFiles[] = $processed;
+            }
+            
+            $data->put($field->name, $processedFiles);
+        }
+
         $record->data = $data;
 
         $this->syncIndexes($record);

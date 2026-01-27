@@ -9,7 +9,7 @@ class FileFieldOption implements CollectionFieldOption
     public function __construct(
         public array $allowedMimeTypes = [], // e.g., ['image/jpeg', 'image/png']
         public ?int $maxSize = 10485760, // 10 MB in bytes
-        public ?int $minSize = 10485760, // 10 MB in bytes
+        public ?int $minSize = 0,
         public bool $multiple = false,
         public ?int $maxFiles = null, // if multiple is true
         public bool $generateThumbnail = false,
@@ -34,7 +34,7 @@ class FileFieldOption implements CollectionFieldOption
         return new static(
             allowedMimeTypes: $data['allowedMimeTypes'] ?? [],
             maxSize: $data['maxSize'] ?? 10485760, // 10 MB in bytes
-            minSize: $data['minSize'] ?? 10485760, // 10 MB in bytes
+            minSize: $data['minSize'] ?? 0,
             multiple: $data['multiple'] ?? false,
             maxFiles: $data['maxFiles'] ?? null,
             generateThumbnail: $data['generateThumbnail'] ?? false,

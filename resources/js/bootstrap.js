@@ -35,3 +35,5 @@ window.copyText = function(text) {
  */
 
 import './echo';
+
+import '@wotz/livewire-sortablejs';

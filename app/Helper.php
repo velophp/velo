@@ -52,6 +52,7 @@ class Helper
         }
 
         $user = User::create([
+            'project_id' => $project->id,
             'name' => 'superuser_'.Str::random(8),
             'email' => $superuserEmail,
             'password' => $superuserPassword,

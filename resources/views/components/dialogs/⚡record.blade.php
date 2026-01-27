@@ -8,15 +8,13 @@ use Livewire\Attributes\On;
 use App\Enums\CollectionType;
 use Livewire\Attributes\Rule;
 use Livewire\WithFileUploads;
-use App\Traits\FileLibrarySync;
 use Illuminate\Support\Collection;
 use App\Services\RecordRulesCompiler;
 use App\Exceptions\InvalidRecordException;
 use App\Services\IndexStrategies\MysqlIndexStrategy;
 
 new class extends Component {
-
-    use WithFileUploads, Toast, FileLibrarySync;
+    use Toast;
 
     public \App\Models\Collection $collection;
     public \App\Models\Collection $originalCollection;
@@ -29,9 +27,6 @@ new class extends Component {
 
     public ?string $recordId = null;
 
-    #[Rule(['files.*.*' => 'file'])]
-    public array $files = []; // Temp files for image library
-    public array $library = [];
     public array $tinyMceConfig = [];
 
     public function mount(\App\Models\Collection $collection): void
@@ -62,13 +57,7 @@ new class extends Component {
         $result = $compiler->filter('id', '=', $id)->first();
 
         if (!$result) {
-            $this->error(
-                title: 'Cannot show record.',
-                description: 'Record not found.',
-                position: 'toast-bottom toast-end',
-                icon: 'o-information-circle',
-                timeout: 2000,
-            );
+            $this->error(title: 'Cannot show record.', description: 'Record not found.', position: 'toast-bottom toast-end', icon: 'o-information-circle', timeout: 2000);
 
             return;
         }
@@ -97,8 +86,6 @@ new class extends Component {
 
                 if ($field->type === FieldType::File) {
                     $this->form[$field->name] = [];
-                    $this->files[$field->name] = [];
-                    $this->library[$field->name] = collect();
 
                     continue;
                 }
@@ -111,17 +98,10 @@ new class extends Component {
 
         $this->form = [...$data];
         $this->recordId = $data->get('id');
+
         foreach ($this->fields as $field) {
             if ($field->type === FieldType::File) {
-                $this->files[$field->name] = [];
-
-                // Load existing library data from form if it exists
-                $existingLibrary = $this->form[$field->name] ?? [];
-                if (is_array($existingLibrary) && !empty($existingLibrary)) {
-                    $this->library[$field->name] = collect($existingLibrary);
-                } else {
-                    $this->library[$field->name] = collect();
-                }
+                $this->form[$field->name] = is_array($data[$field->name]) ? $data[$field->name] : [$data[$field->name]];
             }
         }
     }
@@ -139,7 +119,9 @@ new class extends Component {
 
     public function promptDeleteRecord(): void
     {
-        if (!$this->recordId) return;
+        if (!$this->recordId) {
+            return;
+        }
         $this->showConfirmDeleteDialog = true;
     }
 
@@ -163,12 +145,7 @@ new class extends Component {
             $this->showRecordDrawer = false;
             $this->recordId = null;
 
-            $this->success(
-                title: 'Success!',
-                description: "Deleted 1 {$this->collection->name} record.",
-                position: 'toast-bottom toast-end',
-                timeout: 2000,
-            );
+            $this->success(title: 'Success!', description: "Deleted 1 {$this->collection->name} record.", position: 'toast-bottom toast-end', timeout: 2000);
         } catch (InvalidRecordException $e) {
             $this->error($e->getMessage());
         }
@@ -179,12 +156,7 @@ new class extends Component {
         $recordId = $this->recordId;
 
         $attributes = [];
-        $rules = app(RecordRulesCompiler::class)
-            ->forCollection($this->collection)
-            ->using(new MysqlIndexStrategy)
-            ->ignoreId($recordId)
-            ->withForm($this->form)
-            ->compile(prefix: 'form.');
+        $rules = app(RecordRulesCompiler::class)->forCollection($this->collection)->using(new MysqlIndexStrategy())->ignoreId($recordId)->withForm($this->form)->compile(prefix: 'form.');
 
         foreach ($rules as $ruleName => $rule) {
             if (str_ends_with($ruleName, '.*')) {
@@ -204,42 +176,16 @@ new class extends Component {
 
     public function saveRecord(): void
     {
+        //        dd($this->all());
+
         $this->validateRecord();
 
         $recordId = $this->recordId;
         $status = $recordId ? 'Updated' : 'Created';
 
-        $record = $recordId
-            ? $this->collection->records()->filter('id', '=', $recordId)->firstRaw()
-            : null;
+        $record = $recordId ? $this->collection->records()->filter('id', '=', $recordId)->firstRaw() : null;
 
         if ($record) {
-            // Sync file fields to storage and update form
-            foreach ($this->fields as $field) {
-                if ($field->type === FieldType::File) {
-                    $existingLibrary = is_array($record->data) && isset($record->data[$field->name])
-                        ? $record->data[$field->name]
-                        : [];
-
-                    if (!empty($this->files[$field->name])) {
-                        $updatedLibrary = $this->syncMedia(
-                            library: "library.$field->name",
-                            files: "files.$field->name",
-                            storage_subpath: "collections/{$this->collection->name}/{$record->data['id']}/$field->name",
-                            existingLibrary: $existingLibrary,
-                        );
-
-                        $this->form[$field->name] = $updatedLibrary->toArray();
-                    } else {
-                        // Just update library if files were removed but not added
-                        $currentLibrary = data_get($this, "library.$field->name");
-                        if ($currentLibrary instanceof Collection) {
-                            $this->form[$field->name] = $currentLibrary->toArray();
-                        }
-                    }
-                }
-            }
-
             unset($this->form['id_old']);
             $record->update([
                 'data' => $this->form,
@@ -250,20 +196,6 @@ new class extends Component {
                 'collection_id' => $this->collection->id,
                 'data' => $this->form,
             ];
-
-            // Sync file fields to storage and update form
-            foreach ($this->fields as $field) {
-                if ($field->type === FieldType::File && !empty($this->files[$field->name])) {
-                    $updatedLibrary = $this->syncMedia(
-                        library: "library.$field->name",
-                        files: "files.$field->name",
-                        storage_subpath: "collections/{$this->collection->name}/{$record->data['id']}/$field->name",
-                        existingLibrary: [],
-                    );
-
-                    $this->form[$field->name] = $updatedLibrary->toArray();
-                }
-            }
 
             // Update record with file URLs if any were uploaded
             if (collect($this->fields)->where('type', FieldType::File)->isNotEmpty()) {
@@ -279,18 +211,13 @@ new class extends Component {
         foreach ($this->fields as $field) {
             $this->form[$field->name] = $field->type === FieldType::Bool ? false : '';
 
-            if ($field->type === FieldType::File) {
-                $this->files[$field->name] = [];
-                $this->library[$field->name] = collect();
-            }
+            //            if ($field->type === FieldType::File) {
+            //                $this->files[$field->name] = [];
+            //                $this->library[$field->name] = collect();
+            //            }
         }
 
-        $this->success(
-            title: 'Success!',
-            description: "$status new {$this->collection->name} record",
-            position: 'toast-bottom toast-end',
-            timeout: 2000,
-        );
+        $this->success(title: 'Success!', description: "$status new {$this->collection->name} record", position: 'toast-bottom toast-end', timeout: 2000);
     }
 
     public function openRelationPicker(string $fieldName): void
@@ -306,12 +233,7 @@ new class extends Component {
         $multiple = $field->options->multiple ?? false;
         $selected = is_array($this->form[$fieldName]) ? $this->form[$fieldName] : [];
 
-        $this->dispatch('open-relation-picker',
-            collectionId: $collectionId,
-            fieldName: $fieldName,
-            selected: $selected,
-            multiple: $multiple
-        );
+        $this->dispatch('open-relation-picker', collectionId: $collectionId, fieldName: $fieldName, selected: $selected, multiple: $multiple);
     }
 
     #[On('relation-selected')]
@@ -323,26 +245,25 @@ new class extends Component {
 ?>
 
 @assets
-<script src="https://cdn.tiny.cloud/1/{{ config('larabase.tinymce_key') }}/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+    <script src="https://cdn.tiny.cloud/1/{{ config('larabase.tinymce_key') }}/tinymce/6/tinymce.min.js"
+        referrerpolicy="origin"></script>
 @endassets
 
 <div>
     <livewire:dialogs.relation-picker />
 
     <x-drawer wire:model="showRecordDrawer" class="w-full lg:w-2/5" right without-trap-focus
-              x-on:open-record-drawer.window="$wire.showRecordDrawer = true;"
-              x-on:close-record-drawer.window="$wire.showRecordDrawer = false;"
-              @close="$wire.resetRecordForm();"
-    >
+        x-on:open-record-drawer.window="$wire.showRecordDrawer = true;"
+        x-on:close-record-drawer.window="$wire.showRecordDrawer = false;" @close="$wire.resetRecordForm();">
         <div class="flex justify-between">
             <div class="flex items-center gap-2">
-                <x-button icon="o-x-mark" class="btn-circle btn-ghost" x-on:click="$wire.showRecordDrawer = false"/>
+                <x-button icon="o-x-mark" class="btn-circle btn-ghost" x-on:click="$wire.showRecordDrawer = false" />
                 <p class="text-sm">{{ isset($form['id']) && $form['id'] ? 'Update' : 'New' }} <span
                         class="font-bold">{{ $collection->name }}</span> record</p>
             </div>
             <x-dropdown right>
                 <x-slot:trigger>
-                    <x-button icon="o-bars-2" class="btn-circle btn-ghost" :hidden="empty($form['id'])"/>
+                    <x-button icon="o-bars-2" class="btn-circle btn-ghost" :hidden="empty($form['id'])" />
                 </x-slot:trigger>
 
                 <x-menu-item title="Copy raw JSON" icon="o-document-text" x-data="{
@@ -353,14 +274,12 @@ new class extends Component {
                         $wire.dispatchSelf('toast', { message: 'Copied raw JSON to your clipboard.' });
                     }
                 }"
-                             x-on:click="copyJson"/>
-                <x-menu-item title="Duplicate" icon="o-document-duplicate"
-                             x-on:click="$wire.duplicateRecord()"/>
+                    x-on:click="copyJson" />
+                <x-menu-item title="Duplicate" icon="o-document-duplicate" x-on:click="$wire.duplicateRecord()" />
 
-                <x-menu-separator/>
+                <x-menu-separator />
 
-                <x-menu-item title="Delete" icon="o-trash" class="text-error"
-                             wire:click="promptDeleteRecord"/>
+                <x-menu-item title="Delete" icon="o-trash" class="text-error" wire:click="promptDeleteRecord" />
             </x-dropdown>
         </div>
 
@@ -369,28 +288,29 @@ new class extends Component {
         <x-form wire:submit="saveRecord">
             @foreach ($fields as $field)
                 @if ($field->name === 'id')
-                    <x-input type="text" wire:model="form.id_old" class="hidden"/>
+                    <x-input type="text" wire:model="form.id_old" class="hidden" />
                     <x-input :wire:key="$field->name" :label="$field->name" type="text" wire:model="form.id"
-                             :icon="$field->getIcon()" placeholder="Leave blank to auto generate..."
-                             wire:loading.attr="disabled"
-                             wire:target="fillRecordForm"/>
+                        :icon="$field->getIcon()" placeholder="Leave blank to auto generate..." wire:loading.attr="disabled"
+                        wire:target="fillRecordForm" />
                     @continue
                 @elseif ($field->name === 'created' || $field->name === 'updated')
                     <x-input :wire:key="$field->name" :label="$field->name" type="datetime"
-                             wire:model="form.{{ $field->name }}" :icon="$field->getIcon()" readonly
-                             wire:loading.attr="disabled" wire:target="fillRecordForm"/>
+                        wire:model="form.{{ $field->name }}" :icon="$field->getIcon()" readonly wire:loading.attr="disabled"
+                        wire:target="fillRecordForm" />
                     @continue
-                @elseif ($field->collection->type === App\Enums\CollectionType::Auth && $field->name === 'password' && $field->collection->type === CollectionType::Auth)
+                @elseif (
+                    $field->collection->type === App\Enums\CollectionType::Auth &&
+                        $field->name === 'password' &&
+                        $field->collection->type === CollectionType::Auth)
                     @if (empty($form['password']))
                         <x-password :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}"
-                                    :password-icon="$field->getIcon()" placeholder=""
-                                    autocomplete="new-password" wire:loading.attr="disabled" wire:target="fillRecordForm"
-                                    :required="true"/>
+                            :password-icon="$field->getIcon()" placeholder="" autocomplete="new-password" wire:loading.attr="disabled"
+                            wire:target="fillRecordForm" :required="true" />
                     @else
-                        <x-input type="hidden" wire:model="form.{{ $field->name }}" class="hidden"/>
+                        <x-input type="hidden" wire:model="form.{{ $field->name }}" class="hidden" />
                         <x-password :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}_new"
-                                    :password-icon="$field->getIcon()" placeholder="Fill to change password..."
-                                    autocomplete="new-password" wire:loading.attr="disabled" wire:target="fillRecordForm"/>
+                            :password-icon="$field->getIcon()" placeholder="Fill to change password..." autocomplete="new-password"
+                            wire:loading.attr="disabled" wire:target="fillRecordForm" />
                     @endif
                     @continue
                 @endif
@@ -398,74 +318,120 @@ new class extends Component {
                 @switch($field->type)
                     @case(FieldType::Bool)
                         <x-toggle :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}"
-                                  id="form-{{ $field->name }}" wire:loading.attr="disabled" wire:target="fillRecordForm"/>
-                        @break
+                            id="form-{{ $field->name }}" wire:loading.attr="disabled" wire:target="fillRecordForm" />
+                    @break
 
                     @case(FieldType::Email)
                         <x-input :wire:key="$field->name" :label="$field->name" type="email"
-                                 wire:model="form.{{ $field->name }}" :icon="$field->getIcon()"
-                                 :required="$field->required == true" autocomplete="email"
-                                 wire:loading.attr="disabled" wire:target="fillRecordForm"/>
-                        @break
+                            wire:model="form.{{ $field->name }}" :icon="$field->getIcon()" :required="$field->required == true" autocomplete="email"
+                            wire:loading.attr="disabled" wire:target="fillRecordForm" />
+                    @break
 
                     @case(FieldType::Number)
                         <x-input :wire:key="$field->name" :label="$field->name" type="number"
-                                 wire:model="form.{{ $field->name }}" :icon="$field->getIcon()"
-                                 :required="$field->required == true"
-                                 wire:loading.attr="disabled" wire:target="fillRecordForm"/>
-                        @break
+                            wire:model="form.{{ $field->name }}" :icon="$field->getIcon()" :required="$field->required == true"
+                            wire:loading.attr="disabled" wire:target="fillRecordForm" />
+                    @break
 
                     @case(FieldType::Datetime)
                         <x-input :wire:key="$field->name" :label="$field->name" type="datetime"
-                                 wire:model="form.{{ $field->name }}" :icon="$field->getIcon()"
-                                 :required="$field->required == true"
-                                 wire:loading.attr="disabled" wire:target="fillRecordForm"/>
-                        @break
+                            wire:model="form.{{ $field->name }}" :icon="$field->getIcon()" :required="$field->required == true"
+                            wire:loading.attr="disabled" wire:target="fillRecordForm" />
+                    @break
 
                     @case(FieldType::File)
-                        <x-file-library :wire:key="$field->name" :label="$field->name" wire:model="files.{{ $field->name }}"
-                                        wire:library="library.{{ $field->name }}"
-                                        :preview="data_get($library, $field->name, collect())" hint="rule" accept="*"
-                                        wire:loading.attr="disabled" wire:target="fillRecordForm"
-                                        :required="$field->required == true"/>
-                        @break
+                        <fieldset class="fieldset">
+                            <legend class="fieldset-legend">{{ $field->name }}</legend>
+                            <div wire:ignore x-data="{
+                                model: $wire.entangle('form.{{ $field->name }}'),
+                                initFilePond() {
+                                    let initialFiles = [];
+                                    if (Array.isArray(this.model)) {
+                                        initialFiles = this.model.map(f => {
+                                            if (typeof f === 'string') return { source: f, options: { type: 'local' } };
+                                            if (f?.uuid) return { source: f.url, options: { type: 'local' } };
+                                            return null;
+                                        }).filter(f => f);
+                                    }
+                            
+                                    FilePond.create($refs.input, {
+                                        files: initialFiles,
+                                        credits: false,
+                                        itemInsertInterval: 200,
+                                        server: {
+                                            process: '{{ route('uploads.process') }}',
+                                            revert: '{{ route('uploads.revert') }}',
+                                            load: '{{ route('uploads.load') }}?source=',
+                                            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' }
+                                        },
+                                        onprocessfile: (error, file) => {
+                                            if (!error) {
+                                                this.model.push(file.serverId);
+                                            }
+                                        },
+                                        onremovefile: (error, file) => {
+                                            if (this.model) {
+                                                this.model = this.model.filter(item => {
+                                                    if (typeof item === 'string') return item !== file.serverId;
+                                                    return item.url !== file.serverId;
+                                                });
+                                            }
+                                        },
+                                    });
+                                }
+                            }" x-init="initFilePond()">
+                                <x-reset-input x-ref="input" class="validator" multiple />
+                            </div>
+                            @if ($errors->has('form.' . $field->name))
+                                @foreach ($errors->get('form.' . $field->name) as $message)
+                                    @foreach (Arr::wrap($message) as $line)
+                                        <div class="text-error" x-class="text-error">{{ $line }}</div>
+                                    @endforeach
+                                @endforeach
+                            @endif
+                        </fieldset>
+                    @break
 
                     @case(FieldType::RichText)
                         <x-editor :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}"
-                                  :icon="$field->getIcon()" :required="$field->required == true"
-                                  wire:loading.attr="disabled"
-                                  :config="$tinyMceConfig" wire:target="fillRecordForm"/>
-                        @break
+                            :icon="$field->getIcon()" :required="$field->required == true" wire:loading.attr="disabled" :config="$tinyMceConfig"
+                            wire:target="fillRecordForm" />
+                    @break
 
                     @case(FieldType::Relation)
                         <div wire:key="{{ $field->name }}">
                             <fieldset class="fieldset py-0">
                                 <legend class="fieldset-legend mb-0.5">
                                     {{ $field->name }}
-                                    @if($field->required)
+                                    @if ($field->required)
                                         <span class="text-error">*</span>
                                     @endif
                                 </legend>
 
                                 <div
-                                    class="input w-full h-auto min-h-10 py-2 flex flex-wrap gap-2 items-center {{ $errors->has("form.$field->name") || $errors->has("form.{$field->name}.*") ? 'input-error' : '' }}"
-                                >
+                                    class="input w-full h-auto min-h-10 py-2 flex flex-wrap gap-2 items-center {{ $errors->has("form.$field->name") || $errors->has("form.{$field->name}.*") ? 'input-error' : '' }}">
                                     @php
                                         $selectedIds = $form[$field->name] ?? [];
                                         $relatedCollection = \App\Models\Collection::find($field->options->collection);
                                         $priority = config('larabase.relation_display_fields');
-                                        $displayField = $relatedCollection->fields->whereIn('name', $priority)->sortBy(fn($field) => array_search($field->name, $priority))->first()?->name;
+                                        $displayField = $relatedCollection->fields
+                                            ->whereIn('name', $priority)
+                                            ->sortBy(fn($field) => array_search($field->name, $priority))
+                                            ->first()?->name;
                                         if (!$displayField) {
                                             $displayField = 'id';
                                         }
                                     @endphp
 
-                                    @if(!empty($selectedIds) && $relatedCollection)
-                                        @foreach($selectedIds as $recordId)
+                                    @if (!empty($selectedIds) && $relatedCollection)
+                                        @foreach ($selectedIds as $recordId)
                                             @php
-                                                $record = $relatedCollection->records()->filter('id', '=', $recordId)->firstRaw();
+                                                $record = $relatedCollection
+                                                    ->records()
+                                                    ->filter('id', '=', $recordId)
+                                                    ->firstRaw();
                                             @endphp
-                                            @if($record)
+                                            @if ($record)
                                                 <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
                                                     <p>{{ $record->data[$displayField] }}</p>
                                                 </div>
@@ -476,35 +442,30 @@ new class extends Component {
                                     @endif
                                 </div>
 
-                                <x-button
-                                    label="Open Relation Picker"
-                                    icon="lucide.pen-tool"
+                                <x-button label="Open Relation Picker" icon="lucide.pen-tool"
                                     class="btn-sm btn-soft mt-2 w-full"
-                                    x-on:click="$wire.openRelationPicker('{{ $field->name }}')"
-                                    wire:loading.attr="disabled"
-                                    wire:target="fillRecordForm"
-                                />
+                                    x-on:click="$wire.openRelationPicker('{{ $field->name }}')" wire:loading.attr="disabled"
+                                    wire:target="fillRecordForm" />
 
-                                @foreach($errors->get("form.{$field->name}") as $message)
+                                @foreach ($errors->get("form.{$field->name}") as $message)
                                     <div class="text-error text-sm mt-1">{{ json_encode($message) }}</div>
                                 @endforeach
-                                @foreach($errors->get("form.{$field->name}.*") as $message)
+                                @foreach ($errors->get("form.{$field->name}.*") as $message)
                                     <div class="text-error text-sm mt-1">{{ json_encode($message) }}</div>
                                 @endforeach
                             </fieldset>
                         </div>
-                        @break
+                    @break
 
                     @default
                         <x-input :wire:key="$field->name" :label="$field->name" wire:model="form.{{ $field->name }}"
-                                 :icon="$field->getIcon()" :required="$field->required == true" wire:loading.attr="disabled"
-                                 wire:target="fillRecordForm"/>
+                            :icon="$field->getIcon()" :required="$field->required == true" wire:loading.attr="disabled" wire:target="fillRecordForm" />
                 @endswitch
             @endforeach
 
             <x-slot:actions>
-                <x-button label="Cancel" x-on:click="$wire.showRecordDrawer = false"/>
-                <x-button label="Save" class="btn-primary" type="submit" spinner="saveRecord"/>
+                <x-button label="Cancel" x-on:click="$wire.showRecordDrawer = false" />
+                <x-button label="Save" class="btn-primary" type="submit" spinner="saveRecord" />
             </x-slot:actions>
         </x-form>
 
@@ -514,8 +475,9 @@ new class extends Component {
         Are you sure you want to delete this record? This action cannot be undone.
 
         <x-slot:actions>
-            <x-button label="Cancel" x-on:click="$wire.showConfirmDeleteDialog = false"/>
-            <x-button class="btn-error" label="Delete" wire:click="confirmDeleteRecord" spinner="confirmDeleteRecord"/>
+            <x-button label="Cancel" x-on:click="$wire.showConfirmDeleteDialog = false" />
+            <x-button class="btn-error" label="Delete" wire:click="confirmDeleteRecord"
+                spinner="confirmDeleteRecord" />
         </x-slot:actions>
     </x-modal>
 

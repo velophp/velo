@@ -95,8 +95,15 @@ class RecordRulesCompiler
 
             $fieldRules = $this->compileFieldRules($field);
 
+            // File validation rules are handled in compileFieldRules
             if ($field->type === FieldType::File) {
-                // @TODO: Implement File type validation rules
+                $rules[$prefix.$field->name] = ['array'];
+                if ($field->required) {
+                   $rules[$prefix.$field->name][] = 'required';
+                   $rules[$prefix.$field->name][] = 'min:1';
+                }
+                
+                $rules[$prefix.$field->name.'.*'] = $fieldRules;
                 continue;
             }
 
@@ -187,7 +194,7 @@ class RecordRulesCompiler
             FieldType::Number => ['numeric'],
             FieldType::Bool => ['boolean'],
             FieldType::Datetime => ['date'],
-            FieldType::File => ['image'],
+            FieldType::File => [],
             FieldType::Text => ['string'],
             default => [],
         };
@@ -248,19 +255,7 @@ class RecordRulesCompiler
                 break;
 
             case $options instanceof FileFieldOption:
-                if ($options->allowedMimeTypes !== null && ! empty($options->allowedMimeTypes)) {
-                    $mimes = implode(',', $options->allowedMimeTypes);
-                    $rules[] = "mimetypes:{$mimes}";
-                }
-                if ($options->maxSize !== null) {
-                    // Convert bytes to kilobytes for Laravel validation
-                    $maxKb = ceil($options->maxSize / 1024);
-                    $rules[] = "max:{$maxKb}";
-                }
-                if ($options->minSize !== null) {
-                    $minKb = floor($options->minSize / 1024);
-                    $rules[] = "min:{$minKb}";
-                }
+                $rules[] = new \App\Rules\ValidFile($options);
                 break;
 
             case $options instanceof RelationFieldOption:
