@@ -9,6 +9,7 @@ use App\Enums\CollectionType;
 use Livewire\Attributes\Rule;
 use Livewire\WithFileUploads;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use App\Services\RecordRulesCompiler;
 use App\Exceptions\InvalidRecordException;
 use App\Services\IndexStrategies\MysqlIndexStrategy;
@@ -360,7 +361,7 @@ new class extends Component {
 
                     @case(FieldType::File)
                         <fieldset class="fieldset">
-                            <legend class="fieldset-legend">{{ $field->name }}</legend>
+                            <legend class="fieldset-legend">{{ $field->name }} <span class="text-error {{ $field->required == true ? '' : 'hidden' }}">*</span></legend>
                             <div wire:ignore x-data="{
                                 model: $wire.entangle('form.{{ $field->name }}'),
                                 fieldOptions: JSON.parse('{{ json_encode($field->options) }}'),

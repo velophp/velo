@@ -2,6 +2,7 @@
 
 namespace App\Collections\Handlers;
 
+use App\Entity\FileObject;
 use App\Enums\FieldType;
 use App\Exceptions\InvalidRecordException;
 use App\Models\CollectionField;
@@ -17,15 +18,15 @@ class BaseCollectionHandler implements CollectionTypeHandler
         $fields = $record->collection->fields->keyBy('name');
         $data = $record->data;
 
-        if (! $record->exists && $fields->has('created')) {
-            if (! $data->has('created') || ! filled($data->get('created'))) {
+        if (!$record->exists && $fields->has('created')) {
+            if (!$data->has('created') || !filled($data->get('created'))) {
                 $data->put('created', now()->toIso8601String());
             }
         }
 
-        $textPatternFields = $fields->filter(fn ($field) => $field->type === FieldType::Text && ! empty($field->options->autoGeneratePattern ?? null));
+        $textPatternFields = $fields->filter(fn($field) => $field->type === FieldType::Text && !empty($field->options->autoGeneratePattern ?? null));
         foreach ($textPatternFields as $field) {
-            if (! filled($data->get($field->name))) {
+            if (!filled($data->get($field->name))) {
                 $data->put($field->name, fake(config('app.locale'))->regexify($field->options->autoGeneratePattern));
             }
         }
@@ -37,10 +38,9 @@ class BaseCollectionHandler implements CollectionTypeHandler
         // preserve created on update
         if ($record->exists && $fields->has('created')) {
             $originalData = $record->getOriginal('data');
-
             $originalData = $originalData instanceof Collection
                 ? $originalData->toArray()
-                : $originalData;
+                : ($originalData ?? []);
 
             if (isset($originalData['created'])) {
                 $data->put('created', $originalData['created']);
@@ -48,7 +48,7 @@ class BaseCollectionHandler implements CollectionTypeHandler
         }
 
         // Handle File Uploads
-        $fileFields = $fields->filter(fn ($field) => $field->type === FieldType::File);
+        $fileFields = $fields->filter(fn($field) => $field->type === FieldType::File);
         $fileUploadService = app(\App\Services\HandleFileUpload::class)->forCollection($record->collection);
 
         foreach ($fileFields as $field) {
@@ -62,14 +62,13 @@ class BaseCollectionHandler implements CollectionTypeHandler
             $processedFiles = [];
 
             foreach ($files as $file) {
-                // Check if it's an existing file object (array with uuid)
-                if (is_array($file) && isset($file['uuid'])) {
+                if ($file instanceof FileObject || is_array($file) && isset($file['uuid'])) {
                     $processedFiles[] = $file;
 
                     continue;
                 }
 
-                if (! $file instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
+                if (!$file instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
                     continue;
                 }
 
@@ -198,7 +197,7 @@ class BaseCollectionHandler implements CollectionTypeHandler
             ->get();
 
         // Group by collection_id and field to check cascadeDelete options
-        $groupedByField = $referencingIndexes->groupBy(fn ($index) => $index->collection_id.'.'.$index->field);
+        $groupedByField = $referencingIndexes->groupBy(fn($index) => $index->collection_id . '.' . $index->field);
 
         foreach ($groupedByField as $key => $indexes) {
             $firstIndex = $indexes->first();
@@ -208,12 +207,12 @@ class BaseCollectionHandler implements CollectionTypeHandler
                 ->where('name', $firstIndex->field)
                 ->first();
 
-            if (! $field) {
+            if (!$field) {
                 continue;
             }
 
             // If cascadeDelete is false, throw an exception
-            if (! $field->options?->cascadeDelete) {
+            if (!$field->options?->cascadeDelete) {
                 throw new InvalidRecordException("Cannot delete record: it is referenced by {$indexes->count()} record(s) in field '{$field->name}' of collection '{$field->collection->name}'.");
             }
 
