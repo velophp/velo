@@ -2,8 +2,10 @@
 
 namespace App\Collections\Handlers;
 
+use App\Mail\VerifyEmail;
 use App\Models\Record;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class AuthCollectionHandler implements CollectionTypeHandler
 {

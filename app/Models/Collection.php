@@ -2,15 +2,26 @@
 
 namespace App\Models;
 
+use App\Casts\AsSafeCollection;
 use App\Enums\CollectionType;
 use App\Services\RecordQuery;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Collection extends Model
 {
     protected $table = 'collections';
 
     protected $fillable = ['project_id', 'name', 'type', 'api_rules', 'options'];
+
+    protected function casts(): array
+    {
+        return [
+            'type' => CollectionType::class,
+            'api_rules' => 'array',
+            'options' => AsSafeCollection::class,
+        ];
+    }
 
     public function getIconAttribute(): string
     {
@@ -19,15 +30,6 @@ class Collection extends Model
             CollectionType::View => 'o-table-cells',
             default => 'o-archive-box',
         };
-    }
-
-    protected function casts(): array
-    {
-        return [
-            'type' => CollectionType::class,
-            'api_rules' => 'array',
-            'options' => 'array',
-        ];
     }
 
     public function project()
@@ -40,12 +42,12 @@ class Collection extends Model
         return $this->hasMany(CollectionField::class)->orderBy('order');
     }
 
-    public function records()
+    public function records(): RecordQuery
     {
         return new RecordQuery($this);
     }
 
-    public function recordRelation()
+    public function recordRelation(): HasMany
     {
         return $this->hasMany(Record::class);
     }
@@ -55,12 +57,12 @@ class Collection extends Model
         return $this->hasMany(CollectionIndex::class, 'collection_id');
     }
 
-    public function recordIndexes()
+    public function recordIndexes(): HasMany
     {
         return $this->hasMany(RecordIndex::class, 'collection_id');
     }
 
-    public static function getDefaultApiRules()
+    public static function getDefaultApiRules(): array
     {
         return [
             'list' => 'SUPERUSER_ONLY',
@@ -71,7 +73,7 @@ class Collection extends Model
         ];
     }
 
-    public static function getDefaultAuthOptions()
+    public static function getDefaultAuthOptions(): array
     {
         return [
             'auth_methods' => [
@@ -93,30 +95,40 @@ class Collection extends Model
                 ],
             ],
             'mail_templates' => [
-                'verification' => ['subject' => '', 'body' => ''],
+                'verification' => [
+                    'subject' => 'Verify your email address',
+                    'body' => <<<HTML
+<p>Hello,</p>
+<p>To confirm this email address click the link below:</p>
+<p>Confirm: <a href="{{action_url}}">{{action_url}}</a></p>
+<p>If you did not create an account, no further action is required.</p>
+<p>Regards,<br><strong>{{app_name}}</strong></p>
+HTML,
+
+                ],
                 'password_reset' => [
                     'subject' => 'Reset your password',
-                    'body' => '
+                    'body' => <<<HTML
 <p>Hello,</p>
 <p>You are receiving this email because we received a password reset request for your account.</p>
 <p>Action URL: <a href="{{action_url}}">{{action_url}}</a></p>
 <p>If you did not request a password reset, no further action is required.</p>
 <p>Regards,<br><strong>{{app_name}}</strong></p>
-                    ',
+HTML,
                 ],
                 'confirm_email_change' => ['subject' => '', 'body' => ''],
                 'otp_email' => [
                     'subject' => 'Your OTP Code',
-                    'body' => '
+                    'body' => <<<HTML
 <p>Hello,</p>
 <p>Your OTP code is: <strong>{{otp}}</strong></p>
 <p>If you did not request an OTP code, no further action is required.</p>
 <p>Regards,<br><strong>{{app_name}}</strong></p>
-                    ',
+HTML,
                 ],
                 'login_alert' => [
                     'subject' => 'Login Alert',
-                    'body' => '
+                    'body' => <<<HTML
 <p>Hello,</p>
 <p>We noticed a new login to your account.</p>
 <p>
@@ -127,7 +139,7 @@ class Collection extends Model
 <p>If this was you, you can ignore this email.</p>
 <p>If you do not recognize this activity, please change your password immediately.</p>
 <p>Regards,<br><strong>{{app_name}}</strong></p>
-                    ',
+HTML,
                 ],
             ],
             'other' => [

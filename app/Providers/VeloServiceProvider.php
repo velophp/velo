@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\TenantConfigService;
 use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
@@ -24,8 +25,8 @@ class VeloServiceProvider extends ServiceProvider
         // For now, hardcode project_id to 1. In a real multi-tenant app, this would come from the request/domain.
         $project_id = 1;
 
-        /** @var \App\Services\TenantConfigService $service */
-        $service = app(\App\Services\TenantConfigService::class);
+        /** @var TenantConfigService $service */
+        $service = app(TenantConfigService::class);
         $config = $service->load($project_id);
 
         $this->applyTrustProxies($config?->trusted_proxies);

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\OtpType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -11,17 +12,22 @@ class AuthOtp extends Model
         'project_id',
         'collection_id',
         'record_id',
-        'email',
         'token_hash',
+        'action',
         'expires_at',
         'used_at',
+        'last_used_at',
+        'ip_address',
+        'device_name',
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
         'used_at' => 'datetime',
+        'last_used_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+        'action' => OtpType::class,
     ];
 
     public function project(): BelongsTo

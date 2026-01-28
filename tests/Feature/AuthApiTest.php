@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Enums\CollectionType;
 use App\Enums\FieldType;
+use App\Enums\OtpType;
 use App\Models\AuthSession;
 use App\Models\Collection;
 use App\Models\CollectionField;
@@ -228,9 +229,9 @@ class AuthApiTest extends TestCase
         $response->assertStatus(200)
             ->assertJsonStructure(['message']);
 
-        $this->assertDatabaseHas('auth_password_resets', [
+        $this->assertDatabaseHas('auth_otps', [
             'record_id' => $record->id,
-            'email' => 'test@example.com',
+            'action' => OtpType::PASSWORD_RESET,
         ]);
     }
 
@@ -251,16 +252,16 @@ class AuthApiTest extends TestCase
             'email' => 'test@example.com',
         ]);
 
-        \Mail::assertSent(\App\Mail\PasswordReset::class, function ($mail) {
+        $otp = null;
+        \Mail::assertSent(\App\Mail\PasswordReset::class, function ($mail) use (&$otp) {
+            $otp = $mail->token;
             return $mail->hasTo('test@example.com');
         });
 
-        // Token is not returned in response anymore, fetch from DB
-        $reset = \App\Models\AuthPasswordReset::where('email', 'test@example.com')->first();
-        $token = $reset->token;
+        $this->assertNotNull($otp);
 
         $response = $this->postJson('/api/collections/users/auth/confirm-password-reset', [
-            'token' => $token,
+            'otp' => $otp,
             'new_password' => 'newpassword123',
             'new_password_confirmation' => 'newpassword123',
             'invalidate_sessions' => true,
@@ -273,18 +274,14 @@ class AuthApiTest extends TestCase
         $this->assertTrue(Hash::check('newpassword123', $record->data->get('password')));
 
         // Verify token marked used
-        $this->assertDatabaseHas('auth_password_resets', [
-            'token' => $token,
-        ]);
-
-        $reset->refresh();
+        $reset = \App\Models\AuthOtp::where('record_id', $record->id)->where('action', OtpType::PASSWORD_RESET)->first();
         $this->assertNotNull($reset->used_at);
     }
 
     public function test_sends_login_alert_email()
     {
         $this->collection->update([
-            'options' => array_merge($this->collection->options, [
+            'options' => array_merge($this->collection->options->toArray(), [
                 'mail_templates' => array_merge($this->collection->options['mail_templates'] ?? [], [
                     'login_alert' => [
                         'subject' => 'Login Alert',
@@ -353,5 +350,61 @@ class AuthApiTest extends TestCase
         $response->assertStatus(200);
 
         \Mail::assertQueued(\App\Mail\LoginAlert::class);
+    }
+
+    public function test_can_authenticate_with_otp()
+    {
+        // Enable OTP
+        $this->collection->update([
+            'options' => array_merge($this->collection->options->toArray(), [
+                'auth_methods' => array_merge($this->collection->options->toArray()['auth_methods'], [
+                    'otp' => [
+                        'enabled' => true,
+                        'config' => [
+                            'duration_s' => 180,
+                            'generate_password_length' => 6,
+                        ],
+                    ],
+                ]),
+            ]),
+        ]);
+
+        $record = Record::create([
+            'collection_id' => $this->collection->id,
+            'data' => [
+                'email' => 'otpuser@example.com',
+                'password' => 'password123',
+                'verified' => true,
+            ],
+        ]);
+
+        \Mail::fake();
+
+        // 1. Request OTP
+        $response = $this->postJson('/api/collections/users/auth/request-auth-otp', [
+            'email' => 'otpuser@example.com',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure(['message']);
+
+        // Get OTP from mail
+        $otp = '';
+        \Mail::assertQueued(\App\Mail\Otp::class, function ($mail) use (&$otp) {
+            $otp = $mail->otp;
+            return $mail->hasTo('otpuser@example.com');
+        });
+
+        $this->assertNotNull($otp);
+
+        // 2. Authenticate with OTP
+        $response = $this->postJson('/api/collections/users/auth/authenticate-with-otp', [
+            'email' => 'otpuser@example.com',
+            'otp' => $otp,
+            'device_name' => 'Test Device',
+        ]);
+
+        $response->assertStatus(200)
+            ->assertJsonStructure(['message', 'data']);
     }
 }
