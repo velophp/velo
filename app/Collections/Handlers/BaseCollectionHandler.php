@@ -13,10 +13,20 @@ use Illuminate\Support\Facades\Storage;
 
 class BaseCollectionHandler implements CollectionTypeHandler
 {
+    public function onRetrieved(Record &$record): void
+    {
+        // 
+    }
+
     public function beforeSave(Record &$record): void
     {
         $fields = $record->collection->fields->keyBy('name');
         $data = $record->data;
+
+        $originalData = $record->getOriginal('data');
+        $originalData = $originalData instanceof Collection
+            ? $originalData->toArray()
+            : ($originalData ?? []);
 
         if (! $record->exists && $fields->has('created')) {
             if (! $data->has('created') || ! filled($data->get('created'))) {
@@ -24,7 +34,7 @@ class BaseCollectionHandler implements CollectionTypeHandler
             }
         }
 
-        $textPatternFields = $fields->filter(fn ($field) => $field->type === FieldType::Text && ! empty($field->options->autoGeneratePattern ?? null));
+        $textPatternFields = $fields->filter(fn($field) => $field->type === FieldType::Text && ! empty($field->options->autoGeneratePattern ?? null));
         foreach ($textPatternFields as $field) {
             if (! filled($data->get($field->name))) {
                 $data->put($field->name, fake(config('app.locale'))->regexify($field->options->autoGeneratePattern));
@@ -37,54 +47,16 @@ class BaseCollectionHandler implements CollectionTypeHandler
 
         // preserve created on update
         if ($record->exists && $fields->has('created')) {
-            $originalData = $record->getOriginal('data');
-            $originalData = $originalData instanceof Collection
-                ? $originalData->toArray()
-                : ($originalData ?? []);
-
             if (isset($originalData['created'])) {
                 $data->put('created', $originalData['created']);
             }
         }
 
-        // Handle File Uploads
-        $fileFields = $fields->filter(fn ($field) => $field->type === FieldType::File);
-        $fileUploadService = app(\App\Services\HandleFileUpload::class)->forCollection($record->collection);
-
+        $fileFields = $fields->filter(fn($field) => $field->type === FieldType::File);
         foreach ($fileFields as $field) {
-            $value = $data->get($field->name);
-            if (empty($value)) {
-                continue;
-            }
-
-            $files = is_array($value) ? $value : [$value];
-            $files = array_filter($files);
-            $processedFiles = [];
-
-            foreach ($files as $file) {
-                if ($file instanceof FileObject || is_array($file) && isset($file['uuid'])) {
-                    $processedFiles[] = $file;
-
-                    continue;
-                }
-
-                if (! $file instanceof \Symfony\Component\HttpFoundation\File\UploadedFile) {
-                    continue;
-                }
-
-                $fileUploadService->fromUpload($file);
-
-                $processed = $fileUploadService->save();
-                if ($processed) {
-                    $processedFiles[] = $processed;
-                }
-            }
-
-            $data->put($field->name, $processedFiles);
-
             $this->deleteRemovedFiles(
                 oldValue: $originalData[$field->name] ?? [],
-                newValue: $processedFiles,
+                newValue: $data->get($field->name) ?? [],
             );
         }
 
@@ -197,7 +169,7 @@ class BaseCollectionHandler implements CollectionTypeHandler
             ->get();
 
         // Group by collection_id and field to check cascadeDelete options
-        $groupedByField = $referencingIndexes->groupBy(fn ($index) => $index->collection_id.'.'.$index->field);
+        $groupedByField = $referencingIndexes->groupBy(fn($index) => $index->collection_id . '.' . $index->field);
 
         foreach ($groupedByField as $key => $indexes) {
             $firstIndex = $indexes->first();

@@ -15,7 +15,7 @@ class AsSafeCollection implements CastsAttributes
      */
     public function get(Model $model, string $key, mixed $value, array $attributes): mixed
     {
-        return new SafeCollection(json_decode($value, true) ?: []);
+        return new SafeCollection(json_decode($value) ?: [])->recursive();
     }
 
     /**

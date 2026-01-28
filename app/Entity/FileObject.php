@@ -12,6 +12,17 @@ class FileObject implements \JsonSerializable
         public string $extension,
     ) {}
 
+    public static function fromArray(array $data): self
+    {
+        return new self(
+            $data['uuid'],
+            $data['url'],
+            $data['is_previewable'],
+            $data['mime_type'],
+            $data['extension'],
+        );
+    }
+
     public function toArray(): array
     {
         return [

@@ -7,6 +7,7 @@ use App\Collections\Handlers\CollectionTypeHandlerResolver;
 use App\Enums\FieldType;
 use App\Exceptions\InvalidRecordException;
 use App\Services\RealtimeService;
+use Illuminate\Database\Eloquent\Casts\AsCollection;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -18,14 +19,14 @@ class Record extends Model
     protected function casts(): array
     {
         return [
-            'data' => AsSafeCollection::class,
+            'data' => AsSafeCollection::class
         ];
     }
 
     protected function documentId(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->data->get('id'),
+            get: fn() => $this->data->get('id'),
             set: function ($value) {
                 $data = $this->data;
                 $data->put('id', $value);
@@ -52,6 +53,15 @@ class Record extends Model
 
     protected static function booted(): void
     {
+        static::retrieved(function (Record $record) {
+            app(\App\Collections\Handlers\BaseCollectionHandler::class)->onRetrieved($record);
+
+            $handler = CollectionTypeHandlerResolver::resolve($record->collection->type);
+            if ($handler) {
+                $handler->onRetrieved($record);
+            }
+        });
+
         static::saving(function (Record $record) {
             if (! $record->relationLoaded('collection')) {
                 $record->load('collection.fields');
@@ -101,7 +111,7 @@ class Record extends Model
             $missingFields = array_diff($fieldNames, $dataKeys);
 
             if (! empty($missingFields)) {
-                throw new InvalidRecordException('Record structure mismatch. Missing required fields: '.implode(', ', $missingFields).'. Expected all fields: '.implode(', ', $fieldNames));
+                throw new InvalidRecordException('Record structure mismatch. Missing required fields: ' . implode(', ', $missingFields) . '. Expected all fields: ' . implode(', ', $fieldNames));
             }
         });
 

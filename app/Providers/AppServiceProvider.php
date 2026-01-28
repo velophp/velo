@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Entity\SafeCollection;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Blade;
@@ -27,8 +28,8 @@ class AppServiceProvider extends ServiceProvider
 
         Collection::macro('recursive', function () {
             return $this->map(function ($value) {
-                if (is_array($value) || is_object($value)) {
-                    return collect($value)->recursive();
+                if (is_array($value) || $value instanceof SafeCollection) {
+                    return new SafeCollection($value)->recursive();
                 }
 
                 return $value;

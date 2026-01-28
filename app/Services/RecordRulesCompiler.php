@@ -16,13 +16,15 @@ use App\Models\CollectionField;
 use App\Rules\AllowedEmailDomains;
 use App\Rules\BlockedEmailDomains;
 use App\Rules\RecordExists;
+use App\Rules\ValidFile;
 use Illuminate\Validation\Rule;
 
 class RecordRulesCompiler
 {
+    public IndexStrategy $indexStrategy;
+
     public function __construct(
         protected Collection $collection,
-        // private IndexStrategy $indexManager, // refactor later
         private ?string $ignoreId = null,
         private ?array $formObject = null,
     ) {}
@@ -50,7 +52,7 @@ class RecordRulesCompiler
 
     public function withForm(array $form): self
     {
-        $this->form = $form;
+        $this->formObject = $form;
 
         return $this;
     }
@@ -95,27 +97,14 @@ class RecordRulesCompiler
 
             $fieldRules = $this->compileFieldRules($field);
 
-            // File validation rules are handled in compileFieldRules
-            if ($field->type === FieldType::File) {
-                $rules[$prefix.$field->name] = ['array'];
-                if ($field->required) {
-                    $rules[$prefix.$field->name][] = 'required';
-                    $rules[$prefix.$field->name][] = 'min:1';
-                }
-
-                $rules[$prefix.$field->name.'.*'] = $fieldRules;
-
-                continue;
-            }
-
             // Handle nested array rules (e.g., for relation fields)
             if (isset($fieldRules['*'])) {
                 $nestedRules = $fieldRules['*'];
                 unset($fieldRules['*']);
-                $rules[$prefix.$field->name] = $fieldRules;
-                $rules[$prefix.$field->name.'.*'] = $nestedRules;
+                $rules[$prefix . $field->name] = $fieldRules;
+                $rules[$prefix . $field->name . '.*'] = $nestedRules;
             } else {
-                $rules[$prefix.$field->name] = $fieldRules;
+                $rules[$prefix . $field->name] = $fieldRules;
             }
         }
 
@@ -256,7 +245,20 @@ class RecordRulesCompiler
                 break;
 
             case $options instanceof FileFieldOption:
-                $rules[] = new \App\Rules\ValidFile($options);
+                $rules[] = "array";
+
+                if ($field->required) {
+                    $rules[] = "min:1";
+                }
+
+                if ($options->multiple && $options->maxFiles) {
+                    $rules[] = "max:{$options->maxFiles}";
+                } else {
+                    $rules[] = "max:1";
+                }
+
+                $rules['*'] = ['nullable', new ValidFile($options)];
+                
                 break;
 
             case $options instanceof RelationFieldOption:

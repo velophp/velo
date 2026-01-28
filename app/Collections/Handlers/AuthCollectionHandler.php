@@ -28,4 +28,6 @@ class AuthCollectionHandler implements CollectionTypeHandler
     }
 
     public function beforeDelete(Record &$record): void {}
+
+    public function onRetrieved(Record &$record): void {}
 }

@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Entity\FileObject;
+use App\Entity\SafeCollection;
 use App\Enums\CollectionType;
+use App\Enums\FieldType;
 use App\Http\Requests\RecordRequest;
 use App\Http\Resources\RecordResource;
 use App\Models\Collection;
 use App\Services\EvaluateRuleExpression;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Response;
 
 class RecordController extends Controller
@@ -64,7 +68,45 @@ class RecordController extends Controller
 
     public function create(RecordRequest $request, Collection $collection)
     {
-        $record = $collection->recordRelation()->create(['data' => $request->validated()]);
+        $data = new SafeCollection($request->validated());
+        $fields = $collection->fields;
+
+        $fileFields = $fields->filter(fn ($field) => $field->type === FieldType::File);
+        $fileUploadService = app(\App\Services\HandleFileUpload::class)->forCollection($collection);
+
+        foreach ($fileFields as $field) {
+            $value = $data->get($field->name);
+            if (empty($value)) {
+                continue;
+            }
+
+            $files = is_array($value) ? $value : [$value];
+            $files = array_filter($files);
+            $processedFiles = [];
+
+            foreach ($files as $file) {
+                if ($file instanceof FileObject || is_array($file) && isset($file['uuid'])) {
+                    $processedFiles[] = $file;
+
+                    continue;
+                }
+
+                if (! $file instanceof UploadedFile) {
+                    continue;
+                }
+
+                $fileUploadService->fromUpload($file);
+
+                $processed = $fileUploadService->save();
+                if ($processed) {
+                    $processedFiles[] = $processed;
+                }
+            }
+
+            $data->put($field->name, $processedFiles);
+        }
+
+        $record = $collection->recordRelation()->create(['data' => $data->toArray()]);
         $resource = new RecordResource($record);
 
         return $resource->response();
@@ -84,10 +126,47 @@ class RecordController extends Controller
             ], 400);
         }
 
+        $data = new SafeCollection($request->validated());
         $record = $collection->records()->filter('id', '=', $recordId)->firstRawOrFail();
+        $fields = $collection->fields;
+
+        $fileFields = $fields->filter(fn ($field) => $field->type === FieldType::File);
+        $fileUploadService = app(\App\Services\HandleFileUpload::class)->forCollection($collection);
+
+        foreach ($fileFields as $field) {
+            $value = $data->get($field->name);
+            if (empty($value)) {
+                continue;
+            }
+
+            $files = is_array($value) ? $value : [$value];
+            $files = array_filter($files);
+            $processedFiles = [];
+
+            foreach ($files as $file) {
+                if ($file instanceof FileObject || is_array($file) && isset($file['uuid'])) {
+                    $processedFiles[] = $file;
+
+                    continue;
+                }
+
+                if (! $file instanceof UploadedFile) {
+                    continue;
+                }
+
+                $fileUploadService->fromUpload($file);
+
+                $processed = $fileUploadService->save();
+                if ($processed) {
+                    $processedFiles[] = $processed;
+                }
+            }
+
+            $data->put($field->name, $processedFiles);
+        }
 
         $record->update([
-            'data' => [...$record->data->toArray(), ...$request->validated()],
+            'data' => [...$record->data->toArray(), ...$data->toArray()],
         ]);
 
         $resource = new RecordResource($record);

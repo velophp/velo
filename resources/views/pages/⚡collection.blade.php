@@ -305,7 +305,7 @@ new class extends Component {
             @if ($field->type === App\Enums\FieldType::File)
                 @cscope('cell_' . $field->name, $row, $field)
                     @php
-                        $files = $row->{$field->name} ?? [];
+                        $files = $row->{$field->name};
                     @endphp
                     @if (!empty($files))
                         <div x-on:click.stop="" x-data="{
@@ -321,7 +321,7 @@ new class extends Component {
                         }">
                             <div id="gallery-{{ str($row->id . '-' . $field->name)->slug() }}"
                                 class="pswp-gallery pswp-gallery--single-column carousel">
-                                @foreach (array_slice($files, 0, 3) as $file)
+                                @foreach ($files as $file)
                                     <a wire:key="{{ $file->uuid }}" class="carousel-item" href="{{ url($file->url) }}"
                                         @if (!$file->is_previewable) x-on:click.stop.prevent="window.open('{{ url($file->url) }}')" @endif
                                         target="_blank">
