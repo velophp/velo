@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\AppConfig;
 use App\Services\TenantConfigService;
 use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
@@ -22,17 +23,28 @@ class VeloServiceProvider extends ServiceProvider
 
     private function bootTenantConfig(): void
     {
+        if (app()->runningInConsole()) return;
+
         // For now, hardcode project_id to 1. In a real multi-tenant app, this would come from the request/domain.
         $project_id = 1;
 
-        /** @var TenantConfigService $service */
-        $service = app(TenantConfigService::class);
-        $config = $service->load($project_id);
+        $config = app(TenantConfigService::class)->load($project_id);
 
+        $this->applyAppConfig($config);
         $this->applyTrustProxies($config?->trusted_proxies);
         $this->applyEmailConfig($config?->email_settings);
         $this->applyStorageConfig($config?->storage_settings);
         $this->applyRateLimiter($config?->rate_limits);
+    }
+
+    private function applyAppConfig(?AppConfig $config): void
+    {
+        if ($config) {
+            config([
+                'app.name' => $config->app_name,
+                'app.url' => $config->app_url
+            ]);
+        }
     }
 
     private function applyTrustProxies(?array $proxies): void

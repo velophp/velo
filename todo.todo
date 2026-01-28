@@ -7,7 +7,7 @@ TODO:
 
 IMPROVEMENT:
 - add 2fa, mfa, oauth
-- add migration system for programmatic schema changes
+- add migration system for programmatic collection schema changes
 - add export and import feature
 - add js n dart sdk
 - check @TODO(s)

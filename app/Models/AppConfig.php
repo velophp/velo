@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\TenantConfigService;
 use Illuminate\Database\Eloquent\Model;
 
 class AppConfig extends Model
@@ -21,8 +22,15 @@ class AppConfig extends Model
         return [
             'trusted_proxies' => 'array',
             'rate_limits' => 'integer',
-            'email_settings' => 'array',
-            'storage_settings' => 'array',
+            'email_settings' => 'encrypted:array',
+            'storage_settings' => 'encrypted:array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(function (AppConfig $appConfig) {
+            app(TenantConfigService::class)->refresh($appConfig->project_id);
+        });
     }
 }

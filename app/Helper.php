@@ -21,7 +21,7 @@ class Helper
         \DB::beginTransaction();
 
         $project = Project::create([
-            'name' => 'Acme',
+            'name' => 'Velo',
         ]);
 
         $userCollection = Collection::create([
