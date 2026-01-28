@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Casts\AsSafeCollection;
+use App\Entity\SafeCollection;
 use App\Enums\CollectionType;
 use App\Services\RecordQuery;
 use Illuminate\Database\Eloquent\Model;
@@ -95,34 +96,13 @@ class Collection extends Model
                 ],
             ],
             'mail_templates' => [
-                'verification' => [
-                    'subject' => 'Verify your email address',
-                    'body' => <<<HTML
-<p>Hello,</p>
-<p>To confirm this email address click the link below:</p>
-<p>Confirm: <a href="{{action_url}}">{{action_url}}</a></p>
-<p>If you did not create an account, no further action is required.</p>
-<p>Regards,<br><strong>{{app_name}}</strong></p>
-HTML,
-
-                ],
-                'password_reset' => [
-                    'subject' => 'Reset your password',
-                    'body' => <<<HTML
-<p>Hello,</p>
-<p>You are receiving this email because we received a password reset request for your account.</p>
-<p>Action URL: <a href="{{action_url}}">{{action_url}}</a></p>
-<p>If you did not request a password reset, no further action is required.</p>
-<p>Regards,<br><strong>{{app_name}}</strong></p>
-HTML,
-                ],
-                'confirm_email_change' => ['subject' => '', 'body' => ''],
                 'otp_email' => [
                     'subject' => 'Your OTP Code',
                     'body' => <<<HTML
 <p>Hello,</p>
 <p>Your OTP code is: <strong>{{otp}}</strong></p>
-<p>If you did not request an OTP code, no further action is required.</p>
+<p>This code will expires in {{expires}}.</p>
+<p>If you did not perform an action that requires an OTP code, no further action is required.</p>
 <p>Regards,<br><strong>{{app_name}}</strong></p>
 HTML,
                 ],
@@ -188,8 +168,8 @@ HTML,
                 ];
             }
 
-            if ($collection->options == null) {
-                $collection->options = static::getDefaultAuthOptions();
+            if ($collection->options->isEmpty()) {
+                $collection->options = new SafeCollection(static::getDefaultAuthOptions());
             }
         });
     }

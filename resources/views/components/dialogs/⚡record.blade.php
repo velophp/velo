@@ -220,7 +220,7 @@ new class extends Component {
             $data->put($field->name, $processedFiles);
         }
 
-        Record::updateOrCreate(['id' => $record->id, 'collection_id' => $this->collection->id], ['data' => $data]);
+        Record::updateOrCreate(['id' => $record?->id, 'collection_id' => $this->collection->id], ['data' => $data]);
 
         $this->showRecordDrawer = false;
         $this->dispatch('update-table');

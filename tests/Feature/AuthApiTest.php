@@ -253,8 +253,8 @@ class AuthApiTest extends TestCase
         ]);
 
         $otp = null;
-        \Mail::assertSent(\App\Mail\PasswordReset::class, function ($mail) use (&$otp) {
-            $otp = $mail->token;
+        \Mail::assertSent(\App\Mail\Otp::class, function ($mail) use (&$otp) {
+            $otp = $mail->otp;
             return $mail->hasTo('test@example.com');
         });
 

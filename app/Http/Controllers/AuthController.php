@@ -6,7 +6,7 @@ use App\Enums\CollectionType;
 use App\Enums\OtpType;
 use App\Http\Resources\RecordResource;
 use App\Mail\LoginAlert;
-use App\Mail\PasswordReset;
+use App\Mail\Otp;
 use App\Models\AuthOtp;
 use App\Models\AuthSession;
 use App\Models\Collection;
@@ -262,14 +262,14 @@ class AuthController extends Controller
             'device_name' => $request->input('device_name'),
         ]);
 
-        Mail::to($email)->send(new PasswordReset($otp, $collection));
+        Mail::to($email)->queue(new Otp($otp, $expires, $collection, config('app.name')));
 
         return response()->json([
             'message' => 'If an account exists with this email, you will receive a password reset token.',
         ]);
     }
 
-    public function confirmPasswordReset(Request $request, Collection $collection)
+    public function confirmForgotPassword(Request $request, Collection $collection)
     {
         if ($collection->type !== CollectionType::Auth) {
             return response()->json(['message' => 'Collection is not auth enabled.'], 400);
@@ -352,7 +352,7 @@ class AuthController extends Controller
             'device_name' => $request->input('device_name'),
         ]);
 
-        Mail::to($email)->queue(new \App\Mail\Otp($otp, $collection, $collection->project->name));
+        Mail::to($email)->queue(new Otp($otp, $duration, $collection, $collection->project->name));
 
         return response()->json(['message' => 'If an account exists with this email, you will receive a login code.']);
     }

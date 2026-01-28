@@ -17,7 +17,7 @@ Route::prefix('collections/{collection:name}')->group(function () {
         Route::post('/logout-all', [AuthController::class, 'logoutAll'])->name('logout-all');
         Route::post('/reset-password', [AuthController::class, 'resetPassword'])->name('reset-password');
         Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->name('forgot-password');
-        Route::post('/confirm-password-reset', [AuthController::class, 'confirmPasswordReset'])->name('confirm-password-reset');
+        Route::post('/confirm-forgot-password', [AuthController::class, 'confirmForgotPassword'])->name('confirm-forgot-password');
         Route::post('/request-auth-otp', [AuthController::class, 'requestAuthOtp'])->name('request-otp');
         Route::post('/authenticate-with-otp', [AuthController::class, 'authenticateWithOtp'])->name('authenticate-with-otp');
     });

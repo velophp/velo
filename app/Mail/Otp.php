@@ -18,6 +18,7 @@ class Otp extends Mailable
      */
     public function __construct(
         public string $otp,
+        public int $expires,
         public Collection $collection,
         public string $appName
     ) {}
@@ -44,9 +45,11 @@ class Otp extends Mailable
             $body = $this->collection->options['mail_templates']['otp_email']['body'];
         }
 
+        $expiresMin = round($this->expires / 60);
+
         $body = str_replace(
-            ['{{otp}}', '{{app_name}}'],
-            [$this->otp, $this->appName],
+            ['{{otp}}', '{{app_name}}', '{{expires}}'],
+            [$this->otp, $this->appName, "{$expiresMin} minutes"],
             $body
         );
 

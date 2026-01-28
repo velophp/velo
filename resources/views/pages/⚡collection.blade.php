@@ -23,7 +23,7 @@ new class extends Component {
 
     public string $filter = '';
 
-    public array $sortBy = ['column' => 'created', 'direction' => 'asc'];
+    public array $sortBy = ['column' => 'created', 'direction' => 'desc'];
 
     public array $selected = [];
 

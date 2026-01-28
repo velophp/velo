@@ -1165,9 +1165,6 @@ new class extends Component {
                                     <x-slot:content>
                                         <div class="space-y-4">
                                             @foreach ([
-                                                'verification' => 'Verification Email',
-                                                'password_reset' => 'Password Reset Email',
-                                                'confirm_email_change' => 'Confirm Email Change',
                                                 'otp_email' => 'OTP Email',
                                                 'login_alert' => 'Login Alert'
                                             ] as $key => $label)
