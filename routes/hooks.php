@@ -9,14 +9,12 @@ use App\Facades\Hooks;
 |
 | Here you may define all of your application's hooks. Hooks allow you to
 | extend the functionality of the system without modifying Core files.
-| Access to the database is restricted by design; focus on data manipulation.
 |
 */
 
 // Example:
-// Hooks::on('record.creating', function ($data, $context) {
+// Hooks::on('record.created', function ($context) {
 //     if ($context['collection']->name === 'posts') {
-//         $data['slug'] = \Illuminate\Support\Str::slug($data['title']);
+//         \Log::info('Created posts', $context['record]);
 //     }
-//     return $data;
 // });

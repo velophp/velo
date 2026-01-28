@@ -112,8 +112,9 @@ class HooksTest extends TestCase
 
     public function test_record_updating_hook()
     {
-        $record = $this->collection->recordRelation()->create([
-            'data' => new SafeCollection(['title' => 'Original']),
+        $record = Record::create([
+            'collection_id' => $this->collection->id,
+            'data' => ['title' => 'Original']
         ]);
 
         \App\Facades\Hooks::on('record.updating', function ($data, $context) {

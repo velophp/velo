@@ -234,6 +234,9 @@ new class extends Component {
         @endforeach
 
         @scope('cell_id', $row)
+        @if (!isset($row->id))
+            @dd($row)
+        @endif
         <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5" x-on:click.stop="">
             <p>{{ str($row->id)->limit(16) }}</p>
             <x-copy-button :text="$row->id"/>

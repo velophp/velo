@@ -4,11 +4,13 @@ namespace App\Models;
 
 use App\Casts\AsSafeCollection;
 use App\Collections\Handlers\CollectionTypeHandlerResolver;
+use App\Entity\SafeCollection;
 use App\Enums\FieldType;
 use App\Exceptions\InvalidRecordException;
 use App\Services\RealtimeService;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Record extends Model
@@ -25,7 +27,7 @@ class Record extends Model
     protected function documentId(): Attribute
     {
         return Attribute::make(
-            get: fn () => $this->data->get('id'),
+            get: fn() => $this->data->get('id'),
             set: function ($value) {
                 $data = $this->data;
                 $data->put('id', $value);
@@ -59,6 +61,82 @@ class Record extends Model
             if ($handler) {
                 $handler->onRetrieved($record);
             }
+
+            // Hook: record.retrieved
+            $data = $record->data->toArray();
+            $data = \App\Facades\Hooks::apply('record.retrieved', $data, [
+                'collection' => $record->collection,
+                'record_id' => $record->id,
+            ]);
+            $record->data = new SafeCollection($data);
+        });
+
+        static::creating(function (Record $record) {
+            // Hook: record.creating
+            $data = $record->data->toArray();
+            $data = \App\Facades\Hooks::apply('record.creating', $data, [
+                'collection' => $record->collection,
+            ]);
+            $record->data = new SafeCollection($data);
+        });
+
+        static::created(function (Record $record) {
+            // Hook: record.created
+            \App\Facades\Hooks::trigger('record.created', [
+                'collection' => $record->collection,
+                'record' => $record->data->toArray(),
+                'record_id' => $record->id,
+            ]);
+        });
+
+        static::updating(function (Record $record) {
+            // Hook: record.updating
+            $data = $record->data->toArray();
+            $data = \App\Facades\Hooks::apply('record.updating', $data, [
+                'collection' => $record->collection,
+                'record_id' => $record->id,
+                'original_data' => $record->getOriginal('data')->toArray(),
+            ]);
+            $record->data = new SafeCollection($data);
+        });
+
+        static::updated(function (Record $record) {
+            // Hook: record.updated
+            \App\Facades\Hooks::trigger('record.updated', [
+                'collection' => $record->collection,
+                'record' => $record->data->toArray(),
+                'record_id' => $record->id,
+            ]);
+        });
+
+        static::deleting(function (Record $record) {
+            try {
+                DB::beginTransaction();
+
+                // Hook: record.deleting
+                \App\Facades\Hooks::trigger('record.deleting', [
+                    'collection' => $record->collection,
+                    'record' => $record->data->toArray(),
+                    'record_id' => $record->id,
+                ]);
+
+                app(\App\Collections\Handlers\BaseCollectionHandler::class)->beforeDelete($record);
+                DB::commit();
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+        });
+
+        static::deleted(function (Record $record) {
+            // Hook: record.deleted
+            \App\Facades\Hooks::trigger('record.deleted', [
+                'collection' => $record->collection,
+                'record' => $record->data->toArray(),
+                'record_id' => $record->id,
+            ]);
+
+            app(RealtimeService::class)->dispatchUpdates($record, 'deleted');
         });
 
         static::saving(function (Record $record) {
@@ -110,28 +188,13 @@ class Record extends Model
             $missingFields = array_diff($fieldNames, $dataKeys);
 
             if (! empty($missingFields)) {
-                throw new InvalidRecordException('Record structure mismatch. Missing required fields: '.implode(', ', $missingFields).'. Expected all fields: '.implode(', ', $fieldNames));
-            }
-        });
-
-        static::deleting(function (Record $record) {
-            try {
-                \DB::beginTransaction();
-                app(\App\Collections\Handlers\BaseCollectionHandler::class)->beforeDelete($record);
-                \DB::commit();
-            } catch (\Exception $e) {
-                \DB::rollBack();
-                throw $e;
+                throw new InvalidRecordException('Record structure mismatch. Missing required fields: ' . implode(', ', $missingFields) . '. Expected all fields: ' . implode(', ', $fieldNames));
             }
         });
 
         static::saved(function (Record $record) {
             $action = $record->wasRecentlyCreated ? 'created' : 'updated';
             app(RealtimeService::class)->dispatchUpdates($record, $action);
-        });
-
-        static::deleted(function (Record $record) {
-            app(RealtimeService::class)->dispatchUpdates($record, 'deleted');
         });
     }
 }
