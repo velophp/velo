@@ -1,4 +1,4 @@
-<p align="center"><a href="https://velobase.io" target="_blank"><img src="../public/assets/velo.svg" height="150" alt="Velo Logo"></a></p>
+<p align="center"><a href="https://velobase.io" target="_blank"><img src="./public/assets/velo.svg" height="150" alt="Velo Logo"></a></p>
 
 # Velo Documentation
 
