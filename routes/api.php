@@ -28,7 +28,7 @@ Route::prefix('collections/{collection:name}')->group(function () {
         Route::get('/', [RecordController::class, 'list'])->name('list');
         Route::get('/{recordId}', [RecordController::class, 'view'])->name('view');
         Route::post('/', [RecordController::class, 'create'])->name('create');
-        Route::put('/{recordId}', [RecordController::class, 'update'])->name('update');
+        Route::match(['put', 'patch'], '/{recordId}', [RecordController::class, 'update'])->name('update');
         Route::delete('/{recordId}', [RecordController::class, 'delete'])->name('delete');
     });
 });
