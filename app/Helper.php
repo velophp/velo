@@ -17,7 +17,7 @@ class Helper
     /**
      * Create first project, and a super user account.
      */
-    public static function initProject(string $superuserEmail = 'admin@larabase.com', string $superuserPassword = 'password'): User
+    public static function initProject(string $superuserEmail = 'admin@velobase.dev', string $superuserPassword = 'password'): User
     {
         \DB::beginTransaction();
 

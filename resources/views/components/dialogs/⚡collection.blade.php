@@ -1,20 +1,21 @@
 <?php
 
-use App\Enums\CollectionType;
+use App\Enums\OtpType;
+use Mary\Traits\Toast;
+use App\Models\AuthOtp;
+use Livewire\Component;
 use App\Enums\FieldType;
-use App\Exceptions\IndexOperationException;
-use App\Models\AuthPasswordReset;
+use Livewire\Attributes\On;
+use App\Enums\CollectionType;
 use App\Models\CollectionField;
-use App\Rules\ValidRuleExpression;
-use App\Services\IndexStrategies\MysqlIndexStrategy;
-use Illuminate\Support\Collection;
-use Illuminate\Validation\Rules\Enum;
-use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Reactive;
-use Livewire\Component;
-use Mary\Traits\Toast;
-use Livewire\Attributes\On;
+use App\Rules\ValidRuleExpression;
+use Illuminate\Support\Collection;
+use Illuminate\Validation\Rules\Enum;
+use App\Exceptions\IndexOperationException;
+use Illuminate\Validation\ValidationException;
+use App\Services\IndexStrategies\MysqlIndexStrategy;
 
 new class extends Component {
     use Toast;
@@ -566,14 +567,29 @@ new class extends Component {
                 $oldField->update($toUpdateData);
             }
 
+            if ($this->collectionForm['options']['other']['tokens_options']['auth_duration']['invalidate_previous_tokens']) {
+                AuthOtp::where('action', OtpType::AUTHENTICATION)->whereNull('used_at')->update(['used_at' => now()]);
+                $this->collectionForm['options']['other']['tokens_options']['auth_duration']['invalidate_previous_tokens'] = false;
+            }
+
             if ($this->collectionForm['options']['other']['tokens_options']['password_reset_duration']['invalidate_previous_tokens']) {
-                $now = now();
-
-                AuthPasswordReset::whereNotNull('id')->update([
-                    'used_at' => $now
-                ]);
-
+                AuthOtp::where('action', OtpType::PASSWORD_RESET)->whereNull('used_at')->update(['used_at' => now()]);
                 $this->collectionForm['options']['other']['tokens_options']['password_reset_duration']['invalidate_previous_tokens'] = false;
+            }
+
+            if ($this->collectionForm['options']['other']['tokens_options']['email_verification']['invalidate_previous_tokens']) {
+                AuthOtp::where('action', OtpType::EMAIL_VERIFICATION)->whereNull('used_at')->update(['used_at' => now()]);
+                $this->collectionForm['options']['other']['tokens_options']['email_verification']['invalidate_previous_tokens'] = false;
+            }
+
+            if ($this->collectionForm['options']['other']['tokens_options']['email_change_duration']['invalidate_previous_tokens']) {
+                AuthOtp::where('action', OtpType::EMAIL_CHANGE)->whereNull('used_at')->update(['used_at' => now()]);
+                $this->collectionForm['options']['other']['tokens_options']['email_change_duration']['invalidate_previous_tokens'] = false;
+            }
+
+            if ($this->collectionForm['options']['other']['tokens_options']['protected_file_access_duration']['invalidate_previous_tokens']) {
+                // AuthOtp::where('action', ...)->whereNull('used_at')->update(['used_at' => now()]);
+                $this->collectionForm['options']['other']['tokens_options']['protected_file_access_duration']['invalidate_previous_tokens'] = false;
             }
 
 

@@ -10,7 +10,7 @@ new
     #[Title('Login')]
     class extends Component {
 
-    public $email = 'admin@larabase.com', $password = 'password', $remember = false;
+    public $email = 'admin@velobase.dev', $password = 'password', $remember = false;
 
     public function mount()
     {

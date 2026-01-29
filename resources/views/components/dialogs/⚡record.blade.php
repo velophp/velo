@@ -249,6 +249,14 @@ new class extends Component {
     {
         $this->form[$fieldName] = $selected;
     }
+
+    #[On('collection-updated')]
+    public function collectionUpdated(): void
+    {
+        $this->collection->fresh();
+        $this->fillFields();
+        $this->fillRecordForm();
+    }
 };
 ?>
 

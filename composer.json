@@ -1,8 +1,8 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "kevintherm/velo",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
+    "description": "Laravel based-backend.",
     "keywords": [
         "laravel",
         "framework"
@@ -78,7 +78,6 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi",
-            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
             "@php artisan migrate --graceful --ansi"
         ],
         "pre-package-uninstall": [
