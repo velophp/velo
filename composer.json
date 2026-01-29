@@ -78,7 +78,7 @@
         ],
         "post-create-project-cmd": [
             "@php artisan key:generate --ansi",
-            "@php artisan migrate --graceful --ansi"
+            "@php -r \"echo 'Project installed. Configure database and 'run artisan migrate'!\\n';\""
         ],
         "pre-package-uninstall": [
             "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
