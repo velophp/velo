@@ -8,6 +8,10 @@ nav_order: 2
 
 Velo is built around the concept of dynamic **EAV (Entity-Attribute-Values)**. Unlike a traditional Laravel application where you define schema using Migrations and Eloquent Models for each entity, Velo allows you to define your schema at runtime.
 
+## Databases
+
+Right now Velo supports only MySQL database since its the most popular database and the one that you can host for cheap. But rest assured, Velo will have a support for PostgreSQL in the future.
+
 ## Collections
 
 A **Collection** is like a table in a standard database. It defines the structure and behavior of the data interaction.
@@ -36,6 +40,8 @@ Velo supports various field types that you can use in your application:
 - **Relation**: References to records in other collections.
 - **Json**: Store arbitrary JSON data. (Coming soon)
 
+See more at `Enums/FieldType.php`.
+
 ## Records
 
 A **Record** is an instance of data within a Collection. Internally, Velo uses a `records` table with a JSON `data` column to store these dynamic attributes.
@@ -63,6 +69,8 @@ Rules can reference the current user (`@request.auth.id`) and the record being a
 
 Example:
 ```
-// Only the creator can update the record
+// Only the creator can access the record
 @request.auth.id = user
 ```
+
+Next up: [Api Reference](api-reference.md)

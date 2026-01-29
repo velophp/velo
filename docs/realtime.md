@@ -10,7 +10,7 @@ nav_order: 3
 Velo pushes data changes to connected clients in real-time using WebSockets.
 By default velo supports two main driver, Laravel Reverb and Pusher. You can choose your own driver and setup your frontend approach.
 
-Behind the scenes, Velo stores all of the realtime connection in the `realtime_connections` table, and when a record triggers a broadcast event, Velo will check the `realtime_connections` table to see if there are any clients subscribed to the collection and send the event to them. It will also check if there are any filters defined for the collection and send the event to the clients that match the filter. The filtering used a combination of the list rule and the realtime filter defined when creating a connection. The filter string is parsed and checked against the record data. It will also interpolate the @request.auth from the `realtime_connections` join query as the authenticated user.
+Behind the scenes, Velo stores all of the realtime connection in the `realtime_connections` table, and when a record triggers a broadcast event, Velo will check the `realtime_connections` table to see if there are any clients subscribed to the collection and send the event to them. It will also check if there are any filters defined for the collection and send the event to the clients that match the filter. The filtering used a combination of the list rule and the realtime filter defined when creating a connection. The filter string is parsed and checked against the record data. It will also interpolate the `@request.auth` from the `realtime_connections` join query as the authenticated user.
 
 ## Subscribing to Changes
 
@@ -65,10 +65,9 @@ When data changes, an event is broadcasted to the channel.
 
 ### Event Payload
 
-**Create / Update / Delete**
 ```json
 {
-    "action": "created", // [created, updated, deleted]
+    "action": "...",
     "record": {
         "id": "...",
         "title": "New Post",
@@ -77,3 +76,5 @@ When data changes, an event is broadcasted to the channel.
     }
 }
 ```
+
+Next up: [Hooks System](hooks.md)

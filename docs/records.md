@@ -11,6 +11,9 @@ The Records API allows you to perform CRUD operations on the records within a co
 
 **Base URL**: `/api/collections/{collection}/records`
 
+> Currently the expand feature does not support nesting yet.
+
+
 ## List Records
 
 Fetch a paginated list of records.
@@ -69,8 +72,6 @@ Expand relation fields to include the full referenced record data.
     "meta": {...}
 }
 ```
-
-> Currently the expand feature does not support nesting yet.
 
 ## View Record
 
@@ -133,3 +134,5 @@ Delete a record.
 
 ### Response
 `204 No Content`
+
+Next up: [Authentication](authentication.md)

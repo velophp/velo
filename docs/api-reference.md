@@ -7,7 +7,7 @@ has_children: true
 
 # API Reference
 
-The Velo API is organized around REST. Our API has predictable resource-oriented URLs, accepts form-encoded request bodies, returns JSON-encoded responses, and uses standard HTTP response codes, authentication, and verbs.
+API is used by the outside requests to do something inside the database.
 
 ## Base URL
 
@@ -49,3 +49,5 @@ All responses are returned in JSON format.
 | `Accept` | `application/json` | **Required**. Ensures Laravel returns JSON responses instead of redirects. |
 | `Content-Type` | `application/json` | Required for POST/PUT requests with JSON body. |
 | `Authorization` | `Bearer <token>` | Required for authenticated endpoints. |
+
+Next up: [Records API](records.md)

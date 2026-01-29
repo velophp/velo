@@ -1,8 +1,11 @@
-title: Velo Documentation
-description: Documentation for Velo, a Laravel-native BaaS.
+title: Velo
+description: Documentation for Velo, a Laravel based BaaS.
 remote_theme: just-the-docs/just-the-docs
 
 color_scheme: dark
+
+logo: "../public/assets/velo.svg"
+logo_alt: "Velo"
 
 search_enabled: true
 heading_anchors: true
