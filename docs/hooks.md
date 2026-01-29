@@ -1,3 +1,9 @@
+---
+layout: default
+title: Hooks System
+nav_order: 4
+---
+
 # Hooks System
 
 Velo provides a powerful **Hooks System** that allows you to extend the core logic without modifying the system files. This is useful for validation, data modification, side effects, and integrating with third-party services.

@@ -1,3 +1,9 @@
+---
+layout: default
+title: Core Concepts
+nav_order: 2
+---
+
 # Core Concepts
 
 Velo is built around the concept of dynamic **EAV (Entity-Attribute-Values)**. Unlike a traditional Laravel application where you define schema using Migrations and Eloquent Models for each entity, Velo allows you to define your schema at runtime.

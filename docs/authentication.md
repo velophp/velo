@@ -1,3 +1,10 @@
+---
+layout: default
+title: Authentication
+parent: API Reference
+nav_order: 2
+---
+
 # Authentication
 
 Velo simplifies user authentication by treating users as records in an **Auth Collection**.
@@ -15,29 +22,103 @@ By default, an Auth collection has the following fields:
 
 ## Authentication Methods
 
-Velo supports multiple ways to authenticate:
+Velo supports multiple ways to authenticate.
 
-### 1. Standard
-The standard flow. Using identifier which you can configure on the admin panel, and password.
-- Endpoint: `POST /api/collections/{collection}/auth/authenticate-with-password`
-- Payload: `{"identifier": "email@example.com", "password": "..."}`
+### 1. Password Authentication
 
-### 2. OTP (One-Time Password)
+The standard email/password flow.
+
+- **Method**: `POST`
+- **Path**: `/api/collections/{collection}/auth/authenticate-with-password`
+
+#### Payload
+```json
+{
+    "identifier": "user@example.com",
+    "password": "secretpassword"
+}
+```
+
+#### Response
+```json
+{
+    "token": "...",
+    "data": {
+        "id": "...",
+        "email": "..."
+    }
+}
+```
+
+### 2. OTP Authentication
+
 Passwordless login via email codes.
-- Enable `otp` in the Collection options.
-- Endpoint (Request): `POST /api/collections/{collection}/auth/request-auth-otp`
-- Endpoint (Login): `POST /api/collections/{collection}/auth/authenticate-with-otp`
+
+#### Request OTP
+- **Method**: `POST`
+- **Path**: `/api/collections/{collection}/auth/request-auth-otp`
+
+Payload:
+```json
+{
+    "email": "user@example.com"
+}
+```
+
+#### Login with OTP
+- **Method**: `POST`
+- **Path**: `/api/collections/{collection}/auth/authenticate-with-otp`
+
+Payload:
+```json
+{
+    "email": "user@example.com",
+    "otp": "123456"
+}
+```
 
 ## Token Management
 
-On successful authentication, the API returns a Bearer Token. This token should be included in the `Authorization` header for subsequent requests.
+On successful authentication, the API returns a Bearer Token. This token should be included in the `Authorization` header (`Bearer <token>`) for subsequent requests.
 
-- `POST /api/collections/{collection}/auth/logout`: Invalidate the current token.
-- `POST /api/collections/{collection}/auth/logout-all`: Invalidate *all* tokens for the user (e.g., "Sign out everywhere").
+### Get Current User
+- **Method**: `GET`
+- **Path**: `/api/collections/{collection}/auth/me`
+
+### Logout
+Invalidate the current token.
+- **Method**: `POST`
+- **Path**: `/api/collections/{collection}/auth/logout`
+
+### Logout All
+Invalidate *all* tokens for the user (sign out everywhere).
+- **Method**: `POST`
+- **Path**: `/api/collections/{collection}/auth/logout-all`
 
 ## Account Management
 
-Also built-in are standard account management flows:
-- **Forgot Password**: Request and confirm password reset via email.
-- **Update Email**: Request and confirm email change (with OTP verification).
-- **Verification**: Email verification flows.
+### Forgot Password
+
+#### 1. Request Reset
+- **Method**: `POST`
+- **Path**: `/api/collections/{collection}/auth/forgot-password`
+
+Payload:
+```json
+{
+    "email": "user@example.com"
+}
+```
+
+#### 2. Confirm Reset
+- **Method**: `POST`
+- **Path**: `/api/collections/{collection}/auth/confirm-forgot-password`
+
+Payload:
+```json
+{
+    "otp": "123456",
+    "new_password": "newpassword",
+    "new_password_confirm": "newpassword"
+}
+```

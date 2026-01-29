@@ -27,9 +27,8 @@ This project is proudly built with:
 Full documentation is available in the `docs/` directory:
 
 - [Core Concepts & Architecture](docs/core-concepts.md)
-- [Authentication](docs/authentication.md)
+- [API Reference](docs/api-reference.md)
 - [Hooks Extension System](docs/hooks.md)
-- [Realtime](docs/realtime.md)
 
 ## Contributing
 

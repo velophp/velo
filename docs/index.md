@@ -1,50 +1,22 @@
-<p align="center"><a href="https://velobase.io" target="_blank"><img src="./public/assets/velo.svg" height="150" alt="Velo Logo"></a></p>
-
-# Velo Documentation
-
-Welcome to the official documentation for Velo, a Laravel-based backend-as-a-service platform designed for flexibility, speed, and ease of use.
-
+---
+layout: default
+title: Introduction
+nav_order: 1
 ---
 
-## Getting Started
+# Introduction
 
-To understand how Velo works and how to integrate it into your projects, explore the following sections:
+Velo is a Backend-as-a-Service (BaaS) kit for Laravel. It provides a dynamic database layer (Collections) on top of a standard Laravel application, allowing you to manage schemas at runtime while preserving the ability to write custom PHP code.
 
-- **[Core Concepts](core-concepts.md)**: Dive into Velo's architecture, including EAV (Entity-Attribute-Value) schema and dynamic collections.
-- **[Authentication](authentication.md)**: Learn about multi-collection user providers, stateful authentication, and session management.
-- **[Realtime](realtime.md)**: Explore how to receive instant data updates via WebSockets with granular filtering support.
-- **[Hooks System](hooks.md)**: Learn how to extend Velo's core logic with custom triggers and event listeners.
+It is heavily inspired by [PocketBase](https://pocketbase.io), but built natively for the Laravel ecosystem.
 
----
+## Documentation
 
-## Key Features
+### Core
+- **[Concepts & Architecture](core-concepts.md)**: How Collections, Records, and Fields work under the hood.
+- **[API Reference](api-reference.md)**: The HTTP API specification for interacting with your data.
 
-- **Dynamic Collections**: Manage your data schema at runtime without the need for manual migrations.
-- **Collection Types**: Use **Base** collections for standard data and **Auth** collections for user management.
-- **Realtime Updates**: Native support for **Laravel Reverb** and **Pusher** for instant data synchronization.
-- **Extensible Architecture**: Use the internal **Hooks System** to intercept and modify system behavior.
-
----
-
-## Tech Stack
-
-Velo is built on a modern, robust foundation:
-- **Framework**: [Laravel 12](https://laravel.com)
-- **Frontend**: [Livewire 4](https://livewire.laravel.com) & [TailwindCSS](https://tailwindcss.com)
-- **UI Components**: [MaryUI](https://mary-ui.com)
-
----
-
-## Contributing
-
-Thank you for considering contributing to the Velo project!
-
-## Improvement & Security Vulnerabilities
-
-If you discover a security vulnerability within Velo, please open a new issue or send an email to the maintainers.
-
----
-
-## License
-
-Velo is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Features
+- **[Authentication](authentication.md)**: Built-in user management, OTP support, and token handling.
+- **[Realtime](realtime.md)**: WebSocket events for record changes (Laravel Reverb / Pusher).
+- **[Hooks](hooks.md)**: Intercept and modify data flows using standard PHP closures.

@@ -1,0 +1,13 @@
+title: Velo Documentation
+description: Documentation for Velo, a Laravel-native BaaS.
+remote_theme: just-the-docs/just-the-docs
+
+color_scheme: dark
+
+search_enabled: true
+heading_anchors: true
+
+aux_links:
+  "Velo Repository": https://github.com/kevintherm/velo
+
+footer_content: "Copyright &copy; 2026 Velo. All rights reserved."
