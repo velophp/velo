@@ -87,10 +87,10 @@ class AuthController extends Controller
 
         [$token, $hashed] = AuthSession::generateToken();
 
-        $isNewIp = ! AuthSession::where('record_id', $record->id)
-            ->where('collection_id', $collection->id)
-            ->where('ip_address', $request->ip())
-            ->exists();
+        // $isNewIp = ! AuthSession::where('record_id', $record->id)
+        //     ->where('collection_id', $collection->id)
+        //     ->where('ip_address', $request->ip())
+        //     ->exists();
 
         $authTokenExpires = (int) $collection->options['other']['tokens_options']['auth_duration']['value'] ?? 604800;
         AuthSession::create([
@@ -101,20 +101,20 @@ class AuthController extends Controller
             'expires_at' => now()->addSeconds($authTokenExpires),
             'last_used_at' => now(),
             'device_name' => $request->input('device_name'),
-            'ip_address' => $request->ip(),
+            'ip_address' => null,
         ]);
 
-        if ($isNewIp && isset($collection->options['mail_templates']['login_alert']['body']) && ! empty($collection->options['mail_templates']['login_alert']['body'])) {
-            $email = $record->data->email;
-            if ($email) {
-                Mail::to($email)->queue(new LoginAlert(
-                    $collection,
-                    $record,
-                    $request->input('device_name'),
-                    $request->ip()
-                ));
-            }
-        }
+        // if (isset($collection->options['mail_templates']['login_alert']['body']) && ! empty($collection->options['mail_templates']['login_alert']['body'])) {
+        //     $email = $record->data->email;
+        //     if ($email) {
+        //         Mail::to($email)->queue(new LoginAlert(
+        //             $collection,
+        //             $record,
+        //             $request->input('device_name'),
+        //             null
+        //         ));
+        //     }
+        // }
 
         // Hook: auth.login
         \App\Facades\Hooks::trigger('auth.login', [
@@ -122,7 +122,7 @@ class AuthController extends Controller
             'record' => $record->data->toArray(),
             'record_id' => $record->id,
             'token' => $token,
-            'ip_address' => $request->ip(),
+            'ip_address' => null,
         ]);
 
         return response()->json([
@@ -288,7 +288,7 @@ class AuthController extends Controller
             'token_hash' => $hashed,
             'action' => OtpType::PASSWORD_RESET,
             'expires_at' => now()->addSeconds($expires),
-            'ip_address' => $request->ip(),
+            'ip_address' => null,
             'device_name' => $request->input('device_name'),
         ]);
 
@@ -389,7 +389,7 @@ class AuthController extends Controller
             'token_hash' => $hashed,
             'action' => OtpType::AUTHENTICATION,
             'expires_at' => $expiresAt,
-            'ip_address' => $request->ip(),
+            'ip_address' => null,
             'device_name' => $request->input('device_name'),
         ]);
 
@@ -445,22 +445,16 @@ class AuthController extends Controller
             'expires_at' => now()->addSeconds($authTokenExpires),
             'last_used_at' => now(),
             'device_name' => $request->input('device_name'),
-            'ip_address' => $request->ip(),
+            'ip_address' => null,
         ]);
 
-        $isNewIp = ! AuthSession::where('record_id', $record->id)
-            ->where('collection_id', $collection->id)
-            ->where('ip_address', $request->ip())
-            ->where('id', '!=', $session->id)
-            ->exists();
-
-        if ($isNewIp && isset($collection->options['mail_templates']['login_alert']['body']) && ! empty($collection->options['mail_templates']['login_alert']['body'])) {
+        if (isset($collection->options['mail_templates']['login_alert']['body']) && ! empty($collection->options['mail_templates']['login_alert']['body'])) {
             if ($email) {
                 Mail::to($email)->queue(new LoginAlert(
                     $collection,
                     $record,
                     $request->input('device_name'),
-                    $request->ip()
+                    null
                 ));
             }
         }
@@ -503,7 +497,7 @@ class AuthController extends Controller
             'token_hash' => $hashed,
             'action' => OtpType::EMAIL_CHANGE,
             'expires_at' => $expiresAt,
-            'ip_address' => $request->ip(),
+            'ip_address' => null,
             'device_name' => $request->input('device_name'),
         ]);
 
