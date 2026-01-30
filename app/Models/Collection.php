@@ -66,6 +66,17 @@ class Collection extends Model
     public static function getDefaultApiRules(): array
     {
         return [
+            'list' => '@request.auth.id = id',
+            'view' => '@request.auth.id = id',
+            'create' => '',
+            'update' => '@request.auth.id = id',
+            'delete' => '@request.auth.id = id',
+        ];
+    }
+
+    public static function getLockedApiRules(): array
+    {
+        return [
             'list' => 'SUPERUSER_ONLY',
             'view' => 'SUPERUSER_ONLY',
             'create' => 'SUPERUSER_ONLY',
