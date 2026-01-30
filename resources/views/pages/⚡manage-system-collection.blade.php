@@ -484,7 +484,9 @@ new class extends Component {
                     $record->save();
                     $status = 'Updated';
                 } else {
-                    $createData = [];
+                    $createData = [
+                        'project_id' => 1,
+                    ];
                     foreach ($this->data as $key => $value) {
                         if (array_key_exists($key, $this->formConfig)) {
                             if ($this->formConfig[$key]['readonly'] ?? false) {
