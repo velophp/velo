@@ -22,6 +22,33 @@ This project is proudly built with:
 - [TailwindCSS](https://tailwindcss.com)
 - [MaryUI](https://mary-ui.com)
 
+## Quick Start
+
+Prerequisites:
+- PHP >8.4
+- Composer
+- MySQL
+- Node/Bun
+
+```bash
+composer create-project kevintherm/velo my-velo-backend
+cd my-velo-backend
+composer install
+cp .env.example .env
+php artisan key:generate
+
+# configure your db vars
+
+bun install # or npm install
+bun run build # or npm run build
+
+php artisan migrate
+
+php artisan serve
+```
+
+Velo should now be available on http://localhost:8000
+
 ## Documentation
 
 Full documentation is available in the `docs/` directory:

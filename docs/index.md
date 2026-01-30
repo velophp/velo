@@ -15,6 +15,33 @@ It is heavily inspired by [PocketBase](https://pocketbase.io), but built nativel
 - Velo: [Demo](https://demo.velophp.com)
 - Flashcard (Uses Velo as its backend): [Flashcard](https://kevintherm.github.io/velo-flashcard)
 
+## Quick Start
+
+Prerequisites:
+- PHP >8.4
+- Composer
+- MySQL
+- Node/Bun
+
+```bash
+composer create-project kevintherm/velo my-velo-backend
+cd my-velo-backend
+composer install
+cp .env.example .env
+php artisan key:generate
+
+# configure your db vars
+
+bun install # or npm install
+bun run build # or npm run build
+
+php artisan migrate
+
+php artisan serve
+```
+
+Velo should now be available on http://localhost:8000
+
 ## Documentation
 
 ### Core
