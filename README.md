@@ -9,6 +9,12 @@ Velo is a Laravel-based backend utilizing MySQL as the primary database and EAV 
 The goal of this project is to make a Backend-as-a-service platform that is cheap to deploy whilst maintaining key features of a Backend-as-a-service platform.
 This project is heavily inspired by [PocketBase](https://pocketbase.io) and its open-source nature.
 
+## Demo
+Try it out!
+
+- Velo: [Demo](https://demo.velophp.com)
+- Flashcard (Uses Velo as its backend): [Flashcard](https://kevintherm.github.io/velo-flashcard)
+
 ### Key Features
 - **Dynamic Collections**: Create and manage data schemas on the fly without writing migrations.
 - **Collection Types**: Support for different collection types (Base, Auth, View (coming soon)).
