@@ -1,6 +1,5 @@
 <?php
 
-use App\Enums\FieldType;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Mary\Traits\Toast;
@@ -25,7 +24,7 @@ new class extends Component {
     #[On('open-relation-picker')]
     public function openRelationPicker(string $collectionId, string $fieldName, array|string|null $selected, bool $multiple = false): void
     {
-        $collection = \App\Models\Collection::find($collectionId);
+        $collection = \App\Domain\Collection\Models\Collection::find($collectionId);
 
         if (!$collection) {
             $this->dispatch('toast', message: 'Collection not found.', css: 'alert-error');
@@ -155,12 +154,14 @@ new class extends Component {
                         </div>
 
                         <div class="{{ $isSelected ? 'block' : 'hidden group-hover:block' }}">
-{{--                            <x-button x-on:click.stop="" class="btn-ghost rounded-full btn-xs"--}}
-{{--                                      wire:click.stop="editRecord('{{ $record->data['id'] }}')">--}}
-{{--                                <x-icon name="o-pencil" class="w-4 h-4 text-gray-500"/>--}}
-{{--                            </x-button>--}}
-                            <x-button x-on:click.stop="" link="{{ route('collections', ['collection' => $relationPicker['collection'], 'recordId' => $record->data['id']]) }}" external class="btn-ghost rounded-full btn-xs">
-                                <x-icon name="o-arrow-top-right-on-square" class="w-4 h-4 text-gray-400" />
+                            {{--                            <x-button x-on:click.stop="" class="btn-ghost rounded-full btn-xs"--}}
+                            {{--                                      wire:click.stop="editRecord('{{ $record->data['id'] }}')">--}}
+                            {{--                                <x-icon name="o-pencil" class="w-4 h-4 text-gray-500"/>--}}
+                            {{--                            </x-button>--}}
+                            <x-button x-on:click.stop=""
+                                      link="{{ route('collections', ['collection' => $relationPicker['collection'], 'recordId' => $record->data['id']]) }}"
+                                      external class="btn-ghost rounded-full btn-xs">
+                                <x-icon name="o-arrow-top-right-on-square" class="w-4 h-4 text-gray-400"/>
                             </x-button>
                         </div>
                     </div>

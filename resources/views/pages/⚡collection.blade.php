@@ -1,9 +1,8 @@
 <?php
 
-use App\Enums\CollectionType;
-use App\Enums\FieldType;
-use App\Exceptions\InvalidRecordException;
-use Illuminate\Support\Collection;
+use App\Domain\Collection\Enums\CollectionType;
+use App\Domain\Field\Enums\FieldType;
+use App\Domain\Project\Exceptions\InvalidRecordException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -13,7 +12,7 @@ use Mary\Traits\Toast;
 new class extends Component {
     use WithPagination, Toast;
 
-    public \App\Models\Collection $collection;
+    public \App\Domain\Collection\Models\Collection $collection;
     public Illuminate\Database\Eloquent\Collection $fields;
 
     public array $breadcrumbs = [];
@@ -264,7 +263,7 @@ new class extends Component {
 
         @foreach ($fields as $field)
 
-            @if ($field->type === App\Enums\FieldType::Bool)
+            @if ($field->type === \App\Domain\Field\Enums\FieldType::Bool)
                 @cscope('cell_' . $field->name, $row, $field)
                 <x-badge :wire:key="$field->name . $row->id" :value="$row->{$field->name} ? 'True' : 'False'"
                          class="{{ $row->{$field->name} ? 'badge-success' : '' }} badge-soft "/>
@@ -273,12 +272,12 @@ new class extends Component {
             @endif
 
 
-            @if ($field->type === App\Enums\FieldType::Relation)
+            @if ($field->type === \App\Domain\Field\Enums\FieldType::Relation)
                 @cscope('cell_' . $field->name, $row, $field)
                 @php
                     $relations = is_array($row->{$field->name}) ? $row->{$field->name} : [$row->{$field->name}];
                     $relations = array_filter($relations);
-                    $relatedCollections = App\Models\Collection::find($field->options->collection);
+                    $relatedCollections = \App\Domain\Collection\Models\Collection::find($field->options->collection);
                 @endphp
                 @if (!empty($relations))
                     <div class="flex flex-wrap gap-2">
@@ -305,7 +304,7 @@ new class extends Component {
                 @continue
             @endif
 
-            @if ($field->type === App\Enums\FieldType::File)
+            @if ($field->type === \App\Domain\Field\Enums\FieldType::File)
                 @cscope('cell_' . $field->name, $row, $field)
                 @php
                     $files = is_array($row->{$field->name}) ? $row->{$field->name} : [$row->{$field->name}];

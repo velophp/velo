@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Enums\CollectionType;
-use App\Enums\FieldType;
-use App\Models\Collection;
-use App\Models\CollectionField;
-use App\Models\Project;
-use App\Models\Record;
+use App\Domain\Collection\Enums\CollectionType;
+use App\Domain\Collection\Models\Collection;
+use App\Domain\Field\Enums\FieldType;
+use App\Domain\Field\Models\CollectionField;
+use App\Domain\Project\Models\Project;
+use App\Domain\Record\Models\Record;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -30,11 +30,11 @@ class RecordApiTest extends TestCase
         // Create posts collection
         $this->collection = Collection::create([
             'project_id' => $this->project->id,
-            'name' => 'posts',
-            'type' => CollectionType::Base,
-            'api_rules' => [
-                'list' => '',
-                'view' => '',
+            'name'       => 'posts',
+            'type'       => CollectionType::Base,
+            'api_rules'  => [
+                'list'   => '',
+                'view'   => '',
                 'create' => '',
                 'update' => '@request.auth.id = user_id',
                 'delete' => '@request.auth.id = user_id',
@@ -44,37 +44,37 @@ class RecordApiTest extends TestCase
         // Add fields to posts
         CollectionField::create([
             'collection_id' => $this->collection->id,
-            'name' => 'title',
-            'type' => FieldType::Text,
-            'order' => 1,
-            'options' => [],
+            'name'          => 'title',
+            'type'          => FieldType::Text,
+            'order'         => 1,
+            'options'       => [],
         ]);
         CollectionField::create([
             'collection_id' => $this->collection->id,
-            'name' => 'content',
-            'type' => FieldType::Text,
-            'order' => 2,
-            'options' => [],
+            'name'          => 'content',
+            'type'          => FieldType::Text,
+            'order'         => 2,
+            'options'       => [],
         ]);
         CollectionField::create([
             'collection_id' => $this->collection->id,
-            'name' => 'user_id',
-            'type' => FieldType::Text,
-            'order' => 3,
-            'options' => [],
+            'name'          => 'user_id',
+            'type'          => FieldType::Text,
+            'order'         => 3,
+            'options'       => [],
         ]);
 
         // Create users collection for auth
         $this->userCollection = Collection::create([
             'project_id' => $this->project->id,
-            'name' => 'users',
-            'type' => CollectionType::Auth,
-            'api_rules' => [
+            'name'       => 'users',
+            'type'       => CollectionType::Auth,
+            'api_rules'  => [
                 'authenticate' => '',
-                'list' => '',
-                'view' => '@request.auth.id = id',
-                'update' => '@request.auth.id = id',
-                'delete' => '@request.auth.id = id',
+                'list'         => '',
+                'view'         => '@request.auth.id = id',
+                'update'       => '@request.auth.id = id',
+                'delete'       => '@request.auth.id = id',
             ],
         ]);
 
@@ -87,7 +87,7 @@ class RecordApiTest extends TestCase
     {
         Record::create([
             'collection_id' => $this->collection->id,
-            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
+            'data'          => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
         ]);
 
         $response = $this->getJson('/api/collections/posts/records');
@@ -99,7 +99,7 @@ class RecordApiTest extends TestCase
     public function test_can_create_post()
     {
         $response = $this->postJson('/api/collections/posts/records', [
-            'title' => 'New Post',
+            'title'   => 'New Post',
             'content' => 'New Content',
             'user_id' => 'user1',
         ]);
@@ -114,7 +114,7 @@ class RecordApiTest extends TestCase
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
+            'data'          => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
         ]);
 
         $response = $this->getJson("/api/collections/posts/records/{$record->documentId}");
@@ -127,7 +127,7 @@ class RecordApiTest extends TestCase
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
+            'data'          => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
         ]);
 
         // No auth header = no owner
@@ -142,7 +142,7 @@ class RecordApiTest extends TestCase
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
+            'data'          => ['title' => 'Post 1', 'content' => 'Content 1', 'user_id' => 'user1'],
         ]);
 
         $response = $this->deleteJson("/api/collections/posts/records/{$record->documentId}");

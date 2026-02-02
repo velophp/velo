@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Collection;
-use App\Models\Project;
-use App\Models\RealtimeConnection;
+use App\Delivery\Models\RealtimeConnection;
+use App\Domain\Collection\Models\Collection;
+use App\Domain\Project\Models\Project;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -17,21 +17,21 @@ class RealtimeSubscriptionTest extends TestCase
         $project = Project::create(['name' => 'Test Project']);
         $collection = Collection::create([
             'project_id' => $project->id,
-            'name' => 'posts',
-            'type' => \App\Enums\CollectionType::Base,
-            'api_rules' => ['list' => ''],
+            'name'       => 'posts',
+            'type'       => \App\Domain\Collection\Enums\CollectionType::Base,
+            'api_rules'  => ['list' => ''],
         ]);
 
         $response = $this->postJson(route('realtime.subscribe'), [
             'collection' => $collection->name,
-            'filter' => 'status=active',
+            'filter'     => 'status=active',
         ]);
 
         $response->assertStatus(200)->assertJsonStructure(['channel_name']);
 
         $this->assertDatabaseHas('realtime_connections', [
             'collection_id' => $collection->id,
-            'filter' => 'status=active',
+            'filter'        => 'status=active',
         ]);
     }
 
@@ -40,19 +40,19 @@ class RealtimeSubscriptionTest extends TestCase
         $project = Project::create(['name' => 'Test Project']);
         $collection = Collection::create([
             'project_id' => $project->id,
-            'name' => 'posts',
-            'type' => \App\Enums\CollectionType::Base,
-            'api_rules' => ['list' => ''],
+            'name'       => 'posts',
+            'type'       => \App\Domain\Collection\Enums\CollectionType::Base,
+            'api_rules'  => ['list' => ''],
         ]);
 
         $uuid = \Illuminate\Support\Str::uuid()->toString();
 
         // Seed connection
         $connection = RealtimeConnection::create([
-            'project_id' => $project->id,
+            'project_id'    => $project->id,
             'collection_id' => $collection->id,
-            'channel_name' => $uuid,
-            'last_seen_at' => now()->subMinutes(10),
+            'channel_name'  => $uuid,
+            'last_seen_at'  => now()->subMinutes(10),
         ]);
 
         $response = $this->postJson(route('realtime.ping'), [
@@ -62,7 +62,7 @@ class RealtimeSubscriptionTest extends TestCase
         $response->assertOk();
 
         $this->assertDatabaseHas('realtime_connections', [
-            'id' => $connection->id,
+            'id'           => $connection->id,
             'last_seen_at' => now(), // Should be approximately now
         ]);
 

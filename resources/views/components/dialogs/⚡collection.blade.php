@@ -1,26 +1,25 @@
 <?php
 
-use App\Enums\OtpType;
-use Mary\Traits\Toast;
-use App\Models\AuthOtp;
-use Livewire\Component;
-use App\Enums\FieldType;
-use Livewire\Attributes\On;
-use App\Enums\CollectionType;
-use App\Models\CollectionField;
-use Livewire\Attributes\Computed;
-use Livewire\Attributes\Reactive;
-use App\Rules\ValidRuleExpression;
+use App\Delivery\Rules\ValidRuleExpression;
+use App\Domain\Auth\Enums\OtpType;
+use App\Domain\Auth\Models\AuthOtp;
+use App\Domain\Collection\Enums\CollectionType;
+use App\Domain\Collection\Exceptions\IndexOperationException;
+use App\Domain\Collection\Services\IndexStrategies\MysqlIndexStrategy;
+use App\Domain\Field\Enums\FieldType;
+use App\Domain\Field\Models\CollectionField;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rules\Enum;
-use App\Exceptions\IndexOperationException;
 use Illuminate\Validation\ValidationException;
-use App\Services\IndexStrategies\MysqlIndexStrategy;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
+use Livewire\Component;
+use Mary\Traits\Toast;
 
 new class extends Component {
     use Toast;
 
-    public \App\Models\Collection $collection;
+    public \App\Domain\Collection\Models\Collection $collection;
     public \Illuminate\Database\Eloquent\Collection $fields;
 
     public bool $showConfigureCollectionDrawer = false;
@@ -64,7 +63,7 @@ new class extends Component {
 
         $this->availableCollections = [
             ['id' => '', 'name' => 'Choose collection', 'disabled' => true],
-            ...\App\Models\Collection::whereNot('id', $this->collection->id)
+            ...\App\Domain\Collection\Models\Collection::whereNot('id', $this->collection->id)
                 ->where('project_id', $this->collection->project_id)
                 ->get()
                 ->map(fn($c) => ['id' => $c->id, 'name' => $c->name])
@@ -128,7 +127,7 @@ new class extends Component {
         $this->collectionForm['fields'] = $this->fieldsToArray();
 
         if ($this->collection->type === CollectionType::Auth && empty($this->collectionForm['options'])) {
-            $this->collectionForm['options'] = \App\Models\Collection::getDefaultAuthOptions();
+            $this->collectionForm['options'] = \App\Domain\Collection\Models\Collection::getDefaultAuthOptions();
         }
 
         foreach ($this->collectionForm['fields'] as &$field) {
@@ -652,7 +651,7 @@ new class extends Component {
 
     public function deleteCollection(): void
     {
-        if (\App\Models\Collection::where('project_id', $this->collection->project_id)->count() == 1) {
+        if (\App\Domain\Collection\Models\Collection::where('project_id', $this->collection->project_id)->count() == 1) {
             $this->error('Cannot delete the only collection in the project.');
             return;
         }
@@ -829,7 +828,7 @@ new class extends Component {
                                          wire:sortable.item="{{ $field['id'] }}">
                                         @php
                                             $fieldId = $field['id'];
-                                            $field = new App\Models\CollectionField($field);
+                                            $field = new \App\Domain\Field\Models\CollectionField($field);
                                             $isDeleted = isset($collectionForm['fields'][$index]['_deleted']) && $collectionForm['fields'][$index]['_deleted'];
                                         @endphp
 
@@ -887,11 +886,11 @@ new class extends Component {
                                                                      :disabled="$field->locked == true"/>
                                                             <x-select label="Type"
                                                                       wire:model.live="collectionForm.fields.{{ $index }}.type"
-                                                                      :options="App\Enums\FieldType::toArray()"
+                                                                      :options="\App\Domain\Field\Enums\FieldType::toArray()"
                                                                       :icon="$field->getIcon()"
                                                                       :disabled="$field->locked == true"/>
                                                             @switch($field->type)
-                                                                @case(App\Enums\FieldType::Relation)
+                                                                @case(\App\Domain\Field\Enums\FieldType::Relation)
                                                                     <div class="col-span-1 md:col-span-2">
                                                                         <x-select label="Reference Collection"
                                                                                   wire:model="collectionForm.fields.{{ $index }}.options.collection"
@@ -909,26 +908,26 @@ new class extends Component {
                                                                     @endif
                                                                     @break
 
-                                                                @case(App\Enums\FieldType::Text)
+                                                                @case(\App\Domain\Field\Enums\FieldType::Text)
                                                                     <x-input label="Min Length" type="number"
                                                                              wire:model="collectionForm.fields.{{ $index }}.options.minLength"
                                                                              placeholder="No minimum" min="0"
-                                                                             :disabled="$field->name === 'password' && $field->collection->type === \App\Enums\CollectionType::Auth"/>
+                                                                             :disabled="$field->name === 'password' && $field->collection->type === \App\Domain\Collection\Enums\CollectionType::Auth"/>
                                                                     <x-input label="Max Length" type="number"
                                                                              wire:model="collectionForm.fields.{{ $index }}.options.maxLength"
                                                                              placeholder="No maximum" min="1"
-                                                                             :disabled="$field->name === 'password' && $field->collection->type === \App\Enums\CollectionType::Auth"/>
+                                                                             :disabled="$field->name === 'password' && $field->collection->type === \App\Domain\Collection\Enums\CollectionType::Auth"/>
                                                                     <x-input label="Pattern (Regex)"
                                                                              wire:model="collectionForm.fields.{{ $index }}.options.pattern"
                                                                              placeholder="e.g., /^[A-Z]/"
-                                                                             :disabled="$field->name === 'password' && $field->collection->type === \App\Enums\CollectionType::Auth"/>
+                                                                             :disabled="$field->name === 'password' && $field->collection->type === \App\Domain\Collection\Enums\CollectionType::Auth"/>
                                                                     <x-input label="Auto Generate Pattern (Regex)"
                                                                              wire:model="collectionForm.fields.{{ $index }}.options.autoGeneratePattern"
                                                                              placeholder="e.g., INV-[0-9]{5}"
-                                                                             :disabled="$field->name === 'password' && $field->collection->type === \App\Enums\CollectionType::Auth"/>
+                                                                             :disabled="$field->name === 'password' && $field->collection->type === \App\Domain\Collection\Enums\CollectionType::Auth"/>
                                                                     @break
 
-                                                                @case(App\Enums\FieldType::Email)
+                                                                @case(\App\Domain\Field\Enums\FieldType::Email)
                                                                     <x-tags label="Allowed Domains"
                                                                             wire:model="collectionForm.fields.{{ $index }}.options.allowedDomains"
                                                                             icon="o-globe-asia-australia"
@@ -941,7 +940,7 @@ new class extends Component {
                                                                             clearable/>
                                                                     @break
 
-                                                                @case(App\Enums\FieldType::Number)
+                                                                @case(\App\Domain\Field\Enums\FieldType::Number)
                                                                     <x-input label="Min" type="number"
                                                                              wire:model="collectionForm.fields.{{ $index }}.options.min"
                                                                              placeholder="No minimum" step="any"/>
@@ -952,11 +951,11 @@ new class extends Component {
                                                                               wire:model="collectionForm.fields.{{ $index }}.options.allowDecimals"/>
                                                                     @break
 
-                                                                @case(App\Enums\FieldType::Bool)
+                                                                @case(\App\Domain\Field\Enums\FieldType::Bool)
                                                                     {{-- // --}}
                                                                     @break
 
-                                                                @case(App\Enums\FieldType::Datetime)
+                                                                @case(\App\Domain\Field\Enums\FieldType::Datetime)
                                                                     <x-input label="Min Date"
                                                                              wire:model="collectionForm.fields.{{ $index }}.options.minDate"
                                                                              placeholder="2024-01-01 or 'now'"
@@ -967,7 +966,7 @@ new class extends Component {
                                                                              :disabled="in_array($field->name, ['created', 'updated'])"/>
                                                                     @break
 
-                                                                @case(App\Enums\FieldType::File)
+                                                                @case(\App\Domain\Field\Enums\FieldType::File)
                                                                     <div class="col-span-1 md:col-span-2">
                                                                         <x-choices-offline label="Allowed Mime Types"
                                                                                            wire:model="collectionForm.fields.{{ $index }}.options.allowedMimeTypes"
@@ -1006,13 +1005,13 @@ new class extends Component {
                                                         </div>
                                                         <div class="flex items-baseline justify-between gap-6">
                                                             <div class="grid grid-cols-1 md:grid-cols-2 gx-4">
-                                                                @if ($field->type == App\Enums\FieldType::File)
+                                                                @if ($field->type == \App\Domain\Field\Enums\FieldType::File)
                                                                     <x-toggle id="toggle-multiple-{{ $index }}"
                                                                               label="Allow Multiple"
                                                                               wire:model.live="collectionForm.fields.{{ $index }}.options.multiple"
                                                                               hint="Allow multiple file uploads"/>
                                                                 @endif
-                                                                @if ($field->type == App\Enums\FieldType::Relation)
+                                                                @if ($field->type == \App\Domain\Field\Enums\FieldType::Relation)
                                                                     <x-toggle id="toggle-multiple-{{ $index }}"
                                                                               label="Allow Multiple"
                                                                               wire:model.live="collectionForm.fields.{{ $index }}.options.multiple"
@@ -1086,7 +1085,7 @@ new class extends Component {
                                         inline/>
                         @endforeach
 
-                        @if ($this->collection->type === App\Enums\CollectionType::Auth)
+                        @if ($this->collection->type === \App\Domain\Collection\Enums\CollectionType::Auth)
                             <div class="divider my-2"></div>
 
                             <x-collapse separator>
@@ -1109,7 +1108,7 @@ new class extends Component {
                     </div>
                 </x-tab>
 
-                @if ($this->collection->type === App\Enums\CollectionType::Auth)
+                @if ($this->collection->type === \App\Domain\Collection\Enums\CollectionType::Auth)
                     <x-tab name="options-tab" label="Options">
                         <div class="space-y-4 px-0.5">
                             <x-accordion wire:model="optionOpen">

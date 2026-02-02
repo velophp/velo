@@ -1,6 +1,6 @@
 <?php
 
 return [
-    App\Providers\AppServiceProvider::class,
-    App\Providers\VeloServiceProvider::class,
+    App\Delivery\Providers\AppServiceProvider::class,
+    App\Delivery\Providers\VeloServiceProvider::class,
 ];

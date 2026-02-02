@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use App\Enums\FieldType;
-use App\Events\RealtimeMessage;
-use App\Models\Collection;
-use App\Models\CollectionField;
-use App\Models\Project;
-use App\Models\RealtimeConnection;
-use App\Models\Record;
+use App\Delivery\Events\RealtimeMessage;
+use App\Delivery\Models\RealtimeConnection;
+use App\Domain\Collection\Models\Collection;
+use App\Domain\Field\Enums\FieldType;
+use App\Domain\Field\Models\CollectionField;
+use App\Domain\Project\Models\Project;
+use App\Domain\Record\Models\Record;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Event;
 use Tests\TestCase;
@@ -24,11 +24,11 @@ class RealtimeBroadcastingTest extends TestCase
         $project = Project::create(['name' => 'Test Project']);
         $collection = Collection::create([
             'project_id' => $project->id,
-            'name' => 'posts',
-            'type' => \App\Enums\CollectionType::Base,
-            'api_rules' => [
-                'list' => '',
-                'view' => '',
+            'name'       => 'posts',
+            'type'       => \App\Domain\Collection\Enums\CollectionType::Base,
+            'api_rules'  => [
+                'list'   => '',
+                'view'   => '',
                 'create' => '',
                 'update' => '',
                 'delete' => '',
@@ -37,28 +37,28 @@ class RealtimeBroadcastingTest extends TestCase
 
         $collection->fields()->createMany(CollectionField::createBaseFrom([
             [
-                'name' => 'title',
-                'type' => FieldType::Text,
+                'name'    => 'title',
+                'type'    => FieldType::Text,
                 'options' => [],
             ],
             [
-                'name' => 'status',
-                'type' => FieldType::Text,
+                'name'    => 'status',
+                'type'    => FieldType::Text,
                 'options' => [],
             ],
         ]));
 
         // 1. Subscribe to 'status=active'
         $connection = RealtimeConnection::create([
-            'project_id' => $project->id,
+            'project_id'    => $project->id,
             'collection_id' => $collection->id,
-            'channel_name' => 'uuid-active-sub',
-            'filter' => 'status = active',
-            'last_seen_at' => now(),
+            'channel_name'  => 'uuid-active-sub',
+            'filter'        => 'status = active',
+            'last_seen_at'  => now(),
         ]);
 
         // 2. Create a matching record
-        $record = new Record;
+        $record = new Record();
         $record->collection_id = $collection->id;
         $record->data = collect(['status' => 'active', 'title' => 'Hello World']);
         $record->save();
@@ -78,11 +78,11 @@ class RealtimeBroadcastingTest extends TestCase
         $project = Project::create(['name' => 'Test Project']);
         $collection = Collection::create([
             'project_id' => $project->id,
-            'name' => 'posts',
-            'type' => \App\Enums\CollectionType::Base,
-            'api_rules' => [
-                'list' => '',
-                'view' => '',
+            'name'       => 'posts',
+            'type'       => \App\Domain\Collection\Enums\CollectionType::Base,
+            'api_rules'  => [
+                'list'   => '',
+                'view'   => '',
                 'create' => '',
                 'update' => '',
                 'delete' => '',
@@ -93,15 +93,15 @@ class RealtimeBroadcastingTest extends TestCase
         // 1. Subscribe to 'status=active'
         $uuid = \Illuminate\Support\Str::uuid()->toString();
         $connection = RealtimeConnection::create([
-            'project_id' => $project->id,
+            'project_id'    => $project->id,
             'collection_id' => $collection->id,
-            'channel_name' => $uuid,
-            'filter' => 'status = active',
-            'last_seen_at' => now(),
+            'channel_name'  => $uuid,
+            'filter'        => 'status = active',
+            'last_seen_at'  => now(),
         ]);
 
         // 2. Create a NON-matching record (status=draft)
-        $record = new Record;
+        $record = new Record();
         $record->collection_id = $collection->id;
         $record->data = collect(['status' => 'draft', 'title' => 'WIP']);
         $record->save();

@@ -1,10 +1,9 @@
 <?php
 
+use App\Delivery\Http\Controllers\AuthController;
+use App\Delivery\Http\Controllers\RealtimeController;
+use App\Delivery\Http\Controllers\RecordController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\RecordController;
-use App\Http\Controllers\StorageController;
-use App\Http\Controllers\RealtimeController;
 
 /*
  * API Routes

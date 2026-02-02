@@ -119,22 +119,22 @@ return [
      * see tinymce documentation for more options
      */
     'tinymce_config' => [
-        'plugins' => 'autoresize lists link image table code quickbars',
+        'plugins'    => 'autoresize lists link image table code quickbars',
         'min_height' => 250,
         'max_height' => 500,
-        'statusbar' => false,
+        'statusbar'  => false,
 
         'toolbar' => 'undo redo blocks fontfamily fontsize | '
-            .'bold italic underline strikethrough | '
-            .'forecolor backcolor | '
-            .'alignleft aligncenter alignright alignjustify | '
-            .'bullist numlist outdent indent | '
-            .'link image table | '
-            .'removeformat | '
-            .'code |',
+            . 'bold italic underline strikethrough | '
+            . 'forecolor backcolor | '
+            . 'alignleft aligncenter alignright alignjustify | '
+            . 'bullist numlist outdent indent | '
+            . 'link image table | '
+            . 'removeformat | '
+            . 'code |',
 
         'quickbars_selection_toolbar' => 'bold italic underline | link',
-        'quickbars_insert_toolbar' => 'quickimage quicktable',
+        'quickbars_insert_toolbar'    => 'quickimage quicktable',
     ],
 
     'tinymce_key' => env('TINYMCE_KEY'),

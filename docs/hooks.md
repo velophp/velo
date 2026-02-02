@@ -13,7 +13,7 @@ Velo provides a powerful **Hooks System** that allows you to extend the core log
 Hooks are defined in `routes/hooks.php`. This file is automatically loaded by the application.
 
 ```php
-use App\Facades\Hooks;
+use App\Domain\Hooks\Facades\Hooks;
 
 Hooks::on('record.creating', function ($data, $context) {
     if ($context['collection']->name === 'posts') {

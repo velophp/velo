@@ -2,7 +2,7 @@
 
 namespace Tests\Unit\Entity;
 
-use App\Entity\FileObject;
+use App\Delivery\Entity\FileObject;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -40,11 +40,11 @@ class FileObjectTest extends TestCase
         $array = $fileObject->toArray();
 
         $this->assertEquals([
-            'uuid' => $uuid,
-            'url' => 'https://example.com/doc.pdf',
+            'uuid'           => $uuid,
+            'url'            => 'https://example.com/doc.pdf',
             'is_previewable' => false,
-            'mime_type' => 'application/pdf',
-            'extension' => 'pdf',
+            'mime_type'      => 'application/pdf',
+            'extension'      => 'pdf',
         ], $array);
 
         $this->assertEquals($array, $fileObject->jsonSerialize());

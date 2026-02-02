@@ -2,8 +2,8 @@
 
 namespace Tests\Unit\Rules;
 
-use App\FieldOptions\FileFieldOption;
-use App\Rules\ValidFile;
+use App\Delivery\Rules\ValidFile;
+use App\Domain\Field\FieldOptions\FileFieldOption;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -21,7 +21,7 @@ class ValidFileTest extends TestCase
 
     public function test_validates_existing_file_array()
     {
-        $options = new FileFieldOption;
+        $options = new FileFieldOption();
         $this->assertTrue($this->validate(['uuid' => 'some-uuid', 'url' => 'some-url'], $options));
         $this->assertFalse($this->validate(['wrong' => 'structure'], $options));
     }

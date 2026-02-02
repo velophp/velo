@@ -1,12 +1,12 @@
 <?php
 
-use App\Models\RealtimeConnection;
+use App\Delivery\Models\RealtimeConnection;
 use Illuminate\Support\Facades\Broadcast;
 
 $prefix = config('velo.realtime_channel_prefix');
-Broadcast::channel($prefix.'{channelName}', function ($user, $channelName) {
+Broadcast::channel($prefix . '{channelName}', function ($user, $channelName) {
     \Log::info('Realtime connect.', [
-        'user' => $user,
+        'user'        => $user,
         'channelName' => $channelName,
     ]);
 

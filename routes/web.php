@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\StorageController;
-use App\Models\Collection;
+use App\Delivery\Http\Controllers\StorageController;
+use App\Domain\Collection\Models\Collection;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Route;
 

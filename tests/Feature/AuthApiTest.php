@@ -2,16 +2,20 @@
 
 namespace Tests\Feature;
 
-use App\Enums\CollectionType;
-use App\Enums\FieldType;
-use App\Enums\OtpType;
-use App\Models\AuthSession;
-use App\Models\Collection;
-use App\Models\CollectionField;
-use App\Models\Project;
-use App\Models\Record;
+use App\Domain\Auth\Enums\OtpType;
+use App\Domain\Auth\Models\AuthOtp;
+use App\Domain\Auth\Models\AuthSession;
+use App\Domain\Auth\Models\Mail\LoginAlert;
+use App\Domain\Auth\Models\Mail\Otp;
+use App\Domain\Collection\Enums\CollectionType;
+use App\Domain\Collection\Models\Collection;
+use App\Domain\Field\Enums\FieldType;
+use App\Domain\Field\Models\CollectionField;
+use App\Domain\Project\Models\Project;
+use App\Domain\Record\Models\Record;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class AuthApiTest extends TestCase
@@ -31,20 +35,20 @@ class AuthApiTest extends TestCase
         // Create users collection
         $this->collection = Collection::create([
             'project_id' => $this->project->id,
-            'name' => 'users',
-            'type' => CollectionType::Auth,
-            'api_rules' => [
+            'name'       => 'users',
+            'type'       => CollectionType::Auth,
+            'api_rules'  => [
                 'authenticate' => '',
-                'list' => '',
-                'view' => '@request.auth.id = id',
-                'update' => '@request.auth.id = id',
-                'delete' => '@request.auth.id = id',
+                'list'         => '',
+                'view'         => '@request.auth.id = id',
+                'update'       => '@request.auth.id = id',
+                'delete'       => '@request.auth.id = id',
             ],
             'options' => array_merge(Collection::getDefaultAuthOptions(), [
                 'auth_methods' => [
                     'standard' => [
                         'enabled' => true,
-                        'fields' => ['email'],
+                        'fields'  => ['email'],
                     ],
                 ],
             ]),
@@ -60,8 +64,8 @@ class AuthApiTest extends TestCase
     {
         Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'test@example.com',
+            'data'          => [
+                'email'    => 'test@example.com',
                 'password' => 'password123',
                 'verified' => true,
             ],
@@ -69,7 +73,7 @@ class AuthApiTest extends TestCase
 
         $response = $this->postJson('/api/collections/users/auth/authenticate-with-password', [
             'identifier' => 'test@example.com',
-            'password' => 'password123',
+            'password'   => 'password123',
         ]);
 
         $response->assertStatus(200)
@@ -80,8 +84,8 @@ class AuthApiTest extends TestCase
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'test@example.com',
+            'data'          => [
+                'email'    => 'test@example.com',
                 'password' => 'password123',
                 'verified' => true,
             ],
@@ -89,11 +93,11 @@ class AuthApiTest extends TestCase
 
         [$token, $hashed] = AuthSession::generateToken();
         AuthSession::create([
-            'project_id' => $this->project->id,
+            'project_id'    => $this->project->id,
             'collection_id' => $this->collection->id,
-            'record_id' => $record->id,
-            'token_hash' => $hashed,
-            'expires_at' => now()->addHours(24),
+            'record_id'     => $record->id,
+            'token_hash'    => $hashed,
+            'expires_at'    => now()->addHours(24),
         ]);
 
         $response = $this->withHeader('Authorization', "Bearer $token")
@@ -107,8 +111,8 @@ class AuthApiTest extends TestCase
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'test@example.com',
+            'data'          => [
+                'email'    => 'test@example.com',
                 'password' => 'password123',
                 'verified' => true,
             ],
@@ -116,11 +120,11 @@ class AuthApiTest extends TestCase
 
         [$token, $hashed] = AuthSession::generateToken();
         AuthSession::create([
-            'project_id' => $this->project->id,
+            'project_id'    => $this->project->id,
             'collection_id' => $this->collection->id,
-            'record_id' => $record->id,
-            'token_hash' => $hashed,
-            'expires_at' => now()->addHours(24),
+            'record_id'     => $record->id,
+            'token_hash'    => $hashed,
+            'expires_at'    => now()->addHours(24),
         ]);
 
         $response = $this->withHeader('Authorization', "Bearer $token")
@@ -134,8 +138,8 @@ class AuthApiTest extends TestCase
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'test@example.com',
+            'data'          => [
+                'email'    => 'test@example.com',
                 'password' => 'password123',
                 'verified' => true,
             ],
@@ -143,20 +147,20 @@ class AuthApiTest extends TestCase
 
         [$token1, $hashed1] = AuthSession::generateToken();
         AuthSession::create([
-            'project_id' => $this->project->id,
+            'project_id'    => $this->project->id,
             'collection_id' => $this->collection->id,
-            'record_id' => $record->id,
-            'token_hash' => $hashed1,
-            'expires_at' => now()->addHours(24),
+            'record_id'     => $record->id,
+            'token_hash'    => $hashed1,
+            'expires_at'    => now()->addHours(24),
         ]);
 
         [$token2, $hashed2] = AuthSession::generateToken();
         AuthSession::create([
-            'project_id' => $this->project->id,
+            'project_id'    => $this->project->id,
             'collection_id' => $this->collection->id,
-            'record_id' => $record->id,
-            'token_hash' => $hashed2,
-            'expires_at' => now()->addHours(24),
+            'record_id'     => $record->id,
+            'token_hash'    => $hashed2,
+            'expires_at'    => now()->addHours(24),
         ]);
 
         $response = $this->withHeader('Authorization', "Bearer $token1")
@@ -176,8 +180,8 @@ class AuthApiTest extends TestCase
         // Non-verified user
         Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'unverified@example.com',
+            'data'          => [
+                'email'    => 'unverified@example.com',
                 'password' => 'password123',
                 'verified' => false,
             ],
@@ -185,7 +189,7 @@ class AuthApiTest extends TestCase
 
         $response = $this->postJson('/api/collections/users/auth/authenticate-with-password', [
             'identifier' => 'unverified@example.com',
-            'password' => 'password123',
+            'password'   => 'password123',
         ]);
 
         $response->assertStatus(422)
@@ -194,8 +198,8 @@ class AuthApiTest extends TestCase
         // Verified user
         Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'verified@example.com',
+            'data'          => [
+                'email'    => 'verified@example.com',
                 'password' => 'password123',
                 'verified' => true,
             ],
@@ -203,7 +207,7 @@ class AuthApiTest extends TestCase
 
         $response = $this->postJson('/api/collections/users/auth/authenticate-with-password', [
             'identifier' => 'verified@example.com',
-            'password' => 'password123',
+            'password'   => 'password123',
         ]);
 
         $response->assertStatus(200);
@@ -213,14 +217,14 @@ class AuthApiTest extends TestCase
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'test@example.com',
-                'password' => \Hash::make('password123'),
+            'data'          => [
+                'email'    => 'test@example.com',
+                'password' => Hash::make('password123'),
                 'verified' => true,
             ],
         ]);
 
-        \Mail::fake();
+        Mail::fake();
 
         $response = $this->postJson('/api/collections/users/auth/forgot-password', [
             'email' => 'test@example.com',
@@ -231,7 +235,7 @@ class AuthApiTest extends TestCase
 
         $this->assertDatabaseHas('auth_otps', [
             'record_id' => $record->id,
-            'action' => OtpType::PASSWORD_RESET,
+            'action'    => OtpType::PASSWORD_RESET,
         ]);
     }
 
@@ -239,13 +243,13 @@ class AuthApiTest extends TestCase
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'test@example.com',
-                'password' => \Hash::make('password123'),
+            'data'          => [
+                'email'    => 'test@example.com',
+                'password' => Hash::make('password123'),
                 'verified' => true,
             ],
         ]);
-        \Mail::fake();
+        Mail::fake();
 
         // Let's use the endpoint to generate the token first to keep it simple and test integration
         $response = $this->postJson('/api/collections/users/auth/forgot-password', [
@@ -253,7 +257,7 @@ class AuthApiTest extends TestCase
         ]);
 
         $otp = null;
-        \Mail::assertQueued(\App\Mail\Otp::class, function ($mail) use (&$otp) {
+        Mail::assertQueued(Otp::class, function ($mail) use (&$otp) {
             $otp = $mail->otp;
 
             return $mail->hasTo('test@example.com');
@@ -262,10 +266,10 @@ class AuthApiTest extends TestCase
         $this->assertNotNull($otp);
 
         $response = $this->postJson('/api/collections/users/auth/confirm-forgot-password', [
-            'otp' => $otp,
-            'new_password' => 'newpassword123',
+            'otp'                       => $otp,
+            'new_password'              => 'newpassword123',
             'new_password_confirmation' => 'newpassword123',
-            'invalidate_sessions' => true,
+            'invalidate_sessions'       => true,
         ]);
 
         $response->assertStatus(200);
@@ -275,7 +279,7 @@ class AuthApiTest extends TestCase
         $this->assertTrue(Hash::check('newpassword123', $record->data->get('password')));
 
         // Verify token marked used
-        $reset = \App\Models\AuthOtp::where('record_id', $record->id)->where('action', OtpType::PASSWORD_RESET)->first();
+        $reset = AuthOtp::where('record_id', $record->id)->where('action', OtpType::PASSWORD_RESET)->first();
         $this->assertNotNull($reset->used_at);
     }
 
@@ -286,7 +290,7 @@ class AuthApiTest extends TestCase
                 'mail_templates' => array_merge($this->collection->options['mail_templates'] ?? [], [
                     'login_alert' => [
                         'subject' => 'Login Alert',
-                        'body' => 'Login from {{ip_address}}',
+                        'body'    => 'Login from {{ip_address}}',
                     ],
                 ]),
             ]),
@@ -294,44 +298,44 @@ class AuthApiTest extends TestCase
 
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'test@example.com',
+            'data'          => [
+                'email'    => 'test@example.com',
                 'password' => 'password123',
                 'verified' => true,
             ],
         ]);
 
-        \Mail::fake();
+        Mail::fake();
 
         // First login (New IP)
         $response = $this->postJson('/api/collections/users/auth/authenticate-with-password', [
-            'identifier' => 'test@example.com',
-            'password' => 'password123',
+            'identifier'  => 'test@example.com',
+            'password'    => 'password123',
             'device_name' => 'Device 1',
         ]);
 
         $response->assertStatus(200);
 
-        \Mail::assertQueued(\App\Mail\LoginAlert::class, function ($mail) use ($record) {
+        Mail::assertQueued(LoginAlert::class, function ($mail) use ($record) {
             return $mail->hasTo('test@example.com') &&
                    $mail->record->id === $record->id;
         });
 
         // Second login (Same IP) - Should NOT send email
-        \Mail::fake(); // Reset fake
+        Mail::fake(); // Reset fake
 
         $response = $this->postJson('/api/collections/users/auth/authenticate-with-password', [
-            'identifier' => 'test@example.com',
-            'password' => 'password123',
+            'identifier'  => 'test@example.com',
+            'password'    => 'password123',
             'device_name' => 'Device 1',
         ]);
 
         $response->assertStatus(200);
 
-        \Mail::assertNothingQueued();
+        Mail::assertNothingQueued();
 
         // Third login (Different IP) - Should send email
-        \Mail::fake();
+        Mail::fake();
 
         $this->serverVariables = ['REMOTE_ADDR' => '1.2.3.4'];
 
@@ -343,14 +347,14 @@ class AuthApiTest extends TestCase
         // Let's try passing it in server array.
 
         $response = $this->call('POST', '/api/collections/users/auth/authenticate-with-password', [
-            'identifier' => 'test@example.com',
-            'password' => 'password123',
+            'identifier'  => 'test@example.com',
+            'password'    => 'password123',
             'device_name' => 'Device 2',
         ], [], [], ['REMOTE_ADDR' => '10.0.0.2']);
 
         $response->assertStatus(200);
 
-        \Mail::assertQueued(\App\Mail\LoginAlert::class);
+        Mail::assertQueued(LoginAlert::class);
     }
 
     public function test_can_authenticate_with_otp()
@@ -361,8 +365,8 @@ class AuthApiTest extends TestCase
                 'auth_methods' => array_merge($this->collection->options->toArray()['auth_methods'], [
                     'otp' => [
                         'enabled' => true,
-                        'config' => [
-                            'duration_s' => 180,
+                        'config'  => [
+                            'duration_s'               => 180,
                             'generate_password_length' => 6,
                         ],
                     ],
@@ -372,14 +376,14 @@ class AuthApiTest extends TestCase
 
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'otpuser@example.com',
+            'data'          => [
+                'email'    => 'otpuser@example.com',
                 'password' => 'password123',
                 'verified' => true,
             ],
         ]);
 
-        \Mail::fake();
+        Mail::fake();
 
         // 1. Request OTP
         $response = $this->postJson('/api/collections/users/auth/request-auth-otp', [
@@ -391,7 +395,7 @@ class AuthApiTest extends TestCase
 
         // Get OTP from mail
         $otp = '';
-        \Mail::assertQueued(\App\Mail\Otp::class, function ($mail) use (&$otp) {
+        Mail::assertQueued(Otp::class, function ($mail) use (&$otp) {
             $otp = $mail->otp;
 
             return $mail->hasTo('otpuser@example.com');
@@ -401,8 +405,8 @@ class AuthApiTest extends TestCase
 
         // 2. Authenticate with OTP
         $response = $this->postJson('/api/collections/users/auth/authenticate-with-otp', [
-            'email' => 'otpuser@example.com',
-            'otp' => $otp,
+            'email'       => 'otpuser@example.com',
+            'otp'         => $otp,
             'device_name' => 'Test Device',
         ]);
 
@@ -418,8 +422,8 @@ class AuthApiTest extends TestCase
                 'auth_methods' => array_merge($this->collection->options->toArray()['auth_methods'], [
                     'otp' => [
                         'enabled' => true,
-                        'config' => [
-                            'duration_s' => 180,
+                        'config'  => [
+                            'duration_s'               => 180,
                             'generate_password_length' => 6,
                         ],
                     ],
@@ -429,14 +433,14 @@ class AuthApiTest extends TestCase
 
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'old@example.com',
+            'data'          => [
+                'email'    => 'old@example.com',
                 'password' => 'password123',
                 'verified' => true,
             ],
         ]);
 
-        \Mail::fake();
+        Mail::fake();
 
         $response = $this->postJson('/api/collections/users/auth/request-update-email', [
             'email' => 'old@example.com',
@@ -447,10 +451,10 @@ class AuthApiTest extends TestCase
 
         $this->assertDatabaseHas('auth_otps', [
             'record_id' => $record->id,
-            'action' => OtpType::EMAIL_CHANGE,
+            'action'    => OtpType::EMAIL_CHANGE,
         ]);
 
-        \Mail::assertQueued(\App\Mail\Otp::class, function ($mail) {
+        Mail::assertQueued(Otp::class, function ($mail) {
             return $mail->hasTo('old@example.com');
         });
     }
@@ -463,8 +467,8 @@ class AuthApiTest extends TestCase
                 'auth_methods' => array_merge($this->collection->options->toArray()['auth_methods'], [
                     'otp' => [
                         'enabled' => true,
-                        'config' => [
-                            'duration_s' => 180,
+                        'config'  => [
+                            'duration_s'               => 180,
                             'generate_password_length' => 6,
                         ],
                     ],
@@ -474,14 +478,14 @@ class AuthApiTest extends TestCase
 
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => [
-                'email' => 'old@example.com',
+            'data'          => [
+                'email'    => 'old@example.com',
                 'password' => 'password123',
                 'verified' => true,
             ],
         ]);
 
-        \Mail::fake();
+        Mail::fake();
 
         // Generate OTP
         $this->postJson('/api/collections/users/auth/request-update-email', [
@@ -489,15 +493,15 @@ class AuthApiTest extends TestCase
         ]);
 
         $otp = '';
-        \Mail::assertQueued(\App\Mail\Otp::class, function ($mail) use (&$otp) {
+        Mail::assertQueued(Otp::class, function ($mail) use (&$otp) {
             $otp = $mail->otp;
 
             return true;
         });
 
         $response = $this->postJson('/api/collections/users/auth/confirm-update-email', [
-            'otp' => $otp,
-            'new_email' => 'new@example.com',
+            'otp'                    => $otp,
+            'new_email'              => 'new@example.com',
             'new_email_confirmation' => 'new@example.com',
         ]);
 

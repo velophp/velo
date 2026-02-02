@@ -2,12 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Entity\SafeCollection;
-use App\Enums\FieldType;
-use App\Models\Collection;
-use App\Models\CollectionField;
-use App\Models\Project;
-use App\Models\Record;
+use App\Delivery\Entity\SafeCollection;
+use App\Domain\Collection\Models\Collection;
+use App\Domain\Field\Enums\FieldType;
+use App\Domain\Field\Models\CollectionField;
+use App\Domain\Project\Models\Project;
+use App\Domain\Record\Models\Record;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -25,11 +25,11 @@ class HooksTest extends TestCase
 
         $collection = Collection::create([
             'project_id' => $project->id,
-            'name' => 'posts',
-            'type' => \App\Enums\CollectionType::Base,
-            'api_rules' => [
-                'list' => '',
-                'view' => '',
+            'name'       => 'posts',
+            'type'       => \App\Domain\Collection\Enums\CollectionType::Base,
+            'api_rules'  => [
+                'list'   => '',
+                'view'   => '',
                 'create' => '',
                 'update' => '',
                 'delete' => '',
@@ -40,13 +40,13 @@ class HooksTest extends TestCase
 
         $collection->fields()->createMany(CollectionField::createBaseFrom([
             [
-                'name' => 'title',
-                'type' => FieldType::Text,
+                'name'    => 'title',
+                'type'    => FieldType::Text,
                 'options' => [],
             ],
             [
-                'name' => 'status',
-                'type' => FieldType::Text,
+                'name'    => 'status',
+                'type'    => FieldType::Text,
                 'options' => [],
             ],
         ]));
@@ -54,8 +54,8 @@ class HooksTest extends TestCase
 
     public function test_record_creating_hook()
     {
-        \App\Facades\Hooks::on('record.creating', function ($data, $context) {
-            $data['slug'] = 'slug-'.$data['title'];
+        \App\Domain\Hooks\Facades\Hooks::on('record.creating', function ($data, $context) {
+            $data['slug'] = 'slug-' . $data['title'];
 
             return $data;
         });
@@ -76,7 +76,7 @@ class HooksTest extends TestCase
     public function test_record_created_hook()
     {
         $triggered = false;
-        \App\Facades\Hooks::on('record.created', function ($context) use (&$triggered) {
+        \App\Domain\Hooks\Facades\Hooks::on('record.created', function ($context) use (&$triggered) {
             $triggered = true;
             $this->assertEquals('Hello World', $context['record']['title']);
         });
@@ -98,7 +98,7 @@ class HooksTest extends TestCase
             'data' => new SafeCollection(['title' => 'Hello World']),
         ]);
 
-        \App\Facades\Hooks::on('record.retrieved', function ($data, $context) {
+        \App\Domain\Hooks\Facades\Hooks::on('record.retrieved', function ($data, $context) {
             $data['title'] = 'Modified Title';
 
             return $data;
@@ -114,10 +114,10 @@ class HooksTest extends TestCase
     {
         $record = Record::create([
             'collection_id' => $this->collection->id,
-            'data' => ['title' => 'Original']
+            'data'          => ['title' => 'Original'],
         ]);
 
-        \App\Facades\Hooks::on('record.updating', function ($data, $context) {
+        \App\Domain\Hooks\Facades\Hooks::on('record.updating', function ($data, $context) {
             $data['slug'] = 'updated-slug';
 
             return $data;
@@ -140,7 +140,7 @@ class HooksTest extends TestCase
         ]);
 
         $triggered = false;
-        \App\Facades\Hooks::on('record.deleting', function ($context) use (&$triggered) {
+        \App\Domain\Hooks\Facades\Hooks::on('record.deleting', function ($context) use (&$triggered) {
             $triggered = true;
         });
 
@@ -152,7 +152,7 @@ class HooksTest extends TestCase
     public function test_realtime_connecting_hook()
     {
         $triggered = false;
-        \App\Facades\Hooks::on('realtime.connecting', function ($context) use (&$triggered) {
+        \App\Domain\Hooks\Facades\Hooks::on('realtime.connecting', function ($context) use (&$triggered) {
             $triggered = true;
             $this->assertEquals('posts', $context['collection']->name);
         });

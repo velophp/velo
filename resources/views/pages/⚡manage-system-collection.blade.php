@@ -1,18 +1,17 @@
 <?php
 
-use App\Models\User;
-use Mary\Traits\Toast;
-use App\Models\AuthOtp;
-use Livewire\Component;
-use App\Models\AuthSession;
-use Livewire\Attributes\On;
-use Livewire\WithPagination;
-use Illuminate\Validation\Rule;
-use Livewire\Attributes\Computed;
-use App\Models\RealtimeConnection;
+use App\Delivery\Models\RealtimeConnection;
+use App\Delivery\Models\User;
+use App\Domain\Auth\Models\AuthOtp;
+use App\Domain\Auth\Models\AuthSession;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
+use Livewire\Component;
+use Livewire\WithPagination;
+use Mary\Traits\Toast;
 
 new class extends Component {
     use Toast;
@@ -145,7 +144,7 @@ new class extends Component {
                     'updated_at' => ['label' => 'Updated', 'visible' => true],
                 ],
                 'form_fields' => [
-                    'action' => ['label' => 'Action', 'type' => 'select', 'options' => \App\Enums\OtpType::cases(), 'required' => true],
+                    'action' => ['label' => 'Action', 'type' => 'select', 'options' => \App\Domain\Auth\Enums\OtpType::cases(), 'required' => true],
                     'token_hash' => ['label' => 'Token (Hashed)', 'type' => 'text', 'required' => false, 'readonly' => true],
                     'expires_at' => ['label' => 'Expires At', 'type' => 'datetime-local', 'required' => false],
                 ],
@@ -532,15 +531,16 @@ new class extends Component {
 <div>
     <div class="flex justify-between flex-wrap">
         <div class="flex items-center gap-4">
-            <x-breadcrumbs :items="$breadcrumbs" />
+            <x-breadcrumbs :items="$breadcrumbs"/>
             <div class="flex items-center gap-2">
-                <x-button icon="o-arrow-path" tooltip-bottom="Refresh" class="btn-circle btn-ghost" wire:click="$refresh" />
+                <x-button icon="o-arrow-path" tooltip-bottom="Refresh" class="btn-circle btn-ghost"
+                          wire:click="$refresh"/>
             </div>
         </div>
         <div class="flex items-center gap-2">
             @if ($canCreate)
                 <x-button label="New Record" class="btn-primary" icon="o-plus"
-                    x-on:click="$wire.showRecordDrawer = true; $wire.resetForm()" />
+                          x-on:click="$wire.showRecordDrawer = true; $wire.resetForm()"/>
             @endif
         </div>
     </div>
@@ -550,14 +550,14 @@ new class extends Component {
     <div class="flex gap-4 mb-4">
         <div class="flex-1">
             <x-input wire:model.live.debounce.250ms="filter" placeholder="Search..." icon="o-magnifying-glass"
-                clearable />
+                     clearable/>
         </div>
 
         @foreach ($enumColumns as $col => $enumClass)
             <div class="w-48">
                 <x-select wire:model.live="enumFilters.{{ $col }}" :options="$enumClass::cases()"
-                    placeholder="Filter {{ Str::title(str_replace('_', ' ', $col)) }}" option-label="name"
-                    option-value="value" />
+                          placeholder="Filter {{ Str::title(str_replace('_', ' ', $col)) }}" option-label="name"
+                          option-value="value"/>
             </div>
         @endforeach
     </div>
@@ -565,14 +565,14 @@ new class extends Component {
     <div class="flex justify-end">
         <x-dropdown>
             <x-slot:trigger>
-                <x-button icon="o-table-cells" class="btn-sm" />
+                <x-button icon="o-table-cells" class="btn-sm"/>
             </x-slot:trigger>
 
-            <x-menu-item title="Toggle Fields" disabled />
+            <x-menu-item title="Toggle Fields" disabled/>
 
             @foreach ($this->headersConfig as $field => $config)
                 <x-menu-item :wire:key="$field" x-on:click.stop="$wire.toggleField('{{ $field }}')">
-                    <x-toggle :label="$config['label']" :checked="$fieldsVisibility[$field] ?? false" />
+                    <x-toggle :label="$config['label']" :checked="$fieldsVisibility[$field] ?? false"/>
                 </x-menu-item>
             @endforeach
         </x-dropdown>
@@ -580,14 +580,15 @@ new class extends Component {
 
     <div class="my-4"></div>
 
-    <x-table :headers="$this->tableHeaders" :rows="$this->tableRows" wire:model.live.debounce.250ms="selected" selectable striped
-        with-pagination per-page="perPage" :per-page-values="[10, 15, 25, 50, 100, 250, 500]" :sort-by="$sortBy">
+    <x-table :headers="$this->tableHeaders" :rows="$this->tableRows" wire:model.live.debounce.250ms="selected"
+             selectable striped
+             with-pagination per-page="perPage" :per-page-values="[10, 15, 25, 50, 100, 250, 500]" :sort-by="$sortBy">
         <x-slot:empty>
             <div class="flex flex-col items-center my-4">
                 <p class="text-gray-500 text-center mb-4">No results found.</p>
                 @if ($canCreate)
                     <x-button label="New Record" class="btn-primary btn-soft btn-sm" icon="o-plus"
-                        x-on:click="$wire.showRecordDrawer = true; $wire.resetForm()" />
+                              x-on:click="$wire.showRecordDrawer = true; $wire.resetForm()"/>
                 @endif
             </div>
         </x-slot:empty>
@@ -595,95 +596,95 @@ new class extends Component {
         {{-- Custom Cells --}}
 
         @scope('cell_id', $row)
-            <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
-                <p>{{ Str::limit($row->id, 16) }}</p>
-                <x-copy-button :text="$row->id" />
-            </div>
+        <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
+            <p>{{ Str::limit($row->id, 16) }}</p>
+            <x-copy-button :text="$row->id"/>
+        </div>
         @endscope
 
         @scope('cell_created_at', $row)
-            @if ($row->created_at)
-                <div class="flex flex-col w-20">
-                    <p>{{ $row->created_at->format('Y-m-d') }}</p>
-                    <p class="text-xs opacity-80">{{ $row->created_at->format('H:i:s') }}</p>
-                </div>
-            @else
-                <p>-</p>
-            @endif
+        @if ($row->created_at)
+            <div class="flex flex-col w-20">
+                <p>{{ $row->created_at->format('Y-m-d') }}</p>
+                <p class="text-xs opacity-80">{{ $row->created_at->format('H:i:s') }}</p>
+            </div>
+        @else
+            <p>-</p>
+        @endif
         @endscope
 
         @scope('cell_updated_at', $row)
-            @if ($row->updated_at)
-                <div class="flex flex-col w-20">
-                    <p>{{ $row->updated_at->format('Y-m-d') }}</p>
-                    <p class="text-xs opacity-80">{{ $row->updated_at->format('H:i:s') }}</p>
-                </div>
-            @else
-                <p>-</p>
-            @endif
+        @if ($row->updated_at)
+            <div class="flex flex-col w-20">
+                <p>{{ $row->updated_at->format('Y-m-d') }}</p>
+                <p class="text-xs opacity-80">{{ $row->updated_at->format('H:i:s') }}</p>
+            </div>
+        @else
+            <p>-</p>
+        @endif
         @endscope
 
         @scope('cell_record_id', $row)
-            @if (isset($row->record))
-                <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
-                    <p>{{ $row->record->data['name'] ?? ($row->record->data['email'] ?? ($row->record->data['id'] ?? '-')) }}
-                    </p>
-                    <x-button class="btn-xs btn-ghost btn-circle"
-                        link="{{ route('collections', ['collection' => $row->collection->name, 'recordId' => $row->record?->data['id']]) }}"
-                        external>
-                        <x-icon name="lucide.external-link" class="w-5 h-5" />
-                    </x-button>
-                </div>
-            @else
-                <p>-</p>
-            @endif
+        @if (isset($row->record))
+            <div class="badge badge-soft badge-sm flex items-center gap-2 py-3.5">
+                <p>{{ $row->record->data['name'] ?? ($row->record->data['email'] ?? ($row->record->data['id'] ?? '-')) }}
+                </p>
+                <x-button class="btn-xs btn-ghost btn-circle"
+                          link="{{ route('collections', ['collection' => $row->collection->name, 'recordId' => $row->record?->data['id']]) }}"
+                          external>
+                    <x-icon name="lucide.external-link" class="w-5 h-5"/>
+                </x-button>
+            </div>
+        @else
+            <p>-</p>
+        @endif
         @endscope
 
         @scope('cell_token_hash', $row)
-            <span class="text-gray-400">********</span>
+        <span class="text-gray-400">********</span>
         @endscope
 
         @scope('cell_password', $row)
-            <span class="text-gray-400">********</span>
+        <span class="text-gray-400">********</span>
         @endscope
 
         @scope('cell_last_used_at', $row)
-            @if ($row->last_used_at)
-                <div class="flex flex-col w-20">
-                    <p>{{ $row->last_used_at->format('Y-m-d') }}</p>
-                    <p class="text-xs opacity-80">{{ $row->last_used_at->format('H:i:s') }}</p>
-                </div>
-            @else
-                <p>-</p>
-            @endif
+        @if ($row->last_used_at)
+            <div class="flex flex-col w-20">
+                <p>{{ $row->last_used_at->format('Y-m-d') }}</p>
+                <p class="text-xs opacity-80">{{ $row->last_used_at->format('H:i:s') }}</p>
+            </div>
+        @else
+            <p>-</p>
+        @endif
         @endscope
 
         @scope('cell_expires_at', $row)
-            @if ($row->expires_at)
-                <div class="flex flex-col w-20">
-                    <p>{{ $row->expires_at->format('Y-m-d') }}</p>
-                    <p class="text-xs opacity-80">{{ $row->expires_at->format('H:i:s') }}</p>
-                </div>
-            @else
-                <p>-</p>
-            @endif
+        @if ($row->expires_at)
+            <div class="flex flex-col w-20">
+                <p>{{ $row->expires_at->format('Y-m-d') }}</p>
+                <p class="text-xs opacity-80">{{ $row->expires_at->format('H:i:s') }}</p>
+            </div>
+        @else
+            <p>-</p>
+        @endif
         @endscope
 
         @scope('cell_used_at', $row)
-            @if ($row->used_at)
-                <div class="flex flex-col w-20">
-                    <p>{{ $row->used_at->format('Y-m-d') }}</p>
-                    <p class="text-xs opacity-80">{{ $row->used_at->format('H:i:s') }}</p>
-                </div>
-            @else
-                <p>-</p>
-            @endif
+        @if ($row->used_at)
+            <div class="flex flex-col w-20">
+                <p>{{ $row->used_at->format('Y-m-d') }}</p>
+                <p class="text-xs opacity-80">{{ $row->used_at->format('H:i:s') }}</p>
+            </div>
+        @else
+            <p>-</p>
+        @endif
         @endscope
 
         @if ($canEdit)
             @scope('actions', $row)
-                <x-button icon="o-arrow-right" x-on:click="$wire.showRecord('{{ $row->id }}')"
-                    spinner="showRecord('{{ $row->id }}')" class="btn-sm" />
+            <x-button icon="o-arrow-right" x-on:click="$wire.showRecord('{{ $row->id }}')"
+                      spinner="showRecord('{{ $row->id }}')" class="btn-sm"/>
             @endscope
         @endif
     </x-table>
@@ -694,11 +695,11 @@ new class extends Component {
                 <div class="flex flex-row items-center gap-4">
                     <p>Selected <span class="font-bold">{{ count($this->selected) }}</span>
                         {{ Str::plural('record', count($this->selected)) }}</p>
-                    <x-button label="Reset" x-on:click="$wire.selected = []" class="btn-soft" />
+                    <x-button label="Reset" x-on:click="$wire.selected = []" class="btn-soft"/>
                     @if ($canDelete)
                         <x-button label="Delete Selected"
-                            wire:click="promptDeleteRecord('{{ implode(',', $selected) }}')"
-                            class="btn-error btn-soft" />
+                                  wire:click="promptDeleteRecord('{{ implode(',', $selected) }}')"
+                                  class="btn-error btn-soft"/>
                     @endif
                 </div>
             </x-card>
@@ -710,14 +711,14 @@ new class extends Component {
     <x-drawer wire:model="showRecordDrawer" class="w-full lg:w-2/5" right without-trap-focus>
         <div class="flex justify-between">
             <div class="flex items-center gap-2">
-                <x-button icon="o-x-mark" class="btn-circle btn-ghost" x-on:click="$wire.showRecordDrawer = false" />
+                <x-button icon="o-x-mark" class="btn-circle btn-ghost" x-on:click="$wire.showRecordDrawer = false"/>
                 <p class="text-sm">{{ $editingId ? 'Update' : 'New' }} <span
                         class="font-bold">{{ $collectionName }}</span>
                     record</p>
             </div>
             <x-dropdown right>
                 <x-slot:trigger>
-                    <x-button icon="o-bars-2" class="btn-circle btn-ghost" :hidden="!$editingId" />
+                    <x-button icon="o-bars-2" class="btn-circle btn-ghost" :hidden="!$editingId"/>
                 </x-slot:trigger>
 
                 <x-menu-item title="Copy raw JSON" icon="o-document-text" x-data="{
@@ -728,18 +729,18 @@ new class extends Component {
                         $wire.dispatchSelf('toast', { message: 'Copied raw JSON to your clipboard.' });
                     }
                 }"
-                    x-on:click="copyJson" />
+                             x-on:click="copyJson"/>
 
                 @if ($canCreate)
                     <x-menu-item title="Duplicate" icon="o-document-duplicate"
-                        x-on:click="$wire.duplicateRecord($wire.editingId)" />
+                                 x-on:click="$wire.duplicateRecord($wire.editingId)"/>
                 @endif
 
-                <x-menu-separator />
+                <x-menu-separator/>
 
                 @if ($canDelete)
                     <x-menu-item title="Delete" icon="o-trash" class="text-error"
-                        x-on:click="$wire.promptDeleteRecord($wire.editingId)" />
+                                 x-on:click="$wire.promptDeleteRecord($wire.editingId)"/>
                 @endif
             </x-dropdown>
         </div>
@@ -760,23 +761,23 @@ new class extends Component {
                         ($config['type'] ?? 'text') === 'email' ||
                         ($config['type'] ?? 'text') === 'number')
                     <x-input label="{{ $config['label'] }}" wire:model="data.{{ $field }}"
-                        type="{{ $config['type'] ?? 'text' }}" icon="{{ $config['icon'] ?? '' }}"
-                        :readonly="$config['readonly'] ?? false" />
+                             type="{{ $config['type'] ?? 'text' }}" icon="{{ $config['icon'] ?? '' }}"
+                             :readonly="$config['readonly'] ?? false"/>
                 @elseif(($config['type'] ?? '') === 'password')
                     <x-password label="{{ $config['label'] }}" wire:model="data.{{ $field }}"
-                        password-icon="{{ $config['icon'] ?? 'o-key' }}" />
+                                password-icon="{{ $config['icon'] ?? 'o-key' }}"/>
                 @elseif(($config['type'] ?? '') === 'datetime-local')
                     <x-datetime label="{{ $config['label'] }}" wire:model="data.{{ $field }}"
-                        type="datetime-local" />
+                                type="datetime-local"/>
                 @elseif(($config['type'] ?? '') === 'select')
                     <x-select label="{{ $config['label'] }}" wire:model="data.{{ $field }}"
-                        :options="$config['options']" option-label="name" option-value="value" />
+                              :options="$config['options']" option-label="name" option-value="value"/>
                 @endif
             @endforeach
 
             <x-slot:actions>
-                <x-button label="Cancel" x-on:click="$wire.showRecordDrawer = false" />
-                <x-button label="Save" class="btn-primary" type="submit" spinner="saveRecord" />
+                <x-button label="Cancel" x-on:click="$wire.showRecordDrawer = false"/>
+                <x-button label="Save" class="btn-primary" type="submit" spinner="saveRecord"/>
             </x-slot:actions>
         </x-form>
     </x-drawer>
@@ -786,9 +787,9 @@ new class extends Component {
         {{ Str::plural('record', count($recordToDelete)) }}? This action cannot be undone.
 
         <x-slot:actions>
-            <x-button label="Cancel" x-on:click="$wire.showConfirmDeleteDialog = false" />
+            <x-button label="Cancel" x-on:click="$wire.showConfirmDeleteDialog = false"/>
             <x-button class="btn-error" label="Delete" wire:click="confirmDeleteRecord"
-                spinner="confirmDeleteRecord" />
+                      spinner="confirmDeleteRecord"/>
         </x-slot:actions>
     </x-modal>
 

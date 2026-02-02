@@ -9,5 +9,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::call(function () {
-    \App\Models\RealtimeConnection::pruneStale();
+    \App\Delivery\Models\RealtimeConnection::pruneStale();
 })->everyMinute();

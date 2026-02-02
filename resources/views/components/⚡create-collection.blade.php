@@ -1,12 +1,12 @@
 <?php
 
-use Livewire\Component;
+use App\Domain\Collection\Enums\CollectionType;
+use App\Domain\Collection\Models\Collection;
+use App\Domain\Field\Models\CollectionField;
+use App\Domain\Project\Models\Project;
 use Illuminate\Validation\Rules\Enum;
-use App\Enums\CollectionType;
-use App\Models\Collection;
-use App\Models\Project;
-use App\Models\CollectionField;
 use Livewire\Attributes\On;
+use Livewire\Component;
 
 new class extends Component {
     public bool $showCreateCollectionForm = false;
@@ -62,13 +62,13 @@ new class extends Component {
 <div>
     <x-modal wire:model="showCreateCollectionForm" title="New Collection">
         <x-form wire:submit="save" no-separator>
-            <x-input label="Name" icon="o-archive-box" wire:model="collectionName" placeholder="Name" />
+            <x-input label="Name" icon="o-archive-box" wire:model="collectionName" placeholder="Name"/>
             <x-select label="Type" icon="o-table-cells" wire:model.live="collectionType"
-                :options="CollectionType::toOptions()" />
+                      :options="CollectionType::toOptions()"/>
 
             <x-slot:actions>
-                <x-button label="Cancel" x-on:click="$wire.showCreateCollectionForm = false" />
-                <x-button label="Create" type="submit" spinner class="btn-primary" />
+                <x-button label="Cancel" x-on:click="$wire.showCreateCollectionForm = false"/>
+                <x-button label="Create" type="submit" spinner class="btn-primary"/>
             </x-slot:actions>
         </x-form>
     </x-modal>

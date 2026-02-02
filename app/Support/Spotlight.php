@@ -2,9 +2,9 @@
 
 namespace App\Support;
 
-use App\Enums\CollectionType;
-use App\Models\Collection;
-use App\Models\Project;
+use App\Domain\Collection\Enums\CollectionType;
+use App\Domain\Collection\Models\Collection;
+use App\Domain\Project\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Blade;
 
@@ -26,40 +26,40 @@ class Spotlight
     {
         $systemCollections = collect([
             [
-                'name' => 'superusers',
+                'name'        => 'superusers',
                 'description' => 'Manage superusers | System Collection',
-                'link' => route('system.superusers'),
-                'icon' => Blade::render("<x-icon name='o-users' />"),
+                'link'        => route('system.superusers'),
+                'icon'        => Blade::render("<x-icon name='o-users' />"),
             ],
             [
-                'name' => 'authSessions',
+                'name'        => 'authSessions',
                 'description' => 'Manage authenticated users sessions | System Collection',
-                'link' => route('system.sessions'),
-                'icon' => Blade::render("<x-icon name='o-archive-box' />"),
+                'link'        => route('system.sessions'),
+                'icon'        => Blade::render("<x-icon name='o-archive-box' />"),
             ],
             [
-                'name' => 'otps',
+                'name'        => 'otps',
                 'description' => 'Manage OTP entries | System Collection',
-                'link' => route('system.otps'),
-                'icon' => Blade::render("<x-icon name='o-archive-box' />"),
+                'link'        => route('system.otps'),
+                'icon'        => Blade::render("<x-icon name='o-archive-box' />"),
             ],
             [
-                'name' => 'realtime',
+                'name'        => 'realtime',
                 'description' => 'Manage realtime connections | System Collection',
-                'link' => url(route('system.realtime')),
-                'icon' => Blade::render("<x-icon name='lucide.chart-line' />"),
+                'link'        => url(route('system.realtime')),
+                'icon'        => Blade::render("<x-icon name='lucide.chart-line' />"),
             ],
             [
-                'name' => 'Logs',
+                'name'        => 'Logs',
                 'description' => 'System Page',
-                'link' => url(route('system.logs')),
+                'link'        => url(route('system.logs')),
 
                 'icon' => Blade::render("<x-icon name='lucide.chart-line' />"),
             ],
             [
-                'name' => 'Settings',
+                'name'        => 'Settings',
                 'description' => 'Manage system settings | System Collection',
-                'link' => url(route('system.settings')),
+                'link'        => url(route('system.settings')),
 
                 'icon' => Blade::render("<x-icon name='lucide.settings-2' />"),
             ],
@@ -73,14 +73,14 @@ class Spotlight
                 $icon = match ($col->type) {
                     CollectionType::Auth => 'o-users',
                     CollectionType::View => 'o-table-cells',
-                    default => 'o-archive-box',
+                    default              => 'o-archive-box',
                 };
 
                 return [
-                    'name' => $col->name,
-                    'description' => 'Collection | Updated '.$col->updated_at->diffForHUmans(),
-                    'link' => route('collections', ['collection' => $col]),
-                    'icon' => Blade::render("<x-icon name='$icon' />"),
+                    'name'        => $col->name,
+                    'description' => 'Collection | Updated ' . $col->updated_at->diffForHUmans(),
+                    'link'        => route('collections', ['collection' => $col]),
+                    'icon'        => Blade::render("<x-icon name='$icon' />"),
                 ];
             });
 

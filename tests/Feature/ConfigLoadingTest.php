@@ -2,9 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Models\AppConfig;
+use App\Domain\Auth\Models\AppConfig;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\RateLimiter;
 use Tests\TestCase;
 
@@ -19,8 +18,8 @@ class ConfigLoadingTest extends TestCase
         \Illuminate\Support\Facades\Cache::flush();
         \Illuminate\Database\Eloquent\Model::unguard();
 
-        if (class_exists(\App\Models\Project::class)) {
-            \App\Models\Project::create(['id' => 1, 'name' => 'Test Project']);
+        if (class_exists(\App\Domain\Project\Models\Project::class)) {
+            \App\Domain\Project\Models\Project::create(['id' => 1, 'name' => 'Test Project']);
         } else {
             // Fallback if no Project model (improbable given constraints)
             \Illuminate\Support\Facades\DB::table('projects')->insert(['id' => 1, 'name' => 'Test Project']);
@@ -30,21 +29,21 @@ class ConfigLoadingTest extends TestCase
     public function test_email_config_is_loaded_and_cached(): void
     {
         AppConfig::create([
-            'project_id' => 1,
-            'app_name' => 'Test App',
+            'project_id'     => 1,
+            'app_name'       => 'Test App',
             'email_settings' => [
-                'mailer' => 'smtp',
-                'host' => 'smtp.example.com',
-                'port' => 587,
-                'username' => 'user',
-                'password' => 'pass',
-                'encryption' => 'tls',
+                'mailer'       => 'smtp',
+                'host'         => 'smtp.example.com',
+                'port'         => 587,
+                'username'     => 'user',
+                'password'     => 'pass',
+                'encryption'   => 'tls',
                 'from_address' => 'test@example.com',
-                'from_name' => 'Test App',
+                'from_name'    => 'Test App',
             ],
         ]);
 
-        $provider = new \App\Providers\VeloServiceProvider($this->app);
+        $provider = new \App\Delivery\Providers\VeloServiceProvider($this->app);
         $provider->boot();
 
         $this->assertEquals('smtp.example.com', config('mail.mailers.smtp.host'));
@@ -54,20 +53,20 @@ class ConfigLoadingTest extends TestCase
     public function test_storage_config_is_loaded_and_cached(): void
     {
         AppConfig::create([
-            'project_id' => 1,
-            'app_name' => 'Test App',
+            'project_id'       => 1,
+            'app_name'         => 'Test App',
             'storage_settings' => [
-                'provider' => 's3',
-                'endpoint' => 'https://s3.example.com',
-                'bucket' => 'my-bucket',
-                'region' => 'us-east-1',
-                'access_key' => 'key',
-                'secret_key' => 'secret',
+                'provider'              => 's3',
+                'endpoint'              => 'https://s3.example.com',
+                'bucket'                => 'my-bucket',
+                'region'                => 'us-east-1',
+                'access_key'            => 'key',
+                'secret_key'            => 'secret',
                 's3_force_path_styling' => true,
             ],
         ]);
 
-        $provider = new \App\Providers\VeloServiceProvider($this->app);
+        $provider = new \App\Delivery\Providers\VeloServiceProvider($this->app);
         $provider->boot();
 
         $this->assertEquals('https://s3.example.com', config('filesystems.disks.s3.endpoint'));
@@ -78,7 +77,7 @@ class ConfigLoadingTest extends TestCase
     public function test_rate_limiter_defaults_to_120(): void
     {
         // No AppConfig
-        $provider = new \App\Providers\VeloServiceProvider($this->app);
+        $provider = new \App\Delivery\Providers\VeloServiceProvider($this->app);
         $provider->boot();
 
         $limiter = RateLimiter::limiter('dynamic-api');
@@ -97,12 +96,12 @@ class ConfigLoadingTest extends TestCase
     public function test_rate_limiter_uses_db_config(): void
     {
         AppConfig::create([
-            'project_id' => 1,
-            'app_name' => 'Test',
+            'project_id'  => 1,
+            'app_name'    => 'Test',
             'rate_limits' => 200,
         ]);
 
-        $provider = new \App\Providers\VeloServiceProvider($this->app);
+        $provider = new \App\Delivery\Providers\VeloServiceProvider($this->app);
         $provider->boot();
 
         $limiter = RateLimiter::limiter('dynamic-api');

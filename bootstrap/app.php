@@ -1,6 +1,6 @@
 <?php
 
-use App\Exceptions\InvalidRecordException;
+use App\Domain\Project\Exceptions\InvalidRecordException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,11 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withBroadcasting(
         __DIR__ . '/../routes/channels.php',
-        ['prefix' => 'api', 'middleware' => ['api', \App\Http\Middleware\AuthMiddleware::class]]
+        ['prefix' => 'api', 'middleware' => ['api', \App\Delivery\Http\Middlewares\AuthMiddleware::class]]
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(append: [
-            App\Http\Middleware\AuthMiddleware::class,
+            \App\Delivery\Http\Middlewares\AuthMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

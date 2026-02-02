@@ -1,21 +1,23 @@
 <?php
 
-use App\Models\Project;
+use App\Domain\Project\Models\Project;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\{Layout, Title};
 use Livewire\Component;
-new
-    #[Layout('layouts::guest')]
-    #[Title('Login')]
-    class extends Component {
 
-    public $email = 'admin@velobase.dev', $password = 'password', $remember = false;
+new
+#[Layout('layouts::guest')]
+#[Title('Login')]
+class extends Component {
+
+    public bool $remember = false;
+    public string $password = 'password';
+    public string $email = 'admin@velobase.dev';
 
     public function mount()
     {
         if (!Project::exists()) {
-            // \App\Helper::initProject(); // @TODO: Remove on production
             return $this->redirect(route('register'), navigate: true);
         }
     }
@@ -50,19 +52,19 @@ new
 <main class="max-w-xl w-full mx-auto p-6">
     <x-form wire:submit="login">
         <div class="flex justify-center">
-            <x-app-brand class="mb-6" />
+            <x-app-brand class="mb-6"/>
         </div>
 
-        <x-input label="Email" wire:model="email" icon="o-envelope" />
-        <x-password label="Password" wire:model="password" password-icon="o-key" />
+        <x-input label="Email" wire:model="email" icon="o-envelope"/>
+        <x-password label="Password" wire:model="password" password-icon="o-key"/>
 
         <div class="flex justify-between flex-wrap">
-            <x-toggle label="Remember Me" wire:model="remember" />
+            <x-toggle label="Remember Me" wire:model="remember"/>
             <a class="link link-hover" href="{{ route('password.request') }}">Forgot password?</a>
         </div>
 
         <x-slot:actions>
-            <x-button label="Login" class="btn-primary w-full" type="submit" spinner="login" />
+            <x-button label="Login" class="btn-primary w-full" type="submit" spinner="login"/>
         </x-slot:actions>
     </x-form>
 </main>

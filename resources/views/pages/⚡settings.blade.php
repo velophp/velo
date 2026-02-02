@@ -1,9 +1,8 @@
 <?php
 
-use App\Models\AppConfig;
-use App\Models\Project;
+use App\Domain\Auth\Models\AppConfig;
+use App\Domain\Project\Models\Project;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Mary\Traits\Toast;
 
@@ -86,7 +85,7 @@ new class extends Component {
     {
         // Load AppConfig
         $appConfig = AppConfig::where('project_id', $this->project->id)->first();
-        
+
         // General
         $this->app_name = $appConfig->app_name ?? $this->project->name ?? '';
         $this->app_url = $appConfig->app_url ?? 'http://localhost';
@@ -170,11 +169,11 @@ new class extends Component {
 
         $appConfig = AppConfig::firstOrNew(['project_id' => $this->project->id]);
         $appConfig->email_settings = $settings;
-        
+
         if (!$appConfig->exists) {
             $appConfig->app_name = $this->project->name;
         }
-        
+
         $appConfig->save();
 
         $this->success('Mail settings saved successfully.');
@@ -204,7 +203,7 @@ new class extends Component {
 
         $appConfig = AppConfig::firstOrNew(['project_id' => $this->project->id]);
         $appConfig->storage_settings = $settings;
-        
+
         if (!$appConfig->exists) {
             $appConfig->app_name = $this->project->name;
         }
@@ -302,24 +301,25 @@ new class extends Component {
             <x-form wire:submit="saveGeneralSettings" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-input label="Application Name" wire:model="app_name" icon="o-building-office"
-                        hint="The name of your application" required />
+                             hint="The name of your application" required/>
 
                     <x-input label="Application URL" wire:model="app_url" icon="o-globe-alt"
-                        hint="The base URL of your application" required />
+                             hint="The base URL of your application" required/>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-input label="Rate Limits" wire:model="rate_limits" type="number" icon="o-clock"
-                        hint="Max API requests per minute (leave empty for unlimited)" min="1" />
+                             hint="Max API requests per minute (leave empty for unlimited)" min="1"/>
 
                     <x-textarea label="Trusted Proxies" wire:model="trusted_proxies_input"
-                        placeholder="192.168.1.1, 10.0.0.0/8, *"
-                        hint="Comma-separated list of trusted proxy IPs or CIDR ranges. Use * for all." rows="2" />
+                                placeholder="192.168.1.1, 10.0.0.0/8, *"
+                                hint="Comma-separated list of trusted proxy IPs or CIDR ranges. Use * for all."
+                                rows="2"/>
                 </div>
 
                 <x-slot:actions>
                     <x-button label="Save General Settings" type="submit" class="btn-primary" icon="o-check"
-                        spinner="saveGeneralSettings" />
+                              spinner="saveGeneralSettings"/>
                 </x-slot:actions>
             </x-form>
         </x-tab>
@@ -329,39 +329,40 @@ new class extends Component {
             <x-form wire:submit="saveMailSettings" class="space-y-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-select label="Mail Driver" wire:model.live="mail_mailer" :options="$this->mailerOptions"
-                        icon="o-paper-airplane" required />
+                              icon="o-paper-airplane" required/>
 
                     <x-select label="Encryption" wire:model="mail_encryption" :options="$this->encryptionOptions"
-                        icon="o-lock-closed" />
+                              icon="o-lock-closed"/>
                 </div>
 
                 @if(in_array($mail_mailer, ['smtp', 'sendmail']))
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-input label="Mail Host" wire:model="mail_host" icon="o-server" placeholder="smtp.example.com" />
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <x-input label="Mail Host" wire:model="mail_host" icon="o-server"
+                                 placeholder="smtp.example.com"/>
 
-                    <x-input label="Mail Port" wire:model="mail_port" icon="o-hashtag" placeholder="587" />
-                </div>
+                        <x-input label="Mail Port" wire:model="mail_port" icon="o-hashtag" placeholder="587"/>
+                    </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <x-input label="Username" wire:model="mail_username" icon="o-user" />
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <x-input label="Username" wire:model="mail_username" icon="o-user"/>
 
-                    <x-password label="Password" wire:model="mail_password" password-icon="o-key" />
-                </div>
+                        <x-password label="Password" wire:model="mail_password" password-icon="o-key"/>
+                    </div>
                 @endif
 
                 <div class="divider">Sender Information</div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <x-input label="From Name" wire:model="mail_from_name" icon="o-user"
-                        hint="The name emails will be sent from" required />
+                             hint="The name emails will be sent from" required/>
 
                     <x-input label="From Address" wire:model="mail_from_address" type="email" icon="o-envelope"
-                        hint="The email address emails will be sent from" required />
+                             hint="The email address emails will be sent from" required/>
                 </div>
 
                 <x-slot:actions>
                     <x-button label="Save Mail Settings" type="submit" class="btn-primary" icon="o-check"
-                        spinner="saveMailSettings" />
+                              spinner="saveMailSettings"/>
                 </x-slot:actions>
             </x-form>
         </x-tab>
@@ -370,45 +371,46 @@ new class extends Component {
         <x-tab name="storage" label="Storage" icon="o-circle-stack">
             <x-form wire:submit="saveStorageSettings" class="space-y-4">
                 <x-select label="Storage Provider" wire:model.live="storage_provider"
-                    :options="$this->storageProviderOptions" icon="o-cloud" required />
+                          :options="$this->storageProviderOptions" icon="o-cloud" required/>
 
                 @if($storage_provider === 's3')
-                <div class="p-4 bg-base-200 rounded-lg space-y-4">
-                    <h3 class="font-semibold text-lg">S3 Configuration</h3>
+                    <div class="p-4 bg-base-200 rounded-lg space-y-4">
+                        <h3 class="font-semibold text-lg">S3 Configuration</h3>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <x-input label="Endpoint" wire:model="storage_endpoint" icon="o-globe-alt"
-                            placeholder="https://s3.amazonaws.com"
-                            hint="Leave empty for AWS S3, or provide custom endpoint for S3-compatible storage" />
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <x-input label="Endpoint" wire:model="storage_endpoint" icon="o-globe-alt"
+                                     placeholder="https://s3.amazonaws.com"
+                                     hint="Leave empty for AWS S3, or provide custom endpoint for S3-compatible storage"/>
 
-                        <x-input label="Bucket" wire:model="storage_bucket" icon="o-archive-box"
-                            placeholder="my-bucket" />
+                            <x-input label="Bucket" wire:model="storage_bucket" icon="o-archive-box"
+                                     placeholder="my-bucket"/>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <x-input label="Region" wire:model="storage_region" icon="o-map" placeholder="us-east-1"/>
+
+                            <x-toggle label="Force Path Style" wire:model="s3_force_path_styling"
+                                      hint="Enable for S3-compatible services like MinIO"/>
+                        </div>
+
+                        <div class="divider">Credentials</div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <x-input label="Access Key" wire:model="storage_access_key" icon="o-key"/>
+
+                            <x-password label="Secret Key" wire:model="storage_secret_key"
+                                        password-icon="o-lock-closed"/>
+                        </div>
                     </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <x-input label="Region" wire:model="storage_region" icon="o-map" placeholder="us-east-1" />
-
-                        <x-toggle label="Force Path Style" wire:model="s3_force_path_styling"
-                            hint="Enable for S3-compatible services like MinIO" />
-                    </div>
-
-                    <div class="divider">Credentials</div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <x-input label="Access Key" wire:model="storage_access_key" icon="o-key" />
-
-                        <x-password label="Secret Key" wire:model="storage_secret_key" password-icon="o-lock-closed" />
-                    </div>
-                </div>
                 @else
-                <x-alert icon="o-information-circle" class="alert-info">
-                    Using local storage. Files will be stored in the application's storage directory.
-                </x-alert>
+                    <x-alert icon="o-information-circle" class="alert-info">
+                        Using local storage. Files will be stored in the application's storage directory.
+                    </x-alert>
                 @endif
 
                 <x-slot:actions>
                     <x-button label="Save Storage Settings" type="submit" class="btn-primary" icon="o-check"
-                        spinner="saveStorageSettings" />
+                              spinner="saveStorageSettings"/>
                 </x-slot:actions>
             </x-form>
         </x-tab>
@@ -422,10 +424,10 @@ new class extends Component {
                         <h3 class="card-title text-lg">Server Information</h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-4">
                             @foreach($this->serverInfo as $label => $value)
-                            <div class="flex flex-col p-3 bg-base-100 rounded-lg">
-                                <span class="text-xs text-gray-500 uppercase tracking-wide">{{ $label }}</span>
-                                <span class="font-medium mt-1">{{ $value }}</span>
-                            </div>
+                                <div class="flex flex-col p-3 bg-base-100 rounded-lg">
+                                    <span class="text-xs text-gray-500 uppercase tracking-wide">{{ $label }}</span>
+                                    <span class="font-medium mt-1">{{ $value }}</span>
+                                </div>
                             @endforeach
                         </div>
                     </div>
@@ -437,14 +439,14 @@ new class extends Component {
                         <h3 class="card-title text-lg">PHP Extensions</h3>
                         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3 mt-4">
                             @foreach($this->phpExtensions as $extension => $loaded)
-                            <div class="flex items-center gap-2 p-2 bg-base-100 rounded-lg">
-                                @if($loaded)
-                                <x-icon name="o-check-circle" class="w-5 h-5 text-success" />
-                                @else
-                                <x-icon name="o-x-circle" class="w-5 h-5 text-error" />
-                                @endif
-                                <span class="text-sm">{{ $extension }}</span>
-                            </div>
+                                <div class="flex items-center gap-2 p-2 bg-base-100 rounded-lg">
+                                    @if($loaded)
+                                        <x-icon name="o-check-circle" class="w-5 h-5 text-success"/>
+                                    @else
+                                        <x-icon name="o-x-circle" class="w-5 h-5 text-error"/>
+                                    @endif
+                                    <span class="text-sm">{{ $extension }}</span>
+                                </div>
                             @endforeach
                         </div>
                     </div>
@@ -455,11 +457,11 @@ new class extends Component {
                     <div class="card-body">
                         <h3 class="card-title text-lg">Disk Space</h3>
                         @php
-                        $storagePath = storage_path();
-                        $totalSpace = disk_total_space($storagePath);
-                        $freeSpace = disk_free_space($storagePath);
-                        $usedSpace = $totalSpace - $freeSpace;
-                        $usedPercent = round(($usedSpace / $totalSpace) * 100, 1);
+                            $storagePath = storage_path();
+                            $totalSpace = disk_total_space($storagePath);
+                            $freeSpace = disk_free_space($storagePath);
+                            $usedSpace = $totalSpace - $freeSpace;
+                            $usedPercent = round(($usedSpace / $totalSpace) * 100, 1);
                         @endphp
                         <div class="mt-4">
                             <div class="flex justify-between text-sm mb-2">
