@@ -59,7 +59,7 @@ class ValidRuleExpression implements ValidationRule
             }
 
             // Rule must contain at least one comparison operator
-            if (! preg_match('/(=|!=|>=|<=|>|<|LIKE)/i', $rawRule)) {
+            if (! preg_match('/(=|!=|>=|<=|>|<|like|LIKE|in|IN)/i', $rawRule)) {
                 $fail('Rule must be an expression with field and operator (e.g., "field = value").');
 
                 return;

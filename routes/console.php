@@ -1,5 +1,6 @@
 <?php
 
+use App\Delivery\Models\RealtimeConnection;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -9,5 +10,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::call(function () {
-    \App\Delivery\Models\RealtimeConnection::pruneStale();
+    RealtimeConnection::pruneStale();    
 })->everyMinute();

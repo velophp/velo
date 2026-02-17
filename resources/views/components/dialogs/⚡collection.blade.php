@@ -902,7 +902,7 @@ new class extends Component {
                                                                         <x-input type="number" label="Min Select"
                                                                                  wire:model="collectionForm.fields.{{ $index }}.options.minSelect"
                                                                                  placeholder="No min select" min="0"/>
-                                                                        <x-input type="number" label="Min Select"
+                                                                        <x-input type="number" label="Max Select"
                                                                                  wire:model="collectionForm.fields.{{ $index }}.options.maxSelect"
                                                                                  placeholder="No max select" min="0"/>
                                                                     @endif

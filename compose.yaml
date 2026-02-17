@@ -71,3 +71,5 @@ volumes:
         name: sail-mysql-data
     sail-redis:
         driver: local
+    sail-mysql:
+        driver: local
