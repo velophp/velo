@@ -13,7 +13,7 @@ class ListRecords
     /**
      * @throws InvalidRuleException
      */
-    public function execute(
+    public static function execute(
         Collection $collection,
         int $perPage,
         int $page,
@@ -21,7 +21,7 @@ class ListRecords
         ?string $sort,
         ?string $expand,
         ?RuleContext $context,
-    ): \Illuminate\Http\Resources\Json\AnonymousResourceCollection {
+    ) {
         // Apply list API rule as additional filter (interpolate @variables with actual values)
         $listRule = $collection->api_rules['list'];
         if ($listRule == 'SUPERUSER_ONLY') {

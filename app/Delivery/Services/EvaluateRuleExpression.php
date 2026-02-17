@@ -63,24 +63,13 @@ class EvaluateRuleExpression
         // Find all @variable.path patterns and replace with actual values
         $result = preg_replace_callback('/@([a-zA-Z_][a-zA-Z0-9_\.]*)/u', function ($matches) {
             $path = $matches[1];
-            $parts = explode('.', $path);
 
-            // Navigate through context using dot notation
-            $value = $this->context['sys_' . $parts[0]] ?? null;
-            for ($i = 1; $i < count($parts); $i++) {
-                if ($value === null) {
-                    break;
-                }
-                if (is_object($value)) {
-                    $value = $value->{$parts[$i]} ?? null;
-                } elseif (is_array($value)) {
-                    $value = $value[$parts[$i]] ?? null;
-                } else {
-                    $value = null;
-                }
+            if (str_starts_with($path, 'request.')) {
+                $path = 'sys_' . $path;
             }
 
-            // Return quoted string or empty string if null
+            $value = data_get($this->context->toArray(), $path);
+
             if ($value === null) {
                 return '""';
             }

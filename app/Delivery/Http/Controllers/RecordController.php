@@ -9,7 +9,7 @@ use App\Domain\Collection\Enums\CollectionType;
 use App\Domain\Collection\Models\Collection;
 use App\Domain\Field\Enums\FieldType;
 use App\Domain\Project\Exceptions\InvalidRuleException;
-use App\Domain\Record\Actions\ListRecords;
+use App\Domain\Record\Actions;
 use App\Domain\Record\Authorization\RuleContext;
 use App\Domain\Record\Resources\RecordResource;
 use Illuminate\Http\JsonResponse;
@@ -31,7 +31,7 @@ class RecordController extends Controller
 
         $context = RuleContext::fromRequest($request);
 
-        $resources = app(ListRecords::class)->execute(
+        $resources = Actions\ListRecords::execute(
             $collection,
             $perPage,
             $page,

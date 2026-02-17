@@ -55,7 +55,7 @@ final readonly class RuleContext
     public function toArray(): array
     {
         return [
-            'sys_request' => (object)[
+            'sys_request' => (object) [
                 'auth'  => $this->user,
                 'body'  => $this->body,
                 'param' => $this->params,

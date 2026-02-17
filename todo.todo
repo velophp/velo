@@ -10,5 +10,5 @@ IMPROVEMENT:
 - add migration system for programmatic collection schema changes
 - add export and import feature
 - cache rule expression
-- add js n dart sdk
+- add js n flutter sdk
 - check @TODO(s)

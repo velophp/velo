@@ -6,11 +6,12 @@ use App\Domain\Collection\Contracts\IndexStrategy;
 use App\Domain\Collection\Exceptions\IndexOperationException;
 use App\Domain\Collection\Models\Collection;
 use App\Support\Helper;
+use Illuminate\Container\Attributes\Log;
 use Illuminate\Support\Facades\DB;
 
 class MysqlIndexStrategy implements IndexStrategy
 {
-    private function executeIndexSql($collection, $fieldNames, $indexName, $unique)
+    private function executeIndexSql($collection, $fieldNames, $indexName, $unique): void
     {
         $alterParts = [];
         foreach ($fieldNames as $name) {
